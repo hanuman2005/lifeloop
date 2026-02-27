@@ -1,11 +1,12 @@
 // backend/controllers/aiController.js
-// ✅ HYBRID: COCO-SSD for image classification (FREE), OpenAI/Gemini for text ideas
-// ✅ No more vision API quota issues!
+// ✅ HYBRID: COCO-SSD for images (FREE), OpenAI for ideas with Gemini fallback
+// ✅ Try OpenAI → If 429 quota, use Gemini (fallback)
 // ✅ Cache + dedupe, return errors immediately
 
 const cocoSsd = require("@tensorflow-models/coco-ssd");
 const tf = require("@tensorflow/tfjs");
 const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const UpcycleIdea = require("../models/UpcycleIdea");
 const crypto = require("crypto");
 
@@ -131,11 +132,29 @@ const classifyWaste = (detections) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OPENAI FOR TEXT IDEAS
+// OPENAI FOR TEXT IDEAS (PRIMARY)
 // ─────────────────────────────────────────────────────────────────────────────
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GEMINI FOR TEXT IDEAS (FALLBACK when OpenAI quota exceeded)
+// ─────────────────────────────────────────────────────────────────────────────
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+const callGemini = async (prompt) => {
+  if (!genAI) throw new Error("GEMINI_API_KEY not configured");
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) {
+    throw err;
+  }
+};
 
 const callOpenAI = async (prompt, isUpcycle = true) => {
   if (!openai) throw new Error("OPENAI_API_KEY not configured");
@@ -180,6 +199,12 @@ const parseJSON = (raw) => {
 console.log(
   "🤖 OpenAI:",
   openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured",
+);
+console.log(
+  "🤖 Gemini:",
+  genAI
+    ? "ready (fallback for ideas if OpenAI quota exceeded)"
+    : "NOT configured",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -337,12 +362,33 @@ RESPOND ONLY WITH JSON ARRAY:
             const ideas = parseJSON(raw);
             if (!Array.isArray(ideas) || !ideas.length)
               throw new Error("Empty");
-            console.log(`✅ ${ideas.length} ideas`);
+            console.log(`✅ OpenAI: ${ideas.length} ideas`);
             requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
             return ideas;
-          } catch (err) {
-            console.error(`❌ OpenAI:`, err.message);
-            throw err;
+          } catch (openaiErr) {
+            const is429 = openaiErr.status === 429;
+            console.warn(`⚠️  OpenAI failed:`, openaiErr.message);
+
+            // If quota exceeded, fall back to Gemini
+            if (is429 && genAI) {
+              try {
+                console.log(
+                  `🔄 Falling back to Gemini (OpenAI quota exceeded)...`,
+                );
+                const raw = await callGemini(promptText);
+                const ideas = parseJSON(raw);
+                if (!Array.isArray(ideas) || !ideas.length)
+                  throw new Error("Empty from Gemini");
+                console.log(`✅ Gemini: ${ideas.length} ideas [FALLBACK]`);
+                requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
+                return ideas;
+              } catch (geminiErr) {
+                console.error(`❌ Gemini fallback failed:`, geminiErr.message);
+                throw geminiErr;
+              }
+            }
+
+            throw openaiErr;
           }
         })();
 
