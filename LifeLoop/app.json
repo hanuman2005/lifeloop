@@ -44,8 +44,8 @@
       "reactCompiler": true
     },
     "extra": {
-      "API_URL": "http://192.168.0.135:5000/api",
-      "SOCKET_API_URL": "http://192.168.0.135:5000",
+      "API_URL": "http://172.15.3.218:5000/api",
+      "SOCKET_API_URL": "http://172.15.3.218:5000",
       "CLOUDINARY_CLOUD_NAME": "dp1ochs0s",
       "CLOUDINARY_UPLOAD_PRESET": "lifeloop_waste"
     }

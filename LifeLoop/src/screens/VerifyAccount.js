@@ -54,7 +54,7 @@ const VerifyAccount = ({ navigation }) => {
   const fetchVerificationStatus = async () => {
     try {
       const response = await fetch(
-        `http://192.168.0.140:5000/api/verify/status/${user._id}`,
+        `http://172.15.3.218:5000/api/verify/status/${user._id}`,
       );
       const data = await response.json();
       if (data.success) {
@@ -85,7 +85,7 @@ const VerifyAccount = ({ navigation }) => {
     setEmailLoading(true);
     try {
       const response = await fetch(
-        "http://192.168.0.140:5000/api/verify/email-send-otp",
+        "http://172.15.3.218:5000/api/verify/email-send-otp",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -120,7 +120,7 @@ const VerifyAccount = ({ navigation }) => {
     setEmailLoading(true);
     try {
       const response = await fetch(
-        "http://192.168.0.140:5000/api/verify/email-verify-otp",
+        "http://172.15.3.218:5000/api/verify/email-verify-otp",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -161,7 +161,7 @@ const VerifyAccount = ({ navigation }) => {
     setPhoneLoading(true);
     try {
       const response = await fetch(
-        "http://192.168.0.140:5000/api/verify/phone-send-otp",
+        "http://172.15.3.218:5000/api/verify/phone-send-otp",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -196,7 +196,7 @@ const VerifyAccount = ({ navigation }) => {
     setPhoneLoading(true);
     try {
       const response = await fetch(
-        "http://192.168.0.140:5000/api/verify/phone-verify-otp",
+        "http://172.15.3.218:5000/api/verify/phone-verify-otp",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
