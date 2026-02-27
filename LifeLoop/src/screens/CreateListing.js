@@ -1,0 +1,1340 @@
+// src/screens/CreateListing.js - React Native | Full Build
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Animated,
+  ActivityIndicator,
+  Image,
+  Switch,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import { listingsAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import Toast from "react-native-toast-message";
+import { uploadPrimaryImage } from "../utils/imageUpload";
+
+const { width: SW } = Dimensions.get("window");
+
+// ─────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────
+const CATEGORIES = [
+  { value: "produce", label: "🥦 Fresh Produce" },
+  { value: "dairy", label: "🥛 Dairy" },
+  { value: "bakery", label: "🍞 Bakery" },
+  { value: "canned-goods", label: "🥫 Canned Goods" },
+  { value: "household-items", label: "🏠 Household" },
+  { value: "clothing", label: "👕 Clothing" },
+  { value: "electronics", label: "📱 Electronics" },
+  { value: "furniture", label: "🛋️ Furniture" },
+  { value: "books", label: "📚 Books" },
+  { value: "other", label: "📦 Other" },
+];
+
+const UNITS = [
+  { value: "items", label: "Items" },
+  { value: "kg", label: "kg" },
+  { value: "lbs", label: "lbs" },
+  { value: "bags", label: "Bags" },
+  { value: "boxes", label: "Boxes" },
+  { value: "servings", label: "Servings" },
+];
+
+const INITIAL_BULK_ITEM = {
+  title: "",
+  description: "",
+  quantity: "",
+  unit: "items",
+  category: "produce",
+};
+
+const INITIAL_FORM = {
+  title: "",
+  description: "",
+  category: "produce",
+  quantity: "",
+  unit: "items",
+  expiryDate: "",
+  pickupLocation: "",
+  additionalNotes: "",
+};
+
+// ─────────────────────────────────────────
+// Micro-components
+// ─────────────────────────────────────────
+
+// Progress steps header - REMOVED (unused feature)
+
+// Field label
+const FieldLabel = ({ text, required }) => (
+  <Text style={s.label}>
+    {text}
+    {required && <Text style={s.labelRequired}> *</Text>}
+  </Text>
+);
+
+// Styled text input
+const Field = ({ label, required, multiline, ...props }) => {
+  const border = useRef(new Animated.Value(0)).current;
+  const onFocus = () =>
+    Animated.timing(border, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  const onBlur = () =>
+    Animated.timing(border, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  const borderColor = border.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#1e2d45", "#4ade80"],
+  });
+
+  return (
+    <View style={s.fieldWrap}>
+      {label && <FieldLabel text={label} required={required} />}
+      <Animated.View
+        style={[s.inputBox, { borderColor }, multiline && s.inputBoxMulti]}
+      >
+        <TextInput
+          style={[s.input, multiline && s.inputMulti]}
+          placeholderTextColor="#3d5068"
+          onFocus={onFocus}
+          onBlur={onBlur}
+          multiline={multiline}
+          numberOfLines={multiline ? 4 : 1}
+          {...props}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+// Category selector (horizontal chips)
+const CategorySelector = ({ value, onChange }) => (
+  <View style={s.fieldWrap}>
+    <FieldLabel text="Category" required />
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={s.chipsRow}
+    >
+      {CATEGORIES.map((c) => (
+        <TouchableOpacity
+          key={c.value}
+          style={[s.chip, value === c.value && s.chipActive]}
+          onPress={() => onChange(c.value)}
+          activeOpacity={0.8}
+        >
+          <Text style={[s.chipText, value === c.value && s.chipTextActive]}>
+            {c.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+);
+
+// Unit selector (horizontal chips, compact)
+const UnitSelector = ({ value, onChange }) => (
+  <View style={[s.fieldWrap, { flex: 1 }]}>
+    <FieldLabel text="Unit" />
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={s.chipsRow}
+    >
+      {UNITS.map((u) => (
+        <TouchableOpacity
+          key={u.value}
+          style={[s.chip, s.chipSm, value === u.value && s.chipActive]}
+          onPress={() => onChange(u.value)}
+          activeOpacity={0.8}
+        >
+          <Text
+            style={[
+              s.chipText,
+              s.chipTextSm,
+              value === u.value && s.chipTextActive,
+            ]}
+          >
+            {u.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+);
+
+// Image grid with add button
+const ImageGrid = ({ images, onAdd, onRemove }) => (
+  <View style={s.fieldWrap}>
+    <FieldLabel text="Photos" />
+    <Text style={s.imageHint}>Up to 5 photos · tap to remove</Text>
+    <View style={s.imageGrid}>
+      {images.map((img, i) => (
+        <TouchableOpacity
+          key={i}
+          style={s.imageItem}
+          onPress={() => onRemove(i)}
+          activeOpacity={0.85}
+        >
+          <Image source={{ uri: img.uri }} style={s.imageThumb} />
+          <View style={s.imageRemoveOverlay}>
+            <Text style={s.imageRemoveIcon}>✕</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+      {images.length < 5 && (
+        <TouchableOpacity
+          style={s.imageAddBtn}
+          onPress={onAdd}
+          activeOpacity={0.8}
+        >
+          <Text style={s.imageAddIcon}>📷</Text>
+          <Text style={s.imageAddText}>Add</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </View>
+);
+
+// Bulk item row
+const BulkRow = ({ item, index, onChange, onRemove, canRemove }) => (
+  <View style={s.bulkRow}>
+    <View style={s.bulkRowTop}>
+      <View style={s.bulkIndexBadge}>
+        <Text style={s.bulkIndexText}>{index + 1}</Text>
+      </View>
+      <TextInput
+        style={s.bulkTitleInput}
+        value={item.title}
+        onChangeText={(v) => onChange(index, "title", v)}
+        placeholder="Item name"
+        placeholderTextColor="#3d5068"
+      />
+      {canRemove && (
+        <TouchableOpacity
+          style={s.bulkRemoveBtn}
+          onPress={() => onRemove(index)}
+        >
+          <Text style={s.bulkRemoveIcon}>✕</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+    <TextInput
+      style={s.bulkDescInput}
+      value={item.description}
+      onChangeText={(v) => onChange(index, "description", v)}
+      placeholder="Brief description"
+      placeholderTextColor="#3d5068"
+      multiline
+      numberOfLines={2}
+    />
+    <View style={s.bulkRowBottom}>
+      <TextInput
+        style={s.bulkQtyInput}
+        value={item.quantity}
+        onChangeText={(v) => onChange(index, "quantity", v)}
+        placeholder="Qty"
+        placeholderTextColor="#3d5068"
+        keyboardType="numeric"
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
+        {CATEGORIES.slice(0, 6).map((c) => (
+          <TouchableOpacity
+            key={c.value}
+            style={[s.bulkChip, item.category === c.value && s.bulkChipActive]}
+            onPress={() => onChange(index, "category", c.value)}
+          >
+            <Text
+              style={[
+                s.bulkChipText,
+                item.category === c.value && s.bulkChipTextActive,
+              ]}
+            >
+              {c.label.split(" ")[0]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  </View>
+);
+
+// Success animation overlay
+const SuccessOverlay = ({ visible, count, onDone }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <Animated.View style={[s.successOverlay, { opacity: fadeAnim }]}>
+      <Animated.View
+        style={[s.successCard, { transform: [{ scale: scaleAnim }] }]}
+      >
+        <Text style={s.successEmoji}>🎉</Text>
+        <Text style={s.successTitle}>
+          {count > 1 ? `${count} listings created!` : "Listing created!"}
+        </Text>
+        <Text style={s.successSub}>Your items are now live on LifeLoop</Text>
+        <TouchableOpacity style={s.successBtn} onPress={onDone}>
+          <Text style={s.successBtnText}>View Dashboard →</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+// ─────────────────────────────────────────
+// MAIN SCREEN
+// ─────────────────────────────────────────
+const CreateListing = ({ route }) => {
+  const { user } = useAuth();
+  const navigation = useNavigation();
+
+  // Check if we're editing
+  const isEditing = route?.params?.id;
+  const editingId = route?.params?.id;
+
+  // Mode
+  const [bulkMode, setBulkMode] = useState(false);
+
+  // Single listing form
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [enableAIMatch, setEnableAIMatch] = useState(false); // AI auto-match toggle
+
+  // Bulk mode
+  const [bulkItems, setBulkItems] = useState([INITIAL_BULK_ITEM]);
+  const [commonLocation, setCommonLocation] = useState("");
+  const [commonExpiry, setCommonExpiry] = useState("");
+  const [commonNotes, setCommonNotes] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkSuccess, setBulkSuccess] = useState(false);
+
+  // Animations
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const modeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(headerAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  useEffect(() => {
+    Animated.timing(modeAnim, {
+      toValue: bulkMode ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [bulkMode]);
+
+  // Load existing listing data when editing
+  useEffect(() => {
+    if (isEditing && editingId) {
+      loadListingForEdit();
+    }
+  }, [isEditing, editingId]);
+
+  const loadListingForEdit = async () => {
+    try {
+      setLoading(true);
+      const response = await listingsAPI.getById(editingId);
+      const listing = response.data?.listing || response.data;
+
+      if (listing) {
+        setForm({
+          title: listing.title || "",
+          description: listing.description || "",
+          category: listing.category || "produce",
+          quantity: listing.quantity?.toString() || "",
+          unit: listing.unit || "items",
+          expiryDate: listing.expiryDate ? new Date(listing.expiryDate).toISOString().split('T')[0] : "",
+          pickupLocation: listing.pickupLocation || "",
+          additionalNotes: listing.additionalNotes || "",
+        });
+
+        // Set existing images
+        if (listing.images && listing.images.length > 0) {
+          setImages(listing.images.map(url => ({ uri: url })));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading listing for edit:", error);
+      Toast.show({
+        type: "error",
+        text1: "Failed to load listing for editing",
+      });
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Image picker ──
+  const pickImages = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Toast.show({ type: "error", text1: "Photo access needed" });
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 5 - images.length,
+    });
+    if (!result.canceled) {
+      setImages((prev) => [...prev, ...result.assets].slice(0, 5));
+    }
+  };
+
+  const removeImage = (index) =>
+    setImages((prev) => prev.filter((_, i) => i !== index));
+
+  // ── Form helpers ──
+  const setField = (key, val) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    if (errors[key]) setErrors((p) => ({ ...p, [key]: null }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.title.trim()) e.title = "Title is required";
+    if (!form.description.trim()) e.description = "Description is required";
+    if (!form.quantity || form.quantity <= 0)
+      e.quantity = "Enter a valid quantity";
+    if (!form.pickupLocation.trim())
+      e.pickupLocation = "Pickup location is required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  // ── Single submit ──
+  const handleSubmit = async () => {
+    if (!validate()) {
+      Toast.show({ type: "error", text1: "Please fill required fields" });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Upload images to Cloudinary first
+      const imageUrls = [];
+      if (images.length > 0) {
+        setProgress = "Uploading images...";
+        for (const img of images) {
+          const url = await uploadPrimaryImage(img.uri);
+          if (url) imageUrls.push(url);
+        }
+      }
+
+      const formData = new FormData();
+      Object.entries(form).forEach(([k, v]) => {
+        if (v) formData.append(k, v);
+      });
+
+      if (isEditing) {
+        // Update existing listing
+        formData.append("listingId", editingId);
+        const listingRes = await listingsAPI.update(editingId, formData);
+        Toast.show({
+          type: "success",
+          text1: "Listing updated successfully!",
+        });
+        navigation.goBack();
+      } else {
+        // Create new listing
+        formData.append("donor", user._id);
+
+        // Append uploaded image URLs instead of raw files
+        imageUrls.forEach((url) => formData.append("imageUrls", url));
+
+        // Create listing
+        const listingRes = await listingsAPI.create(formData);
+        const listingId = listingRes.data._id;
+
+        // Handle AI auto-match if enabled
+        if (enableAIMatch) {
+          try {
+            const matchRes = await listingsAPI.autoAssignTopMatch(listingId);
+            if (matchRes.data.topMatch) {
+              Toast.show({
+                type: "success",
+                text1: "Listing created!",
+                text2: `AI matched with ${matchRes.data.topMatch.fullName}`,
+              });
+              // Navigate to show assignment sent to receiver
+              navigation.navigate("InterestedUsers", { listingId });
+            } else {
+              Toast.show({
+                type: "info",
+                text1: "Listing created",
+                text2: "No AI matches found, item available to all",
+              });
+              setSuccess(true);
+            }
+          } catch (matchErr) {
+            Toast.show({
+              type: "warn",
+              text1: "Listing created",
+              text2: "AI matching failed, manual selection available",
+            });
+            setSuccess(true);
+          }
+        } else {
+          setSuccess(true);
+        }
+      }
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: err.response?.data?.message || `Failed to ${isEditing ? 'update' : 'create'} listing`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Bulk submit ──
+  const handleBulkSubmit = async () => {
+    if (!commonLocation.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Pickup location required for all items",
+      });
+      return;
+    }
+    const invalid = bulkItems.some((i) => !i.title.trim() || !i.quantity);
+    if (invalid) {
+      Toast.show({
+        type: "error",
+        text1: "Fill in all item names and quantities",
+      });
+      return;
+    }
+    setBulkLoading(true);
+    try {
+      const listingIds = [];
+
+      // Create all listings
+      const createdListings = await Promise.all(
+        bulkItems.map((item) =>
+          listingsAPI.create({
+            ...item,
+            pickupLocation: commonLocation,
+            expiryDate: commonExpiry,
+            additionalNotes: commonNotes,
+            donor: user._id,
+          }),
+        ),
+      );
+
+      // Collect listing IDs
+      createdListings.forEach((res) => {
+        if (res.data?._id) listingIds.push(res.data._id);
+      });
+
+      // Handle AI auto-match if enabled
+      if (enableAIMatch && listingIds.length > 0) {
+        try {
+          let matched = 0;
+          for (const id of listingIds) {
+            const matchRes = await listingsAPI.autoAssignTopMatch(id);
+            if (matchRes.data.topMatch) matched++;
+          }
+          Toast.show({
+            type: "success",
+            text1: `Created ${listingIds.length} listings`,
+            text2: `AI matched ${matched} items`,
+          });
+        } catch {
+          Toast.show({
+            type: "warn",
+            text1: `Created ${listingIds.length} listings`,
+            text2: "AI matching had some failures",
+          });
+        }
+      }
+
+      setBulkSuccess(true);
+    } catch {
+      Toast.show({ type: "error", text1: "Some items failed. Please retry." });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // ── Bulk item helpers ──
+  const updateBulkItem = (i, key, val) => {
+    setBulkItems((prev) => {
+      const next = [...prev];
+      next[i] = { ...next[i], [key]: val };
+      return next;
+    });
+  };
+  const addBulkItem = () =>
+    setBulkItems((p) => [...p, { ...INITIAL_BULK_ITEM }]);
+  const removeBulkItem = (i) =>
+    setBulkItems((p) => p.filter((_, idx) => idx !== i));
+
+  const handleDone = () => navigation.replace("Dashboard");
+
+  // ─────────────────────────────────────────
+  return (
+    <SafeAreaView style={s.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        {/* ── Header ── */}
+        <Animated.View style={[s.header, { opacity: headerAnim }]}>
+          <TouchableOpacity
+            style={s.headerBack}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={s.headerBackText}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={s.headerTitle}>
+              {bulkMode ? "Bulk Donation" : isEditing ? "Edit Listing" : "New Listing"}
+            </Text>
+            <Text style={s.headerSub}>
+              {bulkMode
+                ? "Add multiple items at once"
+                : isEditing
+                ? "Update your listing details"
+                : "Share an item with your community"}
+            </Text>
+          </View>
+          {/* Bulk toggle */}
+          <View style={s.bulkToggleRow}>
+            <Text style={s.bulkToggleLabel}>Bulk</Text>
+            <Switch
+              value={bulkMode}
+              onValueChange={setBulkMode}
+              trackColor={{ false: "#1e2d45", true: "#166534" }}
+              thumbColor={bulkMode ? "#4ade80" : "#64748b"}
+            />
+          </View>
+        </Animated.View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ════════════════════════════════
+              SINGLE MODE
+          ════════════════════════════════ */}
+          {!bulkMode && (
+            <View>
+              {/* Section: Basic Info */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Basic Info</Text>
+                </View>
+
+                <Field
+                  label="Title"
+                  required
+                  value={form.title}
+                  onChangeText={(v) => setField("title", v)}
+                  placeholder="e.g. Fresh vegetables, Old laptop…"
+                  error={errors.title}
+                />
+                {errors.title && (
+                  <Text style={s.errorHint}>⚠ {errors.title}</Text>
+                )}
+
+                <Field
+                  label="Description"
+                  required
+                  multiline
+                  value={form.description}
+                  onChangeText={(v) => setField("description", v)}
+                  placeholder="Describe the item — condition, quantity details, any notes…"
+                />
+                {errors.description && (
+                  <Text style={s.errorHint}>⚠ {errors.description}</Text>
+                )}
+
+                <CategorySelector
+                  value={form.category}
+                  onChange={(v) => setField("category", v)}
+                />
+              </View>
+
+              {/* Section: Quantity */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Quantity & Details</Text>
+                </View>
+
+                <View style={s.row}>
+                  <View style={[s.fieldWrap, { width: 110 }]}>
+                    <FieldLabel text="Quantity" required />
+                    <Animated.View style={s.inputBox}>
+                      <TextInput
+                        style={s.input}
+                        value={form.quantity}
+                        onChangeText={(v) => setField("quantity", v)}
+                        placeholder="0"
+                        placeholderTextColor="#3d5068"
+                        keyboardType="numeric"
+                      />
+                    </Animated.View>
+                  </View>
+                  <UnitSelector
+                    value={form.unit}
+                    onChange={(v) => setField("unit", v)}
+                  />
+                </View>
+                {errors.quantity && (
+                  <Text style={s.errorHint}>⚠ {errors.quantity}</Text>
+                )}
+
+                <Field
+                  label="Best Before / Expiry Date"
+                  value={form.expiryDate}
+                  onChangeText={(v) => setField("expiryDate", v)}
+                  placeholder="e.g. 2025-03-20 (optional)"
+                />
+              </View>
+
+              {/* Section: Pickup */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Pickup Info</Text>
+                </View>
+
+                <Field
+                  label="Pickup Location"
+                  required
+                  value={form.pickupLocation}
+                  onChangeText={(v) => setField("pickupLocation", v)}
+                  placeholder="e.g. 123 Main St, City or general area"
+                />
+                {errors.pickupLocation && (
+                  <Text style={s.errorHint}>⚠ {errors.pickupLocation}</Text>
+                )}
+
+                <Field
+                  label="Additional Notes"
+                  multiline
+                  value={form.additionalNotes}
+                  onChangeText={(v) => setField("additionalNotes", v)}
+                  placeholder="Special instructions, availability hours, contact preference…"
+                />
+              </View>
+
+              {/* Section: Photos */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Photos</Text>
+                </View>
+                <ImageGrid
+                  images={images}
+                  onAdd={pickImages}
+                  onRemove={removeImage}
+                />
+              </View>
+
+              {/* Section: AI Auto-Match */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Smart Assignment</Text>
+                </View>
+                <View style={s.toggleRow}>
+                  <View style={s.toggleLeft}>
+                    <Text style={s.toggleLabel}>🤖 Enable AI Auto-Match</Text>
+                    <Text style={s.toggleSubtitle}>
+                      AI intelligently matches best recipients
+                    </Text>
+                  </View>
+                  <Switch
+                    value={enableAIMatch}
+                    onValueChange={setEnableAIMatch}
+                    trackColor={{ false: "#e0e0e0", true: "#81c784" }}
+                    thumbColor={enableAIMatch ? "#4caf50" : "#f1f1f1"}
+                  />
+                </View>
+              </View>
+
+              {/* Submit */}
+              <View style={s.submitWrap}>
+                <TouchableOpacity
+                  style={s.cancelBtn}
+                  onPress={() => navigation.goBack()}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.submitBtn, loading && s.submitBtnDisabled]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#0a0f1e" />
+                  ) : (
+                    <Text style={s.submitBtnText}>
+                      {isEditing ? "✨ Update Listing" : "✨ Create Listing"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* ════════════════════════════════
+              BULK MODE
+          ════════════════════════════════ */}
+          {bulkMode && (
+            <View>
+              <View style={s.bulkInfoBanner}>
+                <Text style={s.bulkInfoIcon}>💡</Text>
+                <Text style={s.bulkInfoText}>
+                  Add each item separately. Location, expiry and notes apply to
+                  all.
+                </Text>
+              </View>
+
+              {/* Items */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>
+                    Items ({bulkItems.length})
+                  </Text>
+                </View>
+
+                {bulkItems.map((item, i) => (
+                  <BulkRow
+                    key={i}
+                    item={item}
+                    index={i}
+                    onChange={updateBulkItem}
+                    onRemove={removeBulkItem}
+                    canRemove={bulkItems.length > 1}
+                  />
+                ))}
+
+                <TouchableOpacity style={s.addItemBtn} onPress={addBulkItem}>
+                  <Text style={s.addItemBtnText}>＋ Add Another Item</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Common details */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Common Details</Text>
+                </View>
+                <Text style={s.commonDetailsSub}>
+                  These apply to all {bulkItems.length} items
+                </Text>
+
+                <Field
+                  label="Pickup Location"
+                  required
+                  value={commonLocation}
+                  onChangeText={setCommonLocation}
+                  placeholder="e.g. 123 Main St, City"
+                />
+                <Field
+                  label="Expiry / Best Before"
+                  value={commonExpiry}
+                  onChangeText={setCommonExpiry}
+                  placeholder="e.g. 2025-03-20 (optional)"
+                />
+                <Field
+                  label="Additional Notes"
+                  multiline
+                  value={commonNotes}
+                  onChangeText={setCommonNotes}
+                  placeholder="Any notes that apply to all items…"
+                />
+              </View>
+
+              {/* Section: AI Auto-Match for Bulk */}
+              <View style={s.section}>
+                <View style={s.sectionLabel}>
+                  <View style={s.sectionLabelDot} />
+                  <Text style={s.sectionLabelText}>Smart Assignment</Text>
+                </View>
+                <View style={s.toggleRow}>
+                  <View style={s.toggleLeft}>
+                    <Text style={s.toggleLabel}>🤖 Enable AI Auto-Match</Text>
+                    <Text style={s.toggleSubtitle}>
+                      Apply to all {bulkItems.length} items
+                    </Text>
+                  </View>
+                  <Switch
+                    value={enableAIMatch}
+                    onValueChange={setEnableAIMatch}
+                    trackColor={{ false: "#e0e0e0", true: "#81c784" }}
+                    thumbColor={enableAIMatch ? "#4caf50" : "#f1f1f1"}
+                  />
+                </View>
+              </View>
+
+              {/* Bulk Submit */}
+              <View style={s.submitWrap}>
+                <TouchableOpacity
+                  style={s.cancelBtn}
+                  onPress={() => navigation.goBack()}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.submitBtn, bulkLoading && s.submitBtnDisabled]}
+                  onPress={handleBulkSubmit}
+                  disabled={bulkLoading}
+                  activeOpacity={0.85}
+                >
+                  {bulkLoading ? (
+                    <ActivityIndicator color="#0a0f1e" />
+                  ) : (
+                    <Text style={s.submitBtnText}>
+                      ✨ Create {bulkItems.length} Listing
+                      {bulkItems.length > 1 ? "s" : ""}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+
+        {/* ── Success Overlay ── */}
+        <SuccessOverlay
+          visible={success || bulkSuccess}
+          count={bulkSuccess ? bulkItems.length : 1}
+          onDone={handleDone}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+// ─────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0a0f1e" },
+
+  // ── Header ──
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1e2d45",
+    gap: 12,
+  },
+  headerBack: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerBackText: { fontSize: 22, color: "#4ade80", fontWeight: "600" },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#f1f5f9" },
+  headerSub: { fontSize: 12, color: "#64748b", marginTop: 1 },
+  bulkToggleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  bulkToggleLabel: { fontSize: 12, color: "#94a3b8", fontWeight: "600" },
+
+  scrollContent: { paddingBottom: 40 },
+
+  // ── Section ──
+  section: {
+    backgroundColor: "#131c2e",
+    borderRadius: 20,
+    padding: 18,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  sectionLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  sectionLabelDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#4ade80",
+  },
+  sectionLabelText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#4ade80",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+
+  // ── Field ──
+  fieldWrap: { marginBottom: 16 },
+  label: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94a3b8",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  labelRequired: { color: "#f87171" },
+  inputBox: {
+    borderWidth: 1.5,
+    borderColor: "#1e2d45",
+    borderRadius: 12,
+    backgroundColor: "#0a0f1e",
+    overflow: "hidden",
+  },
+  inputBoxMulti: { minHeight: 100 },
+  input: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: "#f1f5f9",
+  },
+  inputMulti: { textAlignVertical: "top", minHeight: 96 },
+  errorHint: {
+    color: "#f87171",
+    fontSize: 11,
+    marginTop: -10,
+    marginBottom: 8,
+  },
+
+  row: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+
+  // ── Category / Unit chips ──
+  chipsRow: { marginTop: 2 },
+  chip: {
+    backgroundColor: "#0a0f1e",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  chipActive: { backgroundColor: "#166534", borderColor: "#4ade80" },
+  chipSm: { paddingHorizontal: 11, paddingVertical: 6 },
+  chipText: { color: "#94a3b8", fontSize: 13, fontWeight: "600" },
+  chipTextSm: { fontSize: 12 },
+  chipTextActive: { color: "#4ade80" },
+
+  // ── Images ──
+  imageHint: { fontSize: 11, color: "#64748b", marginBottom: 10 },
+  imageGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  imageItem: {
+    width: (SW - 32 - 18 * 2 - 10 * 3) / 4,
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  imageThumb: { width: "100%", height: "100%" },
+  imageRemoveOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageRemoveIcon: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  imageAddBtn: {
+    width: (SW - 32 - 18 * 2 - 10 * 3) / 4,
+    aspectRatio: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#4ade80",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(74,222,128,0.05)",
+  },
+  imageAddIcon: { fontSize: 22, marginBottom: 2 },
+  imageAddText: { color: "#4ade80", fontSize: 10, fontWeight: "700" },
+
+  // ── Submit row ──
+  submitWrap: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 20,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 14,
+    backgroundColor: "#131c2e",
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  cancelBtnText: { color: "#94a3b8", fontWeight: "600", fontSize: 15 },
+  submitBtn: {
+    flex: 2,
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 14,
+    backgroundColor: "#4ade80",
+    shadowColor: "#4ade80",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  submitBtnDisabled: { opacity: 0.5, shadowOpacity: 0 },
+  submitBtnText: { color: "#0a0f1e", fontWeight: "800", fontSize: 15 },
+
+  // ── Bulk mode ──
+  bulkInfoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(74,222,128,0.08)",
+    borderRadius: 14,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "rgba(74,222,128,0.2)",
+    gap: 10,
+  },
+  bulkInfoIcon: { fontSize: 20 },
+  bulkInfoText: { flex: 1, fontSize: 13, color: "#86efac", lineHeight: 18 },
+
+  bulkRow: {
+    backgroundColor: "#0a0f1e",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  bulkRowTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  bulkIndexBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#1e2d45",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bulkIndexText: { color: "#4ade80", fontSize: 12, fontWeight: "700" },
+  bulkTitleInput: {
+    flex: 1,
+    backgroundColor: "#131c2e",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  bulkRemoveBtn: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bulkRemoveIcon: { color: "#64748b", fontSize: 16, fontWeight: "700" },
+  bulkDescInput: {
+    backgroundColor: "#131c2e",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+    marginBottom: 10,
+    minHeight: 50,
+  },
+  bulkRowBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
+  bulkQtyInput: {
+    width: 70,
+    backgroundColor: "#131c2e",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+    textAlign: "center",
+  },
+  bulkChip: {
+    backgroundColor: "#131c2e",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  bulkChipActive: {
+    backgroundColor: "rgba(74,222,128,0.15)",
+    borderColor: "#4ade80",
+  },
+  bulkChipText: { color: "#64748b", fontSize: 12, fontWeight: "600" },
+  bulkChipTextActive: { color: "#4ade80" },
+
+  addItemBtn: {
+    borderWidth: 1.5,
+    borderColor: "#4ade80",
+    borderStyle: "dashed",
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: "center",
+    backgroundColor: "rgba(74,222,128,0.04)",
+    marginTop: 4,
+  },
+  addItemBtnText: { color: "#4ade80", fontWeight: "700", fontSize: 14 },
+
+  commonDetailsSub: {
+    fontSize: 12,
+    color: "#64748b",
+    marginBottom: 14,
+    marginTop: -8,
+  },
+
+  // ── Toggle row ──
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(74,222,128,0.05)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(74,222,128,0.15)",
+  },
+  toggleLeft: { flex: 1 },
+  toggleLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#f1f5f9",
+    marginBottom: 4,
+  },
+  toggleSubtitle: { fontSize: 12, color: "#64748b" },
+
+  // ── Success overlay ──
+  successOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(10,15,30,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+  successCard: {
+    backgroundColor: "#131c2e",
+    borderRadius: 28,
+    padding: 36,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(74,222,128,0.3)",
+    marginHorizontal: 32,
+    width: SW - 64,
+  },
+  successEmoji: { fontSize: 64, marginBottom: 16 },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#f1f5f9",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  successSub: {
+    fontSize: 14,
+    color: "#64748b",
+    textAlign: "center",
+    marginBottom: 28,
+    lineHeight: 20,
+  },
+  successBtn: {
+    backgroundColor: "#4ade80",
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 32,
+    shadowColor: "#4ade80",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  successBtnText: { color: "#0a0f1e", fontWeight: "800", fontSize: 15 },
+});
+
+export default CreateListing;
