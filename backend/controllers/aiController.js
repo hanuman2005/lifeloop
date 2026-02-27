@@ -1,23 +1,30 @@
 // backend/controllers/aiController.js
-// ✅ GEMINI ONLY — real dynamic data, no static fallbacks for ideas
-// ✅ Auto-retry on 429 (waits the time Gemini tells us, then retries)
-// ✅ Model: gemini-2.0-flash
+// ✅ SMART SPLIT: Gemini for images, OpenAI for text ideas
+// ✅ Keeps Gemini quota for expensive vision analysis
+// ✅ OpenAI $5 credit = unlimited text generation
+// ✅ Auto-retry on 429 (waits the time API tells us, then retries)
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 const UpcycleIdea = require("../models/UpcycleIdea");
 const crypto = require("crypto");
 
 const GEMINI_FLASH = "gemini-2.0-flash";
 
 if (!process.env.GEMINI_API_KEY) {
-  console.warn("⚠️  GEMINI_API_KEY not set.");
+  console.warn("⚠️  GEMINI_API_KEY not set — vision analysis disabled.");
 }
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
-console.log("🤖 Gemini:", genAI ? `ready (${GEMINI_FLASH})` : "NOT configured");
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+console.log("🤖 Gemini:", genAI ? `ready (${GEMINI_FLASH} for vision)` : "NOT configured");
+console.log("🤖 OpenAI:", openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RETRY HELPER
@@ -102,7 +109,54 @@ const callGeminiVisionWithRetry = async (
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PARSE JSON from Gemini response (strips markdown fences)
+// OPENAI CALL (for reuse/upcycle ideas — saves Gemini quota)
+// ─────────────────────────────────────────────────────────────────────────────
+const callOpenAIWithRetry = async (
+  prompt,
+  isUpcycle = true,
+  retries = 3,
+) => {
+  if (!openai) throw new Error("OPENAI_API_KEY not configured");
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: isUpcycle
+              ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown fences, no extra text."
+              : "You are a sustainability expert helping with reuse ideas. Always respond ONLY with a valid JSON array, no markdown fences, no extra text.",
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const content = completion.choices[0].message.content;
+      if (!content) throw new Error("Empty response from OpenAI");
+      return content;
+    } catch (err) {
+      const is429 = err.status === 429 || err.message?.includes("429");
+      const is5xx = err.status >= 500;
+
+      if ((is429 || is5xx) && attempt < retries) {
+        const waitSec = is429 ? attempt * 10 : attempt * 5;
+        console.warn(
+          `⏳ OpenAI ${err.status || "error"} (attempt ${attempt}/${retries}) — waiting ${waitSec}s...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
+        continue;
+      }
+
+      throw err;
+    }
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 const parseGeminiJSON = (raw) => {
   const clean = raw.replace(/```json\s*|```\s*/g, "").trim();
@@ -387,10 +441,53 @@ RESPOND ONLY WITH A JSON ARRAY. No text before or after. No markdown fences.
 All 4 ideas must be different and specific to ${material || "the item"}.`;
 
       try {
-        console.log(
-          `📤 Calling Gemini for ${isUpcycle ? "upcycle" : "reuse"} ideas (with retry)...`,
-        );
+        const ideasType = isUpcycle ? "upcycle" : "reuse";
 
+        // Try OpenAI first (saves Gemini quota for expensive vision analysis)
+        if (openai) {
+          try {
+            console.log(
+              `📤 Calling OpenAI for ${ideasType} ideas (gpt-4o-mini)...`,
+            );
+            const raw = await callOpenAIWithRetry(geminiPrompt, isUpcycle);
+            console.log("✅ Raw response (first 300):", raw.substring(0, 300));
+
+            const ideas = parseGeminiJSON(raw);
+
+            if (!Array.isArray(ideas) || ideas.length === 0) {
+              throw new Error("OpenAI returned empty ideas array");
+            }
+
+            console.log(
+              `✅ OpenAI: ${ideas.length} ${ideasType} ideas generated`,
+            );
+            return res.json({ success: true, ideas });
+          } catch (openaiErr) {
+            console.warn(
+              `⚠️  OpenAI ${ideasType} failed:`,
+              openaiErr.message,
+            );
+
+            // If OpenAI fails and Gemini is available, fall through to try Gemini
+            if (!genAI) {
+              throw openaiErr; // No fallback available
+            }
+            console.log("🔄 Falling back to Gemini for ideas...");
+          }
+        }
+
+        // Fallback to Gemini if OpenAI not available or failed
+        if (!genAI) {
+          return res.status(503).json({
+            success: false,
+            error:
+              "Neither OpenAI nor Gemini configured. Please add OPENAI_API_KEY or GEMINI_API_KEY to .env",
+          });
+        }
+
+        console.log(
+          `📤 Calling Gemini for ${ideasType} ideas (with retry)...`,
+        );
         const raw = await callGeminiWithRetry(geminiPrompt, GEMINI_FLASH);
         console.log("✅ Raw response (first 300):", raw.substring(0, 300));
 

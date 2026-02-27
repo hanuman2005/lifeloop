@@ -1007,7 +1007,7 @@ const WasteAnalyzer = () => {
           });
 
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const timeout = setTimeout(() => controller.abort(), 120000); // 120 second timeout (allow for Gemini retries)
 
           const reuseResponse = await fetch(endpoint, {
             method: "POST",
@@ -1063,7 +1063,7 @@ const WasteAnalyzer = () => {
           });
 
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const timeout = setTimeout(() => controller.abort(), 120000); // 120 second timeout (allow for Gemini retries)
 
           const upcycleResponse = await fetch(endpoint, {
             method: "POST",
