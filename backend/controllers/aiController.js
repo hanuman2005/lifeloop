@@ -1,9 +1,9 @@
 // backend/controllers/aiController.js
-// ✅ HYBRID: COCO-SSD for images (FREE), OpenAI for ideas with Gemini fallback
+// ✅ HYBRID: MobileNet for images (FREE), OpenAI for ideas with Gemini fallback
 // ✅ Try OpenAI → If 429 quota, use Gemini (fallback)
 // ✅ Cache + dedupe, return errors immediately
 
-const cocoSsd = require("@tensorflow-models/coco-ssd");
+const mobilenet = require("@tensorflow-models/mobilenet");
 const tf = require("@tensorflow/tfjs");
 const OpenAI = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -17,7 +17,7 @@ const pendingRequests = new Map();
 const requestCache = new Map();
 const CACHE_TTL = 300000; // 5 minutes
 
-let cocoModel = null;
+let mobilenetModel = null;
 
 const getCacheKey = (prompt, material, item) => {
   return crypto
@@ -27,19 +27,19 @@ const getCacheKey = (prompt, material, item) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOAD COCO-SSD MODEL (once on startup)
+// LOAD MOBILENET MODEL (once on startup)
 // ─────────────────────────────────────────────────────────────────────────────
-const loadCocoModel = async () => {
-  if (!cocoModel) {
+const loadMobileNetModel = async () => {
+  if (!mobilenetModel) {
     try {
-      console.log("📦 Loading COCO-SSD model...");
-      cocoModel = await cocoSsd.load();
-      console.log("✅ COCO-SSD ready for image classification");
+      console.log("📦 Loading MobileNet model...");
+      mobilenetModel = await mobilenet.load();
+      console.log("✅ MobileNet ready for image classification");
     } catch (err) {
-      console.error("⚠️  Failed to load COCO-SSD:", err.message);
+      console.error("⚠️  Failed to load MobileNet:", err.message);
     }
   }
-  return cocoModel;
+  return mobilenetModel;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,14 +50,21 @@ const base64ToImage = (base64String) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CLASSIFY WASTE BY DETECTED OBJECTS
-// Maps COCO-SSD classes to waste categories
+// CLASSIFY WASTE BY MOBILENET PREDICTIONS
+// Maps ImageNet classes to waste categories
 // ─────────────────────────────────────────────────────────────────────────────
-const classifyWaste = (detections) => {
-  const classMap = {
+const classifyWaste = (predictions) => {
+  // Map ImageNet class names to waste categories
+  const wasteMap = {
+    // Plastic items
     bottle: {
       material: "Plastic",
       label: "Plastic Bottle",
+      donationPossible: false,
+    },
+    "water bottle": {
+      material: "Plastic",
+      label: "Water Bottle",
       donationPossible: false,
     },
     cup: { material: "Plastic", label: "Plastic Cup", donationPossible: false },
@@ -66,24 +73,66 @@ const classifyWaste = (detections) => {
       label: "Plastic Bowl",
       donationPossible: true,
     },
+    plastic: {
+      material: "Plastic",
+      label: "Plastic Item",
+      donationPossible: false,
+    },
+
+    // Glass items
     glass: { material: "Glass", label: "Glass", donationPossible: true },
     jar: { material: "Glass", label: "Glass Jar", donationPossible: true },
+    wine: { material: "Glass", label: "Wine Bottle", donationPossible: true },
+
+    // Metal items
     can: { material: "Metal", label: "Metal Can", donationPossible: false },
     fork: { material: "Metal", label: "Metal Fork", donationPossible: true },
     spoon: { material: "Metal", label: "Metal Spoon", donationPossible: true },
+    knife: { material: "Metal", label: "Metal Knife", donationPossible: true },
+
+    // Paper/Cardboard
     book: { material: "Paper", label: "Book", donationPossible: true },
+    newspaper: {
+      material: "Paper",
+      label: "Newspaper",
+      donationPossible: true,
+    },
+    paper: { material: "Paper", label: "Paper", donationPossible: true },
+    cardboard: {
+      material: "Paper",
+      label: "Cardboard",
+      donationPossible: true,
+    },
+
+    // Textile
+    shirt: { material: "Textile", label: "Shirt", donationPossible: true },
+    dress: { material: "Textile", label: "Dress", donationPossible: true },
+    cloth: { material: "Textile", label: "Cloth", donationPossible: true },
     backpack: {
       material: "Textile",
       label: "Backpack",
       donationPossible: true,
     },
     shoe: { material: "Textile", label: "Shoe", donationPossible: true },
+    pants: { material: "Textile", label: "Pants", donationPossible: true },
+
+    // Organic
     apple: { material: "Organic", label: "Apple", donationPossible: false },
     banana: { material: "Organic", label: "Banana", donationPossible: false },
+    orange: { material: "Organic", label: "Orange", donationPossible: false },
+    food: { material: "Organic", label: "Food", donationPossible: false },
+    fruit: { material: "Organic", label: "Fruit", donationPossible: false },
+
+    // Electronic
     laptop: { material: "Electronic", label: "Laptop", donationPossible: true },
     mouse: {
       material: "Electronic",
       label: "Computer Mouse",
+      donationPossible: true,
+    },
+    keyboard: {
+      material: "Electronic",
+      label: "Keyboard",
       donationPossible: true,
     },
     phone: {
@@ -92,35 +141,98 @@ const classifyWaste = (detections) => {
       donationPossible: true,
     },
     remote: { material: "Electronic", label: "Remote", donationPossible: true },
+    computer: {
+      material: "Electronic",
+      label: "Computer",
+      donationPossible: true,
+    },
+    monitor: {
+      material: "Electronic",
+      label: "Monitor",
+      donationPossible: true,
+    },
+
+    // Wood
+    chair: { material: "Wood", label: "Wooden Chair", donationPossible: true },
+    table: { material: "Wood", label: "Wooden Table", donationPossible: true },
+    wood: { material: "Wood", label: "Wood", donationPossible: true },
   };
 
+  // Find the best match from predictions
   let bestMatch = null;
   let highestScore = 0;
 
-  detections.forEach((detection) => {
-    const className = detection.class.toLowerCase();
-    const score = detection.score;
+  predictions.forEach((pred) => {
+    const className = pred.className.toLowerCase();
+    const probability = pred.probability;
 
-    if (score > highestScore) {
-      for (const [key, waste] of Object.entries(classMap)) {
+    if (probability > highestScore) {
+      for (const [key, waste] of Object.entries(wasteMap)) {
         if (className.includes(key)) {
           bestMatch = waste;
-          highestScore = score;
+          highestScore = probability;
           break;
         }
       }
     }
   });
 
+  // If no specific match, use top prediction with generic classification
   if (!bestMatch) {
-    const topClass = detections[0]?.class || "Unknown";
-    bestMatch = { material: "Other", label: topClass, donationPossible: false };
+    const topPred = predictions[0];
+    const topClass = topPred?.className || "Unknown Item";
+
+    // Try to infer material from class name
+    let inferredMaterial = "Other";
+    if (
+      topClass.toLowerCase().includes("bottle") ||
+      topClass.toLowerCase().includes("plastic")
+    ) {
+      inferredMaterial = "Plastic";
+    } else if (topClass.toLowerCase().includes("glass")) {
+      inferredMaterial = "Glass";
+    } else if (
+      topClass.toLowerCase().includes("metal") ||
+      topClass.toLowerCase().includes("can")
+    ) {
+      inferredMaterial = "Metal";
+    } else if (
+      topClass.toLowerCase().includes("paper") ||
+      topClass.toLowerCase().includes("card")
+    ) {
+      inferredMaterial = "Paper";
+    } else if (
+      topClass.toLowerCase().includes("cloth") ||
+      topClass.toLowerCase().includes("shirt") ||
+      topClass.toLowerCase().includes("shoe")
+    ) {
+      inferredMaterial = "Textile";
+    } else if (
+      topClass.toLowerCase().includes("food") ||
+      topClass.toLowerCase().includes("fruit")
+    ) {
+      inferredMaterial = "Organic";
+    } else if (
+      topClass.toLowerCase().includes("electric") ||
+      topClass.toLowerCase().includes("phone") ||
+      topClass.toLowerCase().includes("computer")
+    ) {
+      inferredMaterial = "Electronic";
+    }
+
+    bestMatch = {
+      material: inferredMaterial,
+      label: topClass,
+      donationPossible:
+        inferredMaterial === "Textile" || inferredMaterial === "Wood",
+    };
+    highestScore = topPred?.probability || 0.5;
   }
 
   return {
     ...bestMatch,
     confidence: Math.round(highestScore * 100),
-    reasoning: `Detected ${bestMatch.label} from image analysis`,
+    reasoning: `Classified as ${bestMatch.label} from image analysis`,
     isRecyclable: ["Plastic", "Glass", "Metal", "Paper"].includes(
       bestMatch.material,
     ),
@@ -148,7 +260,9 @@ const genAI = process.env.GEMINI_API_KEY
 const callGemini = async (prompt) => {
   if (!genAI) throw new Error("GEMINI_API_KEY not configured");
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash-latest",
+    });
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (err) {
@@ -209,7 +323,7 @@ console.log(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/analyze-image
-// Uses COCO-SSD (FREE, no API calls, no quota limits)
+// Uses MobileNet (FREE, no API calls, no quota limits)
 // ─────────────────────────────────────────────────────────────────────────────
 const analyzeWasteImage = async (req, res) => {
   try {
@@ -220,7 +334,7 @@ const analyzeWasteImage = async (req, res) => {
         .status(400)
         .json({ success: false, error: "No image provided" });
 
-    const model = await loadCocoModel();
+    const model = await loadMobileNetModel();
     if (!model) {
       return res.json({
         success: true,
@@ -242,8 +356,8 @@ const analyzeWasteImage = async (req, res) => {
       const imageBuffer = base64ToImage(imageBase64);
       const img = tf.node.decodeImage(imageBuffer, 3);
 
-      console.log("📤 Running COCO-SSD...");
-      const predictions = await model.estimateObjects(img);
+      console.log("📤 Running MobileNet classification...");
+      const predictions = await model.classify(img);
       img.dispose();
 
       if (!predictions || predictions.length === 0) {
@@ -253,7 +367,7 @@ const analyzeWasteImage = async (req, res) => {
             label: "Unrecognized Item",
             material: "Other",
             confidence: 30,
-            reasoning: "No objects detected",
+            reasoning: "No classification results",
             isRecyclable: false,
             urgency: "low",
             donationPossible: false,
@@ -263,7 +377,12 @@ const analyzeWasteImage = async (req, res) => {
         });
       }
 
-      console.log(`✅ Detected: ${predictions.map((p) => p.class).join(", ")}`);
+      console.log(
+        `✅ Classified:`,
+        predictions
+          .map((p) => `${p.className} (${(p.probability * 100).toFixed(1)}%)`)
+          .join(" | "),
+      );
       const analysis = classifyWaste(predictions);
       return res.json({ success: true, analysis });
     } catch (inferenceErr) {
