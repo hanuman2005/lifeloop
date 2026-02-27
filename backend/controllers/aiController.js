@@ -1,22 +1,22 @@
 // backend/controllers/aiController.js
-// ✅ SMART SPLIT: Gemini for images, OpenAI for text ideas
-// ✅ Return 429 errors IMMEDIATELY (don't retry, let frontend handle)
-// ✅ Cache results for 5 minutes to reduce API calls
-// ✅ Deduplicate simultaneous identical requests
+// ✅ HYBRID: COCO-SSD for image classification (FREE), OpenAI/Gemini for text ideas
+// ✅ No more vision API quota issues!
+// ✅ Cache + dedupe, return errors immediately
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const cocoSsd = require("@tensorflow-models/coco-ssd");
+const tf = require("@tensorflow/tfjs");
 const OpenAI = require("openai");
 const UpcycleIdea = require("../models/UpcycleIdea");
 const crypto = require("crypto");
 
-const GEMINI_FLASH = "gemini-2.0-flash";
-
 // ─────────────────────────────────────────────────────────────────────────────
-// REQUEST DEDUPLICATION & CACHING
+// CACHING & DEDUPLICATION
 // ─────────────────────────────────────────────────────────────────────────────
 const pendingRequests = new Map();
 const requestCache = new Map();
 const CACHE_TTL = 300000; // 5 minutes
+
+let cocoModel = null;
 
 const getCacheKey = (prompt, material, item) => {
   return crypto
@@ -26,140 +26,145 @@ const getCacheKey = (prompt, material, item) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INITIALIZE APIs
+// LOAD COCO-SSD MODEL (once on startup)
 // ─────────────────────────────────────────────────────────────────────────────
-if (!process.env.GEMINI_API_KEY) {
-  console.warn("⚠️  GEMINI_API_KEY not set — image analysis disabled.");
-}
+const loadCocoModel = async () => {
+  if (!cocoModel) {
+    try {
+      console.log("📦 Loading COCO-SSD model...");
+      cocoModel = await cocoSsd.load();
+      console.log("✅ COCO-SSD ready for image classification");
+    } catch (err) {
+      console.error("⚠️  Failed to load COCO-SSD:", err.message);
+    }
+  }
+  return cocoModel;
+};
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+// ─────────────────────────────────────────────────────────────────────────────
+// BASE64 TO IMAGE TENSOR
+// ─────────────────────────────────────────────────────────────────────────────
+const base64ToImage = (base64String) => {
+  return Buffer.from(base64String, "base64");
+};
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CLASSIFY WASTE BY DETECTED OBJECTS
+// Maps COCO-SSD classes to waste categories
+// ─────────────────────────────────────────────────────────────────────────────
+const classifyWaste = (detections) => {
+  const classMap = {
+    bottle: {
+      material: "Plastic",
+      label: "Plastic Bottle",
+      donationPossible: false,
+    },
+    cup: { material: "Plastic", label: "Plastic Cup", donationPossible: false },
+    bowl: {
+      material: "Plastic",
+      label: "Plastic Bowl",
+      donationPossible: true,
+    },
+    glass: { material: "Glass", label: "Glass", donationPossible: true },
+    jar: { material: "Glass", label: "Glass Jar", donationPossible: true },
+    can: { material: "Metal", label: "Metal Can", donationPossible: false },
+    fork: { material: "Metal", label: "Metal Fork", donationPossible: true },
+    spoon: { material: "Metal", label: "Metal Spoon", donationPossible: true },
+    book: { material: "Paper", label: "Book", donationPossible: true },
+    backpack: {
+      material: "Textile",
+      label: "Backpack",
+      donationPossible: true,
+    },
+    shoe: { material: "Textile", label: "Shoe", donationPossible: true },
+    apple: { material: "Organic", label: "Apple", donationPossible: false },
+    banana: { material: "Organic", label: "Banana", donationPossible: false },
+    laptop: { material: "Electronic", label: "Laptop", donationPossible: true },
+    mouse: {
+      material: "Electronic",
+      label: "Computer Mouse",
+      donationPossible: true,
+    },
+    phone: {
+      material: "Electronic",
+      label: "Cell Phone",
+      donationPossible: true,
+    },
+    remote: { material: "Electronic", label: "Remote", donationPossible: true },
+  };
+
+  let bestMatch = null;
+  let highestScore = 0;
+
+  detections.forEach((detection) => {
+    const className = detection.class.toLowerCase();
+    const score = detection.score;
+
+    if (score > highestScore) {
+      for (const [key, waste] of Object.entries(classMap)) {
+        if (className.includes(key)) {
+          bestMatch = waste;
+          highestScore = score;
+          break;
+        }
+      }
+    }
+  });
+
+  if (!bestMatch) {
+    const topClass = detections[0]?.class || "Unknown";
+    bestMatch = { material: "Other", label: topClass, donationPossible: false };
+  }
+
+  return {
+    ...bestMatch,
+    confidence: Math.round(highestScore * 100),
+    reasoning: `Detected ${bestMatch.label} from image analysis`,
+    isRecyclable: ["Plastic", "Glass", "Metal", "Paper"].includes(
+      bestMatch.material,
+    ),
+    urgency: ["Electronic", "Organic"].includes(bestMatch.material)
+      ? "high"
+      : "medium",
+    condition: "good",
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OPENAI FOR TEXT IDEAS
+// ─────────────────────────────────────────────────────────────────────────────
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-console.log(
-  "🤖 Gemini:",
-  genAI ? `ready (${GEMINI_FLASH} for vision)` : "NOT configured",
-);
-console.log(
-  "🤖 OpenAI:",
-  openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured",
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GEMINI HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-const callGeminiWithRetry = async (
-  prompt,
-  modelName = GEMINI_FLASH,
-  retries = 1, // Only 1 attempt - fail fast on rate limits
-) => {
-  if (!genAI) throw new Error("GEMINI_API_KEY not configured");
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return result.response.text();
-    } catch (err) {
-      const is429 =
-        err.message?.includes("429") ||
-        err.message?.includes("Too Many Requests");
-
-      if (is429 && attempt < retries) {
-        const delayMatch = err.message?.match(/retry[^0-9]*([0-9.]+)\s*s/i);
-        const waitSec = delayMatch
-          ? Math.ceil(parseFloat(delayMatch[1])) + 1
-          : attempt * 15;
-        console.warn(
-          `⏳ Gemini 429 (attempt ${attempt}/${retries}) — waiting ${waitSec}s...`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-        continue;
-      }
-
-      throw err; // Fail fast on first attempt
-    }
-  }
-};
-
-const callGeminiVisionWithRetry = async (
-  prompt,
-  imageBase64,
-  mediaType,
-  retries = 1,
-) => {
-  if (!genAI) throw new Error("GEMINI_API_KEY not configured");
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const model = genAI.getGenerativeModel({ model: GEMINI_FLASH });
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { mimeType: mediaType, data: imageBase64 } },
-      ]);
-      return result.response.text();
-    } catch (err) {
-      const is429 =
-        err.message?.includes("429") ||
-        err.message?.includes("Too Many Requests");
-
-      if (is429 && attempt < retries) {
-        const delayMatch = err.message?.match(/retry[^0-9]*([0-9.]+)\s*s/i);
-        const waitSec = delayMatch
-          ? Math.ceil(parseFloat(delayMatch[1])) + 1
-          : attempt * 15;
-        console.warn(
-          `⏳ Vision 429 (attempt ${attempt}/${retries}) — waiting ${waitSec}s...`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-        continue;
-      }
-
-      throw err;
-    }
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OPENAI HELPER - Return 429 errors immediately (don't retry)
-// ─────────────────────────────────────────────────────────────────────────────
 const callOpenAI = async (prompt, isUpcycle = true) => {
   if (!openai) throw new Error("OPENAI_API_KEY not configured");
 
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: isUpcycle
-            ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown fences."
-            : "You are a sustainability expert. Always respond ONLY with a valid JSON array, no markdown fences.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: isUpcycle
+          ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown."
+          : "You are a sustainability expert. Always respond ONLY with a valid JSON array, no markdown.",
+      },
+      { role: "user", content: prompt },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
 
-    const content = completion.choices[0].message.content;
-    if (!content) throw new Error("Empty response from OpenAI");
-    return content;
-  } catch (err) {
-    // Return 429 immediately - don't retry
-    throw err;
-  }
+  const content = completion.choices[0].message.content;
+  if (!content) throw new Error("Empty response");
+  return content;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PARSE JSON (strips markdown fences)
+// PARSE JSON
 // ─────────────────────────────────────────────────────────────────────────────
-const parseGeminiJSON = (raw) => {
+const parseJSON = (raw) => {
   const clean = raw.replace(/```json\s*|```\s*/g, "").trim();
   try {
     return JSON.parse(clean);
@@ -168,133 +173,91 @@ const parseGeminiJSON = (raw) => {
     const objMatch = clean.match(/\{[\s\S]*\}/);
     if (arrayMatch) return JSON.parse(arrayMatch[0]);
     if (objMatch) return JSON.parse(objMatch[0]);
-    throw new Error("No valid JSON in response");
+    throw new Error("No valid JSON");
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MOCK DATA (fallback for image analysis only)
-// ─────────────────────────────────────────────────────────────────────────────
-const MOCK_ANALYSES = [
-  {
-    label: "Plastic Water Bottle",
-    material: "Plastic",
-    confidence: 92,
-    reasoning:
-      "Clear plastic container with ribbed sides typical of single-use bottles",
-    isRecyclable: true,
-    urgency: "medium",
-    donationPossible: false,
-  },
-  {
-    label: "Glass Jar",
-    material: "Glass",
-    confidence: 88,
-    reasoning: "Clear glass container suitable for storage and reuse",
-    isRecyclable: true,
-    urgency: "high",
-    donationPossible: true,
-  },
-  {
-    label: "Metal Can",
-    material: "Metal",
-    confidence: 95,
-    reasoning: "Aluminum beverage can - easily recyclable",
-    isRecyclable: true,
-    urgency: "medium",
-    donationPossible: false,
-  },
-];
-
-const MATERIAL_MAP = {
-  Plastic: "Plastic",
-  Glass: "Glass",
-  Metal: "Metal",
-  Paper: "Paper/Cardboard",
-  Organic: "Organic Waste",
-  Electronic: "E-Waste",
-  Textile: "Cloth/Textile",
-  Wood: "Other",
-};
+console.log(
+  "🤖 OpenAI:",
+  openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured",
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/analyze-image
+// Uses COCO-SSD (FREE, no API calls, no quota limits)
 // ─────────────────────────────────────────────────────────────────────────────
 const analyzeWasteImage = async (req, res) => {
   try {
-    const { imageBase64, mediaType = "image/jpeg", prompt } = req.body;
-
-    // Text-only mode
-    if (prompt && !imageBase64) {
-      if (!genAI)
-        return res.json({
-          success: true,
-          result: "This can likely be reused or recycled.",
-        });
-      try {
-        const text = await callGeminiWithRetry(prompt);
-        return res.json({ success: true, result: text });
-      } catch {
-        return res.json({
-          success: true,
-          result: "This can likely be reused or recycled.",
-        });
-      }
-    }
+    const { imageBase64 } = req.body;
 
     if (!imageBase64)
       return res
         .status(400)
         .json({ success: false, error: "No image provided" });
 
-    let analysis;
-    let usedMock = false;
-
-    if (!genAI) {
-      analysis =
-        MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
-      usedMock = true;
-    } else {
-      try {
-        console.log("📤 Calling Gemini Vision...");
-
-        const visionPrompt = `You are a waste classification expert. Analyze this image.
-
-Respond ONLY with valid JSON, no markdown:
-{
-  "label": "specific item name",
-  "material": "one of: Plastic, Glass, Metal, Paper, Organic, Electronic, Textile, Wood",
-  "confidence": <0-100>,
-  "reasoning": "one sentence explanation",
-  "isRecyclable": <boolean>,
-  "urgency": "low or medium or high",
-  "donationPossible": <boolean>,
-  "condition": "excellent or good or fair or poor or broken"
-}`;
-
-        const raw = await callGeminiVisionWithRetry(
-          visionPrompt,
-          imageBase64,
-          mediaType,
-        );
-        analysis = parseGeminiJSON(raw.trim());
-        if (!analysis?.label) throw new Error("Invalid response");
-
-        console.log(`✅ Vision: ${analysis.label} (${analysis.confidence}%)`);
-      } catch (err) {
-        console.warn("⚠️  Vision failed:", err.message);
-        analysis =
-          MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
-        usedMock = true;
-      }
+    const model = await loadCocoModel();
+    if (!model) {
+      return res.json({
+        success: true,
+        analysis: {
+          label: "Unknown Item",
+          material: "Plastic",
+          confidence: 50,
+          reasoning: "Model not loaded",
+          isRecyclable: true,
+          urgency: "medium",
+          donationPossible: false,
+          condition: "good",
+        },
+        mode: "fallback",
+      });
     }
 
-    analysis.material = MATERIAL_MAP[analysis.material] || "Other";
-    return res.json({
-      success: true,
-      analysis,
-      ...(usedMock && { mode: "demo" }),
-    });
+    try {
+      const imageBuffer = base64ToImage(imageBase64);
+      const img = tf.node.decodeImage(imageBuffer, 3);
+
+      console.log("📤 Running COCO-SSD...");
+      const predictions = await model.estimateObjects(img);
+      img.dispose();
+
+      if (!predictions || predictions.length === 0) {
+        return res.json({
+          success: true,
+          analysis: {
+            label: "Unrecognized Item",
+            material: "Other",
+            confidence: 30,
+            reasoning: "No objects detected",
+            isRecyclable: false,
+            urgency: "low",
+            donationPossible: false,
+            condition: "good",
+          },
+          mode: "demo",
+        });
+      }
+
+      console.log(`✅ Detected: ${predictions.map((p) => p.class).join(", ")}`);
+      const analysis = classifyWaste(predictions);
+      return res.json({ success: true, analysis });
+    } catch (inferenceErr) {
+      console.error("❌ Inference error:", inferenceErr.message);
+      return res.json({
+        success: true,
+        analysis: {
+          label: "Unable to analyze",
+          material: "Plastic",
+          confidence: 40,
+          reasoning: "Image analysis failed",
+          isRecyclable: true,
+          urgency: "medium",
+          donationPossible: false,
+          condition: "good",
+        },
+        mode: "fallback",
+      });
+    }
   } catch (error) {
     console.error("❌ analyzeWasteImage:", error.message);
     return res.json({
@@ -303,10 +266,11 @@ Respond ONLY with valid JSON, no markdown:
         label: "Unknown Item",
         material: "Plastic",
         confidence: 60,
-        reasoning: "Service temporarily unavailable",
+        reasoning: "Service error",
         isRecyclable: true,
         urgency: "medium",
         donationPossible: false,
+        condition: "good",
       },
       mode: "fallback",
     });
@@ -315,7 +279,7 @@ Respond ONLY with valid JSON, no markdown:
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/upcycle
-// Smart split: OpenAI (fast) → Gemini (fallback) → return errors immediately
+// Text-only ideas using OpenAI
 // ─────────────────────────────────────────────────────────────────────────────
 const generateUpcyclingIdeas = async (req, res) => {
   try {
@@ -327,14 +291,13 @@ const generateUpcyclingIdeas = async (req, res) => {
       material,
     });
 
-    // ── PATH A: Custom prompt from screens ──────────────────────────────
     if (prompt) {
       console.log("🎯 Custom prompt mode");
 
-      if (!genAI && !openai) {
+      if (!openai) {
         return res.status(503).json({
           success: false,
-          error: "Neither OpenAI nor Gemini API keys configured",
+          error: "OpenAI API key not configured",
         });
       }
 
@@ -342,72 +305,45 @@ const generateUpcyclingIdeas = async (req, res) => {
       const ideasType = isUpcycle ? "upcycle" : "reuse";
       const cacheKey = getCacheKey(prompt, material, item);
 
-      // Check cache
       const cached = requestCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         console.log(`♻️  Cache hit for ${ideasType}`);
         return res.json({ success: true, ideas: cached.ideas });
       }
 
-      // Check for pending request (deduplication)
       if (pendingRequests.has(cacheKey)) {
-        console.log(`⏳ Deduplicating: waiting for pending ${ideasType}...`);
+        console.log(`⏳ Deduplicating: waiting...`);
         try {
           const ideas = await pendingRequests.get(cacheKey);
           return res.json({ success: true, ideas });
         } catch {
-          // Fall through to retry
+          // retry
         }
       }
 
-      const geminiPrompt = isUpcycle
-        ? `You are a creative upcycling expert. Give exactly 4 CREATIVE upcycling ideas for: "${item}" (material: ${material}).
-
-RESPOND ONLY WITH JSON ARRAY. No text before/after. No markdown fences.
-
+      const promptText = isUpcycle
+        ? `Creative upcycling expert. Give exactly 4 ideas for: "${item}" (${material}).
+RESPOND ONLY WITH JSON ARRAY:
 [{"title":"","description":"","difficulty":"Easy","timeMin":45,"toolsNeeded":[],"materials":[],"steps":[],"valueAdded":"","youtubeQuery":""}]`
-        : `You are a sustainability expert. Give exactly 4 PRACTICAL reuse ideas for: "${item}" (material: ${material}).
-
-RESPOND ONLY WITH JSON ARRAY. No text before/after. No markdown fences.
-
+        : `Sustainability expert. Give exactly 4 reuse ideas for: "${item}" (${material}).
+RESPOND ONLY WITH JSON ARRAY:
 [{"title":"","description":"","difficulty":"Easy","timeMin":15,"materials":[],"steps":[],"youtubeQuery":""}]`;
 
       try {
         const apiCall = (async () => {
-          // Try OpenAI first
-          if (openai) {
-            try {
-              console.log(`📤 OpenAI for ${ideasType}...`);
-              const raw = await callOpenAI(geminiPrompt, isUpcycle);
-              const ideas = parseGeminiJSON(raw);
-              if (!Array.isArray(ideas) || !ideas.length)
-                throw new Error("Empty ideas");
-              console.log(`✅ OpenAI: ${ideas.length} ideas`);
-              requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
-              return ideas;
-            } catch (err) {
-              const is429 = err.status === 429 || err.message?.includes("429");
-              console.warn(`⚠️  OpenAI failed:`, err.message);
-
-              // If 429, throw immediately (don't try Gemini)
-              if (is429) throw err;
-
-              // Otherwise, try Gemini
-              if (!genAI) throw err;
-              console.log("🔄 Falling back to Gemini...");
-            }
+          try {
+            console.log(`📤 OpenAI for ${ideasType}...`);
+            const raw = await callOpenAI(promptText, isUpcycle);
+            const ideas = parseJSON(raw);
+            if (!Array.isArray(ideas) || !ideas.length)
+              throw new Error("Empty");
+            console.log(`✅ ${ideas.length} ideas`);
+            requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
+            return ideas;
+          } catch (err) {
+            console.error(`❌ OpenAI:`, err.message);
+            throw err;
           }
-
-          // Use Gemini
-          if (!genAI) throw new Error("No APIs available");
-          console.log(`📤 Gemini for ${ideasType}...`);
-          const raw = await callGeminiWithRetry(geminiPrompt, GEMINI_FLASH, 1);
-          const ideas = parseGeminiJSON(raw);
-          if (!Array.isArray(ideas) || !ideas.length)
-            throw new Error("Empty ideas");
-          console.log(`✅ Gemini: ${ideas.length} ideas`);
-          requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
-          return ideas;
         })();
 
         pendingRequests.set(cacheKey, apiCall);
@@ -416,54 +352,45 @@ RESPOND ONLY WITH JSON ARRAY. No text before/after. No markdown fences.
         return res.json({ success: true, ideas });
       } catch (err) {
         pendingRequests.delete(cacheKey);
-        const is429 = err.status === 429 || err.message?.includes("429");
-
-        console.error(`❌ ${ideasType} error:`, err.message);
+        const is429 = err.status === 429;
+        console.error(`❌ ${ideasType}:`, err.message);
         return res.status(is429 ? 429 : 500).json({
           success: false,
-          error: is429
-            ? `API rate limit. Please wait 1 minute and try again.`
-            : `Failed to generate ${ideasType} ideas: ${err.message}`,
+          error: is429 ? "Rate limit. Wait 1 minute." : err.message,
           retryAfter: is429 ? 60 : undefined,
         });
       }
     }
 
-    // ── PATH B: Original shape { itemLabel, condition, material } ─────────
+    // PATH B
     if (!itemLabel || !condition || !material) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing: itemLabel, condition, material",
-      });
+      return res.status(400).json({ success: false, error: "Missing fields" });
     }
 
     const cacheKey = crypto
       .createHash("md5")
       .update(`${itemLabel}-${condition}-${material}`)
       .digest("hex");
-
     const cached = await UpcycleIdea.findOne({ cacheKey });
     if (cached) {
-      console.log("✅ DB cache hit:", itemLabel);
+      console.log("✅ DB cache:", itemLabel);
       return res.json({ success: true, data: cached.ideas });
     }
 
-    if (!genAI)
+    if (!openai)
       return res
         .status(503)
-        .json({ success: false, error: "GEMINI_API_KEY not configured" });
+        .json({ success: false, error: "OpenAI not configured" });
 
     try {
-      const raw = await callGeminiWithRetry(
+      const raw = await callOpenAI(
         `Item: "${itemLabel}", condition: "${condition}", material: "${material}".
-Provide 3 beginner upcycling ideas.
-RESPOND ONLY WITH JSON ARRAY:
-[{"title":"","description":"","steps":[],"materials":[],"difficulty":"easy","timeMin":30}]`,
+Give 3 ideas.
+RESPOND WITH JSON: [{"title":"","description":"","steps":[],"materials":[],"difficulty":"easy","timeMin":30}]`,
       );
 
-      const ideas = parseGeminiJSON(raw);
-      if (!Array.isArray(ideas) || !ideas.length)
-        throw new Error("Empty ideas");
+      const ideas = parseJSON(raw);
+      if (!Array.isArray(ideas) || !ideas.length) throw new Error("Empty");
 
       await UpcycleIdea.create({
         cacheKey,
@@ -475,14 +402,13 @@ RESPOND ONLY WITH JSON ARRAY:
       });
       return res.json({ success: true, data: ideas });
     } catch (err) {
-      const is429 = err.status === 429 || err.message?.includes("429");
-      return res.status(is429 ? 429 : 500).json({
-        success: false,
-        error: is429 ? "Rate limit — wait 1 minute" : err.message,
-      });
+      const is429 = err.status === 429;
+      return res
+        .status(is429 ? 429 : 500)
+        .json({ success: false, error: err.message });
     }
   } catch (error) {
-    console.error("❌ generateUpcyclingIdeas:", error.message);
+    console.error("❌ crash:", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
