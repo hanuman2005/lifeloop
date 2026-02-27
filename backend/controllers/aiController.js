@@ -1,13 +1,13 @@
 // backend/controllers/aiController.js
 // ✅ GEMINI ONLY — real dynamic data, no static fallbacks for ideas
 // ✅ Auto-retry on 429 (waits the time Gemini tells us, then retries)
-// ✅ Model: gemini-1.5-flash-latest
+// ✅ Model: gemini-2.0-flash
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const UpcycleIdea = require("../models/UpcycleIdea");
 const crypto = require("crypto");
 
-const GEMINI_FLASH = "gemini-1.5-flash-latest";
+const GEMINI_FLASH = "gemini-2.0-flash";
 
 if (!process.env.GEMINI_API_KEY) {
   console.warn("⚠️  GEMINI_API_KEY not set.");
