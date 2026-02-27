@@ -1,4 +1,4 @@
-// src/screens/WasteAnalyzer.js - React Native | OpenAI Vision + Probability Analysis
+// src/screens/WasteAnalyzer.js - React Native | MobileNet AI + Probability Analysis
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -13,15 +13,18 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NearbyCentersSection from "../components/NearbyCenters";
 import { uploadPrimaryImage } from "../utils/imageUpload";
+import Constants from "expo-constants";
 
 const { width: SW } = Dimensions.get("window");
-const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL =
+  Constants.expoConfig?.extra?.API_URL || "http://localhost:5000/api";
+const BACKEND_URL = API_URL.replace(/\/api\/?$/, ""); // strip trailing /api
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WASTE CATEGORIES
@@ -703,6 +706,20 @@ const WasteAnalyzer = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
 
+  // ✅ Reset to fresh state every time the screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      setStep(1);
+      setSelectedCategory(null);
+      setImages([]);
+      setAnalyzing(false);
+      setAnalyzeProgress("");
+      setResult(null);
+      setShowConfetti(false);
+      setShowCenters(false);
+    }, []),
+  );
+
   useEffect(() => {
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
@@ -828,9 +845,79 @@ const WasteAnalyzer = () => {
 
       let analysis;
 
-      // ✅ If user selected a category, use it directly without AI analysis
-      if (selectedCategory) {
-        console.log("🎯 Using user-selected category:", selectedCategory.label);
+      // ✅ If user selected a category AND has an image, run MobileNet
+      //    to get the specific item name, but use selected category for waste type
+      if (selectedCategory && images.length > 0) {
+        console.log(
+          "🎯 Category selected + image available — running MobileNet for item name",
+        );
+        setAnalyzeProgress("🔍 Identifying item...");
+
+        try {
+          const token = await AsyncStorage.getItem("token");
+          const imageBase64 = await imageToBase64(images[0].uri);
+
+          const analyzeResponse = await fetch(
+            `${BACKEND_URL}/api/ai/analyze-image`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                imageBase64: imageBase64,
+                mediaType: "image/jpeg",
+              }),
+            },
+          );
+
+          if (analyzeResponse.ok) {
+            const analyzeData = await analyzeResponse.json();
+            if (analyzeData.success && analyzeData.analysis) {
+              // Use MobileNet's item label but override category with user's choice
+              analysis = {
+                ...analyzeData.analysis,
+                material: selectedCategory.id,
+                category: selectedCategory.id,
+                reasoning: `AI identified as ${analyzeData.analysis.label}, user categorized as ${selectedCategory.label}`,
+                isRecyclable: true,
+                donationPossible:
+                  selectedCategory.id === "Electronic" ||
+                  selectedCategory.id === "Textile",
+              };
+              console.log(
+                `✅ MobileNet: "${analysis.label}" + user category: ${selectedCategory.label}`,
+              );
+            }
+          }
+        } catch (aiErr) {
+          console.warn(
+            "⚠️ MobileNet failed, using category-only fallback:",
+            aiErr.message,
+          );
+        }
+
+        // If MobileNet failed, fall back to generic label
+        if (!analysis) {
+          analysis = {
+            label: `${selectedCategory.label} Item`,
+            material: selectedCategory.id,
+            confidence: 95,
+            reasoning: `User identified this as ${selectedCategory.label}`,
+            isRecyclable: true,
+            urgency: "medium",
+            donationPossible:
+              selectedCategory.id === "Electronic" ||
+              selectedCategory.id === "Textile",
+          };
+        }
+      } else if (selectedCategory) {
+        // Category selected but no image — use generic label
+        console.log(
+          "🎯 Using user-selected category (no image):",
+          selectedCategory.label,
+        );
         analysis = {
           label: `${selectedCategory.label} Item`,
           material: selectedCategory.id,
@@ -843,24 +930,15 @@ const WasteAnalyzer = () => {
             selectedCategory.id === "Textile",
         };
       } else if (images.length > 0) {
-        // ✅ Use real Gemini Vision API for image analysis
-        console.log("🤖 Calling Gemini Vision API...");
-        setAnalyzeProgress("🔍 Analyzing image with Gemini...");
+        // ✅ Use MobileNet for image analysis
+        console.log("🤖 Calling AI image analysis...");
+        setAnalyzeProgress("🔍 Analyzing image...");
 
         try {
           const token = await AsyncStorage.getItem("token");
 
-          // Convert image to base64
-          const imageBase64 = await fetch(images[0])
-            .then((res) => res.arrayBuffer())
-            .then((buffer) => {
-              const bytes = new Uint8Array(buffer);
-              let binary = "";
-              for (let i = 0; i < bytes.length; i++) {
-                binary += String.fromCharCode(bytes[i]);
-              }
-              return btoa(binary);
-            });
+          // Convert image to base64 using the helper
+          const imageBase64 = await imageToBase64(images[0].uri);
 
           const analyzeResponse = await fetch(
             `${BACKEND_URL}/api/ai/analyze-image`,
@@ -871,7 +949,7 @@ const WasteAnalyzer = () => {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
               body: JSON.stringify({
-                imageBase64: `data:image/jpeg;base64,${imageBase64}`,
+                imageBase64: imageBase64,
                 mediaType: "image/jpeg",
               }),
             },
@@ -886,23 +964,23 @@ const WasteAnalyzer = () => {
           const analyzeData = await analyzeResponse.json();
           if (analyzeData.success && analyzeData.analysis) {
             analysis = analyzeData.analysis;
-            console.log("✅ Gemini Vision Analysis:", analysis);
+            console.log("✅ AI Analysis:", analysis);
           } else {
-            throw new Error("Invalid response from Gemini Vision API");
+            throw new Error("Invalid response from AI analysis API");
           }
-        } catch (geminiErr) {
-          console.error("❌ Gemini Vision API error:", geminiErr.message);
+        } catch (aiErr) {
+          console.error("❌ AI analysis error:", aiErr.message);
           // Fallback to mock if API fails
           Toast.show({
             type: "warning",
             text1: "Using default analysis",
-            text2: "Gemini API unavailable",
+            text2: "AI temporarily unavailable",
           });
           analysis = {
             label: "Unknown Item",
             material: "Plastic",
             confidence: 60,
-            reasoning: "Gemini API temporarily unavailable, using default",
+            reasoning: "AI temporarily unavailable, using default",
             isRecyclable: true,
             urgency: "medium",
             donationPossible: false,
@@ -977,10 +1055,52 @@ const WasteAnalyzer = () => {
         totalImages: images.length,
       };
 
-      // Save complete analysis to DB for history
-      // ONLY show OpenAI-generated ideas (no static fallbacks)
-      let reuseIdeas = []; // Will be populated from OpenAI only
-      let upcycleIdeas = []; // Will be populated from OpenAI only
+      // ✅ SHOW RESULTS IMMEDIATELY — don't wait for save/API calls
+      console.log("📊 Setting result and step...");
+      setResult(analysisResult);
+      setStep(3);
+      setShowConfetti(true);
+      setShowCenters(false);
+      setUserStats((prev) => ({
+        totalAnalyses: prev.totalAnalyses + 1,
+        totalEcoPoints:
+          prev.totalEcoPoints + (categoryAdvice.impact?.ecoScore || 0),
+        carbonSaved:
+          prev.carbonSaved + (categoryAdvice.impact?.carbonSaved || 0),
+      }));
+      Toast.show({ type: "success", text1: "✅ Analysis complete!" });
+
+      // ── Award Eco Points for scan (non-blocking) ──────────────────────
+      (async () => {
+        try {
+          const token = await AsyncStorage.getItem("token");
+          if (token) {
+            const API =
+              process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
+            await fetch(`${API}/api/eco/award`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                action: "scan",
+                description: `Scanned: ${analysis.label}`,
+                itemLabel: analysis.label,
+                category:
+                  detectedCategory?.label || selectedCategory?.label || "Other",
+                metadata: { confidence: analysis.confidence },
+              }),
+            });
+          }
+        } catch (_) {
+          /* silent — don't break main flow */
+        }
+      })();
+
+      // ── Save to DB in background (non-blocking) ────────────────────────
+      let reuseIdeas = [];
+      let upcycleIdeas = [];
 
       try {
         const { wasteAPI, aiAPI } = await import("../services/api");
@@ -996,7 +1116,7 @@ const WasteAnalyzer = () => {
         // Generate reuse ideas using AI
         // Generate reuse and upcycle ideas using correct endpoint
 
-        // Reuse ideas from Gemini
+        // Reuse ideas from AI
         try {
           setAnalyzeProgress("Generating reuse ideas...");
           const endpoint = BACKEND_URL.includes("/api")
@@ -1007,7 +1127,7 @@ const WasteAnalyzer = () => {
           });
 
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 120000); // 120 second timeout (allow for Gemini retries)
+          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
           const reuseResponse = await fetch(endpoint, {
             method: "POST",
@@ -1041,7 +1161,7 @@ const WasteAnalyzer = () => {
             const reuseData = await reuseResponse.json();
             if (reuseData.success && reuseData.ideas) {
               reuseIdeas = reuseData.ideas;
-              console.log("✅ Reuse ideas from OpenAI:", reuseIdeas);
+              console.log("✅ Reuse ideas from AI:", reuseIdeas);
             } else {
               console.warn("⚠️ Empty reuse ideas:", reuseData);
               reuseIdeas = [];
@@ -1052,7 +1172,7 @@ const WasteAnalyzer = () => {
           // Continue with fallback ideas
         }
 
-        // Upcycle ideas from Gemini
+        // Upcycle ideas from AI
         try {
           setAnalyzeProgress("Generating upcycle ideas...");
           const endpoint = BACKEND_URL.includes("/api")
@@ -1063,7 +1183,7 @@ const WasteAnalyzer = () => {
           });
 
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 120000); // 120 second timeout (allow for Gemini retries)
+          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
           const upcycleResponse = await fetch(endpoint, {
             method: "POST",
@@ -1097,7 +1217,7 @@ const WasteAnalyzer = () => {
             const upcycleData = await upcycleResponse.json();
             if (upcycleData.success && upcycleData.ideas) {
               upcycleIdeas = upcycleData.ideas;
-              console.log("✅ Upcycle ideas from OpenAI:", upcycleIdeas);
+              console.log("✅ Upcycle ideas from AI:", upcycleIdeas);
             } else {
               console.warn("⚠️ Empty upcycle ideas:", upcycleData);
               upcycleIdeas = [];
@@ -1144,8 +1264,8 @@ const WasteAnalyzer = () => {
           hazardIfThrown: categoryAdvice.hazardIfThrown,
           // Impact & Guidance
           recyclingGuidance: categoryAdvice.recyclingGuidance,
-          reuseIdeas: reuseIdeas, // ONLY Gemini data - no fallback
-          upcycleIdeas: upcycleIdeas, // ONLY Gemini data - no fallback
+          reuseIdeas: reuseIdeas,
+          upcycleIdeas: upcycleIdeas,
           impact: categoryAdvice.impact,
           education: categoryAdvice.education,
           // Metadata
@@ -1154,48 +1274,29 @@ const WasteAnalyzer = () => {
           userSelectedCategory: false,
         };
 
-        const saveResponse = await wasteAPI.saveAnalysis(analysisToSave);
-        console.log("✅ Analysis saved to DB:", saveResponse);
-        Toast.show({
-          type: "success",
-          text1: "Analysis Saved",
-          text2: "You can view this in your analysis history",
-          visibilityTime: 2000,
-        });
+        // Stringify idea objects for Mongoose (schema expects [String])
+        const stringifyIdeas = (ideas) =>
+          (ideas || []).map((i) =>
+            typeof i === "string" ? i : i.title || JSON.stringify(i),
+          );
+
+        const analysisToSaveFinal = {
+          ...analysisToSave,
+          reuseIdeas: stringifyIdeas(reuseIdeas),
+          upcycleIdeas: stringifyIdeas(upcycleIdeas),
+        };
+
+        const saveResponse = await wasteAPI.saveAnalysis(analysisToSaveFinal);
+        console.log(
+          "✅ Analysis saved to DB:",
+          saveResponse?.data?._id || "ok",
+        );
       } catch (saveErr) {
         console.warn(
           "⚠️ Save to DB failed (continuing anyway):",
           saveErr.message,
         );
-        // Don't show error - continue with analysis display
-        // Toast.show({
-        //   type: "info",
-        //   text1: "Offline Mode",
-        //   text2: "Analysis will be saved when online",
-        // });
       }
-
-      setUserStats((prev) => ({
-        totalAnalyses: prev.totalAnalyses + 1,
-        totalEcoPoints: prev.totalEcoPoints + categoryAdvice.impact.ecoScore,
-        carbonSaved: prev.carbonSaved + categoryAdvice.impact.carbonSaved,
-      }));
-
-      console.log("📊 Setting result and step...");
-      console.log("🎯 Result object:", {
-        label: analysisResult.label,
-        material: analysisResult.material,
-        hasReuse: !!reuseIdeas?.length,
-        hasUpcycle: !!upcycleIdeas?.length,
-      });
-
-      setResult(analysisResult);
-      setStep(3);
-      setShowConfetti(true);
-      setShowCenters(false);
-
-      console.log("✅ State updated successfully");
-      Toast.show({ type: "success", text1: "✅ Analysis complete!" });
     } catch (err) {
       console.error("❌ Analysis error:", err);
       console.error("Error stack:", err.stack);
@@ -1257,7 +1358,7 @@ const WasteAnalyzer = () => {
                 </Text>
                 <View style={s.geminiBadge}>
                   <Text style={s.geminiBadgeText}>
-                    ✦ Hybrid AI (Gemini + OpenAI)
+                    ✦ Powered by MobileNet AI
                   </Text>
                 </View>
               </View>
@@ -1334,7 +1435,7 @@ const WasteAnalyzer = () => {
 
               <Text style={s.stepTitle}>Upload your images</Text>
               <Text style={s.stepSub}>
-                OpenAI will analyze & recommend the best action
+                AI will analyze & recommend the best action
               </Text>
 
               {images.length > 0 && (
@@ -1394,9 +1495,7 @@ const WasteAnalyzer = () => {
                         <Text style={s.analyzingText}>{analyzeProgress}</Text>
                       </View>
                     ) : (
-                      <Text style={s.btnTextPrimary}>
-                        🤖 Analyze with Gemini
-                      </Text>
+                      <Text style={s.btnTextPrimary}>🤖 Analyze with AI</Text>
                     )}
                   </TouchableOpacity>
                 </>
@@ -1435,7 +1534,7 @@ const WasteAnalyzer = () => {
                   {result.material}
                 </Text>
                 {result.aiConfirmed && (
-                  <Text style={s.resultCatSub}>• OpenAI confirmed</Text>
+                  <Text style={s.resultCatSub}>• AI confirmed</Text>
                 )}
               </View>
 
@@ -1458,7 +1557,7 @@ const WasteAnalyzer = () => {
               {/* AI Reasoning */}
               {result.reasoning && (
                 <View style={s.reasoningCard}>
-                  <Text style={s.reasoningTitle}>🧠 What OpenAI Sees</Text>
+                  <Text style={s.reasoningTitle}>🧠 AI Analysis</Text>
                   <Text style={s.reasoningText}>{result.reasoning}</Text>
                   {result.urgency === "high" && (
                     <View style={s.urgencyBadge}>
@@ -1539,16 +1638,18 @@ const WasteAnalyzer = () => {
 
               {/* 🌍 CO2 SAVINGS IMPACT CARD 🌍 */}
               <CO2ImpactCard
-                carbonSaved={result.impact.carbonSaved}
-                carbonPenalty={result.impact.carbonPenalty}
+                carbonSaved={result.impact?.carbonSaved ?? 0}
+                carbonPenalty={result.impact?.carbonPenalty ?? 0}
               />
 
               {/* Image preview */}
-              <Image
-                source={{ uri: images[0]?.uri }}
-                style={s.resultImage}
-                resizeMode="cover"
-              />
+              {images.length > 0 && images[0]?.uri && (
+                <Image
+                  source={{ uri: images[0].uri }}
+                  style={s.resultImage}
+                  resizeMode="cover"
+                />
+              )}
               {result.totalImages > 1 && (
                 <Text style={s.multiImageBadge}>
                   📸 Enhanced: {result.totalImages} images analyzed
@@ -1559,18 +1660,20 @@ const WasteAnalyzer = () => {
               <View style={s.statsGrid}>
                 <View style={s.statCard}>
                   <Text style={s.statValue}>
-                    {result.impact.carbonSaved.toFixed(1)}
+                    {(result.impact?.carbonSaved ?? 0).toFixed(1)}
                   </Text>
                   <Text style={s.statLabel}>kg CO₂ Saved</Text>
                 </View>
                 <View style={s.statCard}>
                   <Text style={s.statValue}>
-                    {result.impact.wasteDiverted.toFixed(1)}
+                    {(result.impact?.wasteDiverted ?? 0).toFixed(1)}
                   </Text>
                   <Text style={s.statLabel}>kg Diverted</Text>
                 </View>
                 <View style={s.statCard}>
-                  <Text style={s.statValue}>+{result.impact.ecoScore}</Text>
+                  <Text style={s.statValue}>
+                    +{result.impact?.ecoScore ?? 0}
+                  </Text>
                   <Text style={s.statLabel}>Eco Points</Text>
                 </View>
               </View>
@@ -1581,12 +1684,10 @@ const WasteAnalyzer = () => {
                 <Text style={s.infoCardText}>{result.recyclingGuidance}</Text>
               </View>
 
-              {/* Quick reuse ideas - from Gemini only */}
+              {/* Quick reuse ideas */}
               {result.reuseIdeas && result.reuseIdeas.length > 0 && (
                 <View style={s.infoCard}>
-                  <Text style={s.infoCardTitle}>
-                    🔄 Reuse Ideas (by Gemini)
-                  </Text>
+                  <Text style={s.infoCardTitle}>🔄 Reuse Ideas</Text>
                   {result.reuseIdeas.map((idea, idx) => (
                     <View key={idx} style={s.ideaRow}>
                       <Text style={s.ideaBullet}>•</Text>
@@ -1662,9 +1763,7 @@ const WasteAnalyzer = () => {
                     <Text style={s.actionBtnIcon}>🔄</Text>
                     <View style={s.actionBtnContent}>
                       <Text style={s.actionBtnTitle}>Get Reuse Ideas</Text>
-                      <Text style={s.actionBtnSub}>
-                        OpenAI + YouTube tutorials
-                      </Text>
+                      <Text style={s.actionBtnSub}>AI + YouTube tutorials</Text>
                     </View>
                     <Text style={s.actionBtnArrow}>→</Text>
                   </TouchableOpacity>
@@ -1856,7 +1955,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(74,222,128,0.3)",
   },
-  geminiBadgeText: { fontSize: 11, color: "#4ade80", fontWeight: "600" },
+  geminiBadgeText: { fontSize: 11, color: "#4ade80", fontWeight: "600" }, // kept style name for compat
 
   // History Button
   historyBtn: {

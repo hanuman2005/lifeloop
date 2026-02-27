@@ -528,6 +528,8 @@ const assignListing = async (req, res) => {
     // ==========================================
     listing.assignedTo = recipientId;
     listing.status = "pending"; // 🔥 correct enum value
+    listing.assignedAt = new Date();
+    listing.assignmentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await listing.save();
 
     await listing.populate("assignedTo", "firstName lastName avatar rating");

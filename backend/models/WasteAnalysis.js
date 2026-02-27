@@ -40,11 +40,16 @@ const wasteAnalysisSchema = new mongoose.Schema(
       enum: [
         "Plastic",
         "Paper/Cardboard",
+        "Paper",
         "Glass",
         "Metal",
         "Cloth/Textile",
+        "Textile",
         "E-Waste",
+        "Electronic",
         "Organic Waste",
+        "Organic",
+        "Wood",
         "Other",
       ],
     },
@@ -201,7 +206,7 @@ const wasteAnalysisSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for performance

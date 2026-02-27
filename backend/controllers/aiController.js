@@ -1,535 +1,140 @@
 // backend/controllers/aiController.js
-// ✅ HYBRID: MobileNet for images (FREE), OpenAI for ideas with Gemini fallback
-// ✅ Try OpenAI → If 429 quota, use Gemini (fallback)
-// ✅ Cache + dedupe, return errors immediately
+// ✅ ZERO API KEYS NEEDED — completely free, offline-capable
+// ✅ Image analysis  → MobileNet (runs locally on your backend server)
+// ✅ Reuse ideas     → Pre-scraped Wikipedia/wikiHow database (ideaScraper.js)
+// ✅ Upcycle ideas   → Pre-scraped Wikipedia/wikiHow database (ideaScraper.js)
+// ✅ No Gemini, no OpenAI, no rate limits, no quota
 
-const mobilenet = require("@tensorflow-models/mobilenet");
-const tf = require("@tensorflow/tfjs");
-const OpenAI = require("openai");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const {
+  getIdeasByCategory,
+  getIdeasForItem,
+  getCategoryFromMaterial,
+} = require("../services/ideaScraper");
+const { classifyImage, loadModel } = require("../services/mobilenetClassifier");
 const UpcycleIdea = require("../models/UpcycleIdea");
 const crypto = require("crypto");
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CACHING & DEDUPLICATION
-// ─────────────────────────────────────────────────────────────────────────────
-const pendingRequests = new Map();
-const requestCache = new Map();
-const CACHE_TTL = 300000; // 5 minutes
-
-let mobilenetModel = null;
-
-const getCacheKey = (prompt, material, item) => {
-  return crypto
-    .createHash("md5")
-    .update(`${prompt}-${material}-${item}`)
-    .digest("hex");
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LOAD MOBILENET MODEL (once on startup)
-// ─────────────────────────────────────────────────────────────────────────────
-const loadMobileNetModel = async () => {
-  if (!mobilenetModel) {
-    try {
-      console.log("📦 Loading MobileNet model...");
-      mobilenetModel = await mobilenet.load();
-      console.log("✅ MobileNet ready for image classification");
-    } catch (err) {
-      console.error("⚠️  Failed to load MobileNet:", err.message);
-    }
-  }
-  return mobilenetModel;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BASE64 TO IMAGE TENSOR
-// ─────────────────────────────────────────────────────────────────────────────
-const base64ToImage = (base64String) => {
-  return Buffer.from(base64String, "base64");
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CLASSIFY WASTE BY MOBILENET PREDICTIONS
-// Maps ImageNet classes to waste categories
-// ─────────────────────────────────────────────────────────────────────────────
-const classifyWaste = (predictions) => {
-  // Map ImageNet class names to waste categories
-  const wasteMap = {
-    // Plastic items
-    bottle: {
-      material: "Plastic",
-      label: "Plastic Bottle",
-      donationPossible: false,
-    },
-    "water bottle": {
-      material: "Plastic",
-      label: "Water Bottle",
-      donationPossible: false,
-    },
-    cup: { material: "Plastic", label: "Plastic Cup", donationPossible: false },
-    bowl: {
-      material: "Plastic",
-      label: "Plastic Bowl",
-      donationPossible: true,
-    },
-    plastic: {
-      material: "Plastic",
-      label: "Plastic Item",
-      donationPossible: false,
-    },
-
-    // Glass items
-    glass: { material: "Glass", label: "Glass", donationPossible: true },
-    jar: { material: "Glass", label: "Glass Jar", donationPossible: true },
-    wine: { material: "Glass", label: "Wine Bottle", donationPossible: true },
-
-    // Metal items
-    can: { material: "Metal", label: "Metal Can", donationPossible: false },
-    fork: { material: "Metal", label: "Metal Fork", donationPossible: true },
-    spoon: { material: "Metal", label: "Metal Spoon", donationPossible: true },
-    knife: { material: "Metal", label: "Metal Knife", donationPossible: true },
-
-    // Paper/Cardboard
-    book: { material: "Paper", label: "Book", donationPossible: true },
-    newspaper: {
-      material: "Paper",
-      label: "Newspaper",
-      donationPossible: true,
-    },
-    paper: { material: "Paper", label: "Paper", donationPossible: true },
-    cardboard: {
-      material: "Paper",
-      label: "Cardboard",
-      donationPossible: true,
-    },
-
-    // Textile
-    shirt: { material: "Textile", label: "Shirt", donationPossible: true },
-    dress: { material: "Textile", label: "Dress", donationPossible: true },
-    cloth: { material: "Textile", label: "Cloth", donationPossible: true },
-    backpack: {
-      material: "Textile",
-      label: "Backpack",
-      donationPossible: true,
-    },
-    shoe: { material: "Textile", label: "Shoe", donationPossible: true },
-    pants: { material: "Textile", label: "Pants", donationPossible: true },
-
-    // Organic
-    apple: { material: "Organic", label: "Apple", donationPossible: false },
-    banana: { material: "Organic", label: "Banana", donationPossible: false },
-    orange: { material: "Organic", label: "Orange", donationPossible: false },
-    food: { material: "Organic", label: "Food", donationPossible: false },
-    fruit: { material: "Organic", label: "Fruit", donationPossible: false },
-
-    // Electronic
-    laptop: { material: "Electronic", label: "Laptop", donationPossible: true },
-    mouse: {
-      material: "Electronic",
-      label: "Computer Mouse",
-      donationPossible: true,
-    },
-    keyboard: {
-      material: "Electronic",
-      label: "Keyboard",
-      donationPossible: true,
-    },
-    phone: {
-      material: "Electronic",
-      label: "Cell Phone",
-      donationPossible: true,
-    },
-    remote: { material: "Electronic", label: "Remote", donationPossible: true },
-    computer: {
-      material: "Electronic",
-      label: "Computer",
-      donationPossible: true,
-    },
-    monitor: {
-      material: "Electronic",
-      label: "Monitor",
-      donationPossible: true,
-    },
-
-    // Wood
-    chair: { material: "Wood", label: "Wooden Chair", donationPossible: true },
-    table: { material: "Wood", label: "Wooden Table", donationPossible: true },
-    wood: { material: "Wood", label: "Wood", donationPossible: true },
-  };
-
-  // Find the best match from predictions
-  let bestMatch = null;
-  let highestScore = 0;
-
-  predictions.forEach((pred) => {
-    const className = pred.className.toLowerCase();
-    const probability = pred.probability;
-
-    if (probability > highestScore) {
-      for (const [key, waste] of Object.entries(wasteMap)) {
-        if (className.includes(key)) {
-          bestMatch = waste;
-          highestScore = probability;
-          break;
-        }
-      }
-    }
-  });
-
-  // If no specific match, use top prediction with generic classification
-  if (!bestMatch) {
-    const topPred = predictions[0];
-    const topClass = topPred?.className || "Unknown Item";
-
-    // Try to infer material from class name
-    let inferredMaterial = "Other";
-    if (
-      topClass.toLowerCase().includes("bottle") ||
-      topClass.toLowerCase().includes("plastic")
-    ) {
-      inferredMaterial = "Plastic";
-    } else if (topClass.toLowerCase().includes("glass")) {
-      inferredMaterial = "Glass";
-    } else if (
-      topClass.toLowerCase().includes("metal") ||
-      topClass.toLowerCase().includes("can")
-    ) {
-      inferredMaterial = "Metal";
-    } else if (
-      topClass.toLowerCase().includes("paper") ||
-      topClass.toLowerCase().includes("card")
-    ) {
-      inferredMaterial = "Paper";
-    } else if (
-      topClass.toLowerCase().includes("cloth") ||
-      topClass.toLowerCase().includes("shirt") ||
-      topClass.toLowerCase().includes("shoe")
-    ) {
-      inferredMaterial = "Textile";
-    } else if (
-      topClass.toLowerCase().includes("food") ||
-      topClass.toLowerCase().includes("fruit")
-    ) {
-      inferredMaterial = "Organic";
-    } else if (
-      topClass.toLowerCase().includes("electric") ||
-      topClass.toLowerCase().includes("phone") ||
-      topClass.toLowerCase().includes("computer")
-    ) {
-      inferredMaterial = "Electronic";
-    }
-
-    bestMatch = {
-      material: inferredMaterial,
-      label: topClass,
-      donationPossible:
-        inferredMaterial === "Textile" || inferredMaterial === "Wood",
-    };
-    highestScore = topPred?.probability || 0.5;
-  }
-
-  return {
-    ...bestMatch,
-    confidence: Math.round(highestScore * 100),
-    reasoning: `Classified as ${bestMatch.label} from image analysis`,
-    isRecyclable: ["Plastic", "Glass", "Metal", "Paper"].includes(
-      bestMatch.material,
-    ),
-    urgency: ["Electronic", "Organic"].includes(bestMatch.material)
-      ? "high"
-      : "medium",
-    condition: "good",
-  };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OPENAI FOR TEXT IDEAS (PRIMARY)
-// ─────────────────────────────────────────────────────────────────────────────
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GEMINI FOR TEXT IDEAS (FALLBACK when OpenAI quota exceeded)
-// ─────────────────────────────────────────────────────────────────────────────
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
-
-const callGemini = async (prompt) => {
-  if (!genAI) throw new Error("GEMINI_API_KEY not configured");
-  try {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-    });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (err) {
-    throw err;
-  }
-};
-
-const callOpenAI = async (prompt, isUpcycle = true) => {
-  if (!openai) throw new Error("OPENAI_API_KEY not configured");
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: isUpcycle
-          ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown."
-          : "You are a sustainability expert. Always respond ONLY with a valid JSON array, no markdown.",
-      },
-      { role: "user", content: prompt },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.7,
-    max_tokens: 2000,
-  });
-
-  const content = completion.choices[0].message.content;
-  if (!content) throw new Error("Empty response");
-  return content;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PARSE JSON
-// ─────────────────────────────────────────────────────────────────────────────
-const parseJSON = (raw) => {
-  const clean = raw.replace(/```json\s*|```\s*/g, "").trim();
-  try {
-    return JSON.parse(clean);
-  } catch {
-    const arrayMatch = clean.match(/\[[\s\S]*\]/);
-    const objMatch = clean.match(/\{[\s\S]*\}/);
-    if (arrayMatch) return JSON.parse(arrayMatch[0]);
-    if (objMatch) return JSON.parse(objMatch[0]);
-    throw new Error("No valid JSON");
-  }
-};
-
-console.log(
-  "🤖 OpenAI:",
-  openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured",
+// Pre-load MobileNet when server starts
+loadModel().catch((err) =>
+  console.warn("⚠️  MobileNet preload failed:", err.message),
 );
-console.log(
-  "🤖 Gemini:",
-  genAI
-    ? "ready (fallback for ideas if OpenAI quota exceeded)"
-    : "NOT configured",
-);
+
+console.log("🧠 aiController: MobileNet + Scraped Database (zero API keys)");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/analyze-image
-// Uses MobileNet (FREE, no API calls, no quota limits)
 // ─────────────────────────────────────────────────────────────────────────────
 const analyzeWasteImage = async (req, res) => {
   try {
-    const { imageBase64 } = req.body;
+    const {
+      imageBase64,
+      mediaType = "image/jpeg",
+      prompt,
+      textOnly,
+    } = req.body;
 
-    if (!imageBase64)
+    if (textOnly && prompt) {
+      return res.json({
+        success: true,
+        result:
+          "This item can likely be reused or recycled. Check local waste guidelines for proper disposal.",
+      });
+    }
+
+    if (!imageBase64) {
       return res
         .status(400)
         .json({ success: false, error: "No image provided" });
-
-    const model = await loadMobileNetModel();
-    if (!model) {
-      return res.json({
-        success: true,
-        analysis: {
-          label: "Unknown Item",
-          material: "Plastic",
-          confidence: 50,
-          reasoning: "Model not loaded",
-          isRecyclable: true,
-          urgency: "medium",
-          donationPossible: false,
-          condition: "good",
-        },
-        mode: "fallback",
-      });
     }
 
+    console.log("📸 Classifying with MobileNet (local, no API)...");
+
     try {
-      const imageBuffer = base64ToImage(imageBase64);
-      const img = tf.node.decodeImage(imageBuffer, 3);
-
-      console.log("📤 Running MobileNet classification...");
-      const predictions = await model.classify(img);
-      img.dispose();
-
-      if (!predictions || predictions.length === 0) {
-        return res.json({
-          success: true,
-          analysis: {
-            label: "Unrecognized Item",
-            material: "Other",
-            confidence: 30,
-            reasoning: "No classification results",
-            isRecyclable: false,
-            urgency: "low",
-            donationPossible: false,
-            condition: "good",
-          },
-          mode: "demo",
-        });
-      }
-
+      const result = await classifyImage(imageBase64);
       console.log(
-        `✅ Classified:`,
-        predictions
-          .map((p) => `${p.className} (${(p.probability * 100).toFixed(1)}%)`)
-          .join(" | "),
+        `✅ MobileNet: ${result.label} → ${result.category} (${result.confidence}%)`,
       );
-      const analysis = classifyWaste(predictions);
-      return res.json({ success: true, analysis });
-    } catch (inferenceErr) {
-      console.error("❌ Inference error:", inferenceErr.message);
+      return res.json({ success: true, analysis: result });
+    } catch (mobileNetErr) {
+      console.error("❌ MobileNet failed:", mobileNetErr.message);
+
+      // Fallback — return a safe default so front-end never crashes
       return res.json({
         success: true,
         analysis: {
-          label: "Unable to analyze",
+          label: "Unidentified Item",
           material: "Plastic",
-          confidence: 40,
-          reasoning: "Image analysis failed",
+          category: "Plastic",
+          confidence: 50,
+          reasoning: "Could not classify — try a clearer, well-lit photo",
           isRecyclable: true,
           urgency: "medium",
           donationPossible: false,
-          condition: "good",
+          condition: "fair",
+          source: "fallback",
         },
-        mode: "fallback",
+        message:
+          "Could not classify image. Please try a clearer, well-lit photo.",
       });
     }
   } catch (error) {
-    console.error("❌ analyzeWasteImage:", error.message);
-    return res.json({
-      success: true,
-      analysis: {
-        label: "Unknown Item",
-        material: "Plastic",
-        confidence: 60,
-        reasoning: "Service error",
-        isRecyclable: true,
-        urgency: "medium",
-        donationPossible: false,
-        condition: "good",
-      },
-      mode: "fallback",
-    });
+    console.error("❌ analyzeWasteImage crash:", error.message);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/upcycle
-// Text-only ideas using OpenAI
 // ─────────────────────────────────────────────────────────────────────────────
 const generateUpcyclingIdeas = async (req, res) => {
   try {
     const { itemLabel, condition, material, prompt, item } = req.body;
 
     console.log("📥 /api/ai/upcycle:", {
-      hasPrompt: !!prompt,
       item: item || itemLabel,
       material,
+      hasPrompt: !!prompt,
     });
 
+    // ── PATH A: prompt from screens ───────────────────────────────────────
     if (prompt) {
-      console.log("🎯 Custom prompt mode");
-
-      if (!openai) {
-        return res.status(503).json({
-          success: false,
-          error: "OpenAI API key not configured",
-        });
-      }
-
       const isUpcycle = prompt.toLowerCase().includes("upcycl");
-      const ideasType = isUpcycle ? "upcycle" : "reuse";
-      const cacheKey = getCacheKey(prompt, material, item);
+      const type = isUpcycle ? "upcycle" : "reuse";
+      const category = getCategoryFromMaterial(material);
+      const itemName = item || itemLabel || "";
 
-      const cached = requestCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        console.log(`♻️  Cache hit for ${ideasType}`);
-        return res.json({ success: true, ideas: cached.ideas });
+      // Try item-specific ideas first (e.g. "Watch" → watch ideas)
+      let ideas = getIdeasForItem(itemName, type);
+      let source = "item-database";
+
+      if (!ideas || ideas.length === 0) {
+        // Fall back to generic category ideas (e.g. "Metal" → metal ideas)
+        console.log(
+          `📚 No item ideas for "${itemName}", falling back to category: ${category}`,
+        );
+        ideas = getIdeasByCategory(category, type);
+        source = "category-database";
       }
 
-      if (pendingRequests.has(cacheKey)) {
-        console.log(`⏳ Deduplicating: waiting...`);
-        try {
-          const ideas = await pendingRequests.get(cacheKey);
-          return res.json({ success: true, ideas });
-        } catch {
-          // retry
-        }
-      }
-
-      const promptText = isUpcycle
-        ? `Creative upcycling expert. Give exactly 4 ideas for: "${item}" (${material}).
-RESPOND ONLY WITH JSON ARRAY:
-[{"title":"","description":"","difficulty":"Easy","timeMin":45,"toolsNeeded":[],"materials":[],"steps":[],"valueAdded":"","youtubeQuery":""}]`
-        : `Sustainability expert. Give exactly 4 reuse ideas for: "${item}" (${material}).
-RESPOND ONLY WITH JSON ARRAY:
-[{"title":"","description":"","difficulty":"Easy","timeMin":15,"materials":[],"steps":[],"youtubeQuery":""}]`;
-
-      try {
-        const apiCall = (async () => {
-          try {
-            console.log(`📤 OpenAI for ${ideasType}...`);
-            const raw = await callOpenAI(promptText, isUpcycle);
-            const ideas = parseJSON(raw);
-            if (!Array.isArray(ideas) || !ideas.length)
-              throw new Error("Empty");
-            console.log(`✅ OpenAI: ${ideas.length} ideas`);
-            requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
-            return ideas;
-          } catch (openaiErr) {
-            const is429 = openaiErr.status === 429;
-            console.warn(`⚠️  OpenAI failed:`, openaiErr.message);
-
-            // If quota exceeded, fall back to Gemini
-            if (is429 && genAI) {
-              try {
-                console.log(
-                  `🔄 Falling back to Gemini (OpenAI quota exceeded)...`,
-                );
-                const raw = await callGemini(promptText);
-                const ideas = parseJSON(raw);
-                if (!Array.isArray(ideas) || !ideas.length)
-                  throw new Error("Empty from Gemini");
-                console.log(`✅ Gemini: ${ideas.length} ideas [FALLBACK]`);
-                requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
-                return ideas;
-              } catch (geminiErr) {
-                console.error(`❌ Gemini fallback failed:`, geminiErr.message);
-                throw geminiErr;
-              }
-            }
-
-            throw openaiErr;
-          }
-        })();
-
-        pendingRequests.set(cacheKey, apiCall);
-        const ideas = await apiCall;
-        pendingRequests.delete(cacheKey);
-        return res.json({ success: true, ideas });
-      } catch (err) {
-        pendingRequests.delete(cacheKey);
-        const is429 = err.status === 429;
-        console.error(`❌ ${ideasType}:`, err.message);
-        return res.status(is429 ? 429 : 500).json({
+      if (!ideas || ideas.length === 0) {
+        return res.status(404).json({
           success: false,
-          error: is429 ? "Rate limit. Wait 1 minute." : err.message,
-          retryAfter: is429 ? 60 : undefined,
+          error: `No ${type} ideas found for ${itemName || category}`,
         });
       }
+
+      console.log(
+        `✅ ${ideas.length} ${type} ideas [${source}] for "${itemName || category}"`,
+      );
+      return res.json({ success: true, ideas, source });
     }
 
-    // PATH B
+    // ── PATH B: { itemLabel, condition, material } ────────────────────────
     if (!itemLabel || !condition || !material) {
-      return res.status(400).json({ success: false, error: "Missing fields" });
+      return res.status(400).json({
+        success: false,
+        error: "Missing: itemLabel, condition, material",
+      });
     }
 
     const cacheKey = crypto
@@ -538,42 +143,35 @@ RESPOND ONLY WITH JSON ARRAY:
       .digest("hex");
     const cached = await UpcycleIdea.findOne({ cacheKey });
     if (cached) {
-      console.log("✅ DB cache:", itemLabel);
+      console.log("✅ Cache hit:", itemLabel);
       return res.json({ success: true, data: cached.ideas });
     }
 
-    if (!openai)
-      return res
-        .status(503)
-        .json({ success: false, error: "OpenAI not configured" });
+    const category = getCategoryFromMaterial(material);
 
-    try {
-      const raw = await callOpenAI(
-        `Item: "${itemLabel}", condition: "${condition}", material: "${material}".
-Give 3 ideas.
-RESPOND WITH JSON: [{"title":"","description":"","steps":[],"materials":[],"difficulty":"easy","timeMin":30}]`,
-      );
-
-      const ideas = parseJSON(raw);
-      if (!Array.isArray(ideas) || !ideas.length) throw new Error("Empty");
-
-      await UpcycleIdea.create({
-        cacheKey,
-        itemLabel,
-        condition,
-        material,
-        ideas,
-        userId: req.user?._id || null,
-      });
-      return res.json({ success: true, data: ideas });
-    } catch (err) {
-      const is429 = err.status === 429;
-      return res
-        .status(is429 ? 429 : 500)
-        .json({ success: false, error: err.message });
+    // Try item-specific ideas first, then fall back to category
+    let ideas = getIdeasForItem(itemLabel, "upcycle");
+    if (!ideas || ideas.length === 0) {
+      ideas = getIdeasByCategory(category, "upcycle");
     }
+    ideas = (ideas || []).slice(0, 3);
+
+    if (!ideas || ideas.length === 0) {
+      return res.status(404).json({ success: false, error: "No ideas found" });
+    }
+
+    await UpcycleIdea.create({
+      cacheKey,
+      itemLabel,
+      condition,
+      material,
+      ideas,
+      userId: req.user?._id || null,
+    });
+
+    return res.json({ success: true, data: ideas });
   } catch (error) {
-    console.error("❌ crash:", error.message);
+    console.error("❌ generateUpcyclingIdeas crash:", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 };

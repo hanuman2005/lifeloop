@@ -43,6 +43,11 @@ import VerifyAccountScreen from "../screens/VerifyAccount";
 import ReuseGuideScreen from "../screens/ReuseGuide";
 import UpcycleScreen from "../screens/UpcycleScreen";
 
+// ─── Priority Feature Screens ─────────────────────────────────
+import EcoPointsScreen from "../screens/EcoPointsScreen";
+import NearbyMapScreen from "../screens/NearbyMapScreen";
+import PickupScheduleScreen from "../screens/PickupScheduleScreen";
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -286,6 +291,14 @@ export default function AppNavigator() {
             />
             <Stack.Screen name="ReuseGuide" component={ReuseGuideScreen} />
             <Stack.Screen name="UpCycleModal" component={UpcycleScreen} />
+
+            {/* ── Priority Feature Screens ── */}
+            <Stack.Screen name="EcoPoints" component={EcoPointsScreen} />
+            <Stack.Screen name="NearbyMap" component={NearbyMapScreen} />
+            <Stack.Screen
+              name="PickupSchedule"
+              component={PickupScheduleScreen}
+            />
           </>
         )}
       </Stack.Navigator>

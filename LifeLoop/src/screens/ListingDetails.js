@@ -152,7 +152,7 @@ const ListingDetailsScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { user } = useAuth();
-  const { id } = route.params || {}; // ✅ Guard against undefined route.params
+  const id = route.params?.id || route.params?.listingId; // ✅ Accept both id and listingId
 
   const [listing, setListing] = useState(null);
   const [queueStatus, setQueueStatus] = useState(null);
@@ -163,6 +163,9 @@ const ListingDetailsScreen = () => {
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAISuggestionsModal, setShowAISuggestionsModal] = useState(false);
+  const [aiMatches, setAiMatches] = useState([]);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -174,8 +177,9 @@ const ListingDetailsScreen = () => {
 
   useEffect(() => {
     if (!id) {
+      setLoading(false);
       setError("Invalid listing ID");
-      return; // ✅ Don't fetch if no id
+      return;
     }
     fetchListing();
     if (user) fetchQueueStatus();
@@ -360,6 +364,40 @@ const ListingDetailsScreen = () => {
       type: "success",
       text1: "✅ Report submitted. Our team will review it.",
     });
+  };
+
+  const handleGetAISuggestions = async () => {
+    if (!user) {
+      navigation.navigate("Login");
+      return;
+    }
+    setLoadingAI(true);
+    try {
+      const res = await api.get(`/listings/${id}/match-suggestions`);
+      setAiMatches(res.data.matches || res.data.data || []);
+      setShowAISuggestionsModal(true);
+    } catch (err) {
+      Toast.show({ type: "error", text1: "Failed to load suggestions" });
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  const handleAssignFromAI = async (recipientId, recipientName) => {
+    try {
+      await api.post(`/listings/${id}/assign`, { recipientId });
+      Toast.show({
+        type: "success",
+        text1: `✅ Assigned to ${recipientName}!`,
+      });
+      setShowAISuggestionsModal(false);
+      fetchListing();
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: err.response?.data?.message || "Failed to assign",
+      });
+    }
   };
 
   // ── States ──────────────────────────────
@@ -595,18 +633,30 @@ const ListingDetailsScreen = () => {
         {isDonor ? (
           <View style={styles.actionRow}>
             <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnAI]}
+              onPress={handleGetAISuggestions}
+              disabled={loadingAI}
+              activeOpacity={0.85}
+            >
+              {loadingAI ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.actionBtnText}>🧠 AI Match</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.actionBtn, styles.actionBtnSecondary]}
               onPress={() => navigation.navigate("CreateListing", { id })}
               activeOpacity={0.85}
             >
-              <Text style={styles.actionBtnSecondaryText}>✏️ Edit</Text>
+              <Text style={styles.actionBtnSecondaryText}>✏️</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, styles.actionBtnDanger]}
               onPress={handleDelete}
               activeOpacity={0.85}
             >
-              <Text style={styles.actionBtnText}>🗑️ Delete</Text>
+              <Text style={styles.actionBtnText}>🗑️</Text>
             </TouchableOpacity>
           </View>
         ) : listing.status === "available" ? (
@@ -655,13 +705,54 @@ const ListingDetailsScreen = () => {
 
       {/* ── Report Modal ──────────────── */}
       <ReportModal
-        visible={showReportModal}
+        isOpen={showReportModal}
         type="listing"
-        itemId={id}
-        itemTitle={listing.title}
+        targetId={id}
+        targetTitle={listing.title}
         onClose={() => setShowReportModal(false)}
         onSuccess={handleReportSuccess}
       />
+
+      {showAISuggestionsModal && (
+        <View style={styles.modal}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🧠 AI-Matched Recipients</Text>
+              <TouchableOpacity
+                onPress={() => setShowAISuggestionsModal(false)}
+                style={styles.closeBtn}
+              >
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.matchesList}>
+              {aiMatches.map((match, i) => (
+                <View key={i} style={styles.matchCard}>
+                  <View>
+                    <Text style={styles.matchName}>
+                      {match.firstName} {match.lastName}
+                    </Text>
+                    <Text style={styles.matchScore}>
+                      ⭐ {(match.match_score || 0).toFixed(0)}%
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.assignModalBtn}
+                    onPress={() =>
+                      handleAssignFromAI(
+                        match._id,
+                        `${match.firstName} ${match.lastName}`,
+                      )
+                    }
+                  >
+                    <Text style={styles.assignModalBtnText}>Assign</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -958,11 +1049,56 @@ const styles = StyleSheet.create({
     borderColor: "#334155",
   },
   actionBtnDanger: { backgroundColor: "#ef4444" },
+  actionBtnAI: { backgroundColor: "#8b5cf6" },
   btnDisabled: { opacity: 0.5 },
   actionBtnText: { color: "#0f172a", fontWeight: "700", fontSize: 15 },
   actionBtnChatText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   actionBtnSecondaryText: { color: "#94a3b8", fontWeight: "600", fontSize: 15 },
   notAvailableText: { color: "#64748b", fontSize: 14, fontStyle: "italic" },
+  modal: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: "#1e293b",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  modalTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  matchesList: { padding: 12 },
+  matchCard: {
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  matchName: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  matchScore: { color: "#4ade80", fontSize: 12, marginTop: 2 },
+  assignModalBtn: {
+    backgroundColor: "#4ade80",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  assignModalBtnText: { color: "#0f172a", fontWeight: "700", fontSize: 12 },
 });
 
 export default ListingDetailsScreen;

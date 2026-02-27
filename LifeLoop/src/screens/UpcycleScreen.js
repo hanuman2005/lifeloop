@@ -1,5 +1,5 @@
 // src/screens/UpcycleScreen.js - React Native
-// Gemini generates upcycle ideas + YouTube shows tutorials
+// AI generates upcycle ideas + YouTube shows tutorials
 // Navigation params: { item, category, imageUri }
 
 import React, { useState, useEffect, useRef } from "react";
@@ -293,8 +293,8 @@ const UpcycleScreen = () => {
       setIdeas(data);
     } catch (err) {
       console.error("Upcycle ideas error:", err);
-      setError("Failed to generate ideas from Gemini. Please try again.");
-      // NO fallback - only show Gemini data
+      setError("Failed to generate ideas. Please try again.");
+      // NO fallback - only show AI data
       setIdeas([]);
     } finally {
       setLoading(false);
@@ -339,15 +339,13 @@ const UpcycleScreen = () => {
         )}
 
         <View style={st.geminiBadge}>
-          <Text style={st.geminiBadgeText}>✦ Upcycle ideas by Gemini AI</Text>
+          <Text style={st.geminiBadgeText}>✦ Upcycle ideas by AI</Text>
         </View>
 
         {loading && (
           <View style={st.loadingBox}>
             <ActivityIndicator size="large" color="#f59e0b" />
-            <Text style={st.loadingText}>
-              Gemini is crafting upcycle ideas...
-            </Text>
+            <Text style={st.loadingText}>AI is crafting upcycle ideas...</Text>
           </View>
         )}
 

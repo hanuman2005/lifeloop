@@ -33,6 +33,9 @@ const queueRoutes = require("./routes/queue");
 const adminRoutes = require("./routes/admin");
 const centersRoutes = require("./routes/centers");
 const verificationOTPRoutes = require("./routes/verificationOTP");
+const ecoRoutes = require("./routes/ecoRoutes");
+const mapRoutes = require("./routes/mapRoutes");
+const pickupRoutes = require("./routes/pickupRoutes");
 
 // Import socket handler
 const socketHandler = require("./socket/socketHandler");
@@ -152,6 +155,9 @@ app.get("/", (req, res) => {
       admin: "/api/admin",
       centers: "/api/centers",
       verify: "/api/verify",
+      eco: "/api/eco",
+      map: "/api/map",
+      pickup: "/api/pickup",
     },
   });
 });
@@ -179,6 +185,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/centers", centersRoutes);
 app.use("/api/sms", require("./routes/sms"));
 app.use("/api/verify", verificationOTPRoutes);
+app.use("/api/eco", ecoRoutes);
+app.use("/api/map", mapRoutes);
+app.use("/api/pickup", pickupRoutes);
 
 // ============================================
 // Error Handling
@@ -220,6 +229,15 @@ async function startServer() {
       console.log("Press Ctrl+C to stop");
       console.log("");
     });
+
+    // Graceful shutdown — free port on SIGINT/SIGTERM so nodemon restarts cleanly
+    const shutdown = () => {
+      console.log("\n🛑 Shutting down gracefully...");
+      server.close(() => process.exit(0));
+      setTimeout(() => process.exit(1), 3000);
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);
     process.exit(1);

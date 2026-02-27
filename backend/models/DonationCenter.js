@@ -4,7 +4,16 @@ const donationCenterSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["donation", "recycling", "both"],
+      enum: [
+        "donation",
+        "recycling",
+        "both",
+        "recycler",
+        "ewaste",
+        "compost",
+        "kabadiwala",
+        "pickup",
+      ],
       default: "donation",
       required: true,
     },
@@ -43,6 +52,10 @@ const donationCenterSchema = new mongoose.Schema(
       Sunday: { open: String, close: String, closed: Boolean },
     },
     acceptedItems: [String],
+    acceptedMaterials: [String],
+    operatingHours: String,
+    rating: { type: Number, default: 0 },
+    prices: mongoose.Schema.Types.Mixed,
     specialNotes: String,
     verified: {
       type: Boolean,
@@ -51,7 +64,7 @@ const donationCenterSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Geospatial index

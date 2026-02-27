@@ -825,7 +825,7 @@ const Home = () => {
                     style={styles.recipientListingCard}
                     onPress={() =>
                       navigation.navigate("ListingDetails", {
-                        listingId: listing._id,
+                        id: listing._id,
                       })
                     }
                     activeOpacity={0.8}
@@ -981,6 +981,21 @@ const Home = () => {
                   label="Schedules"
                   onPress={() => navigation.navigate("Schedules")}
                 />
+                <QuickActionButton
+                  icon="🏆"
+                  label="Eco Points"
+                  onPress={() => navigation.navigate("EcoPoints")}
+                />
+                <QuickActionButton
+                  icon="🗺️"
+                  label="Centers"
+                  onPress={() => navigation.navigate("NearbyMap")}
+                />
+                <QuickActionButton
+                  icon="🚛"
+                  label="Pickup"
+                  onPress={() => navigation.navigate("PickupSchedule")}
+                />
               </View>
             </View>
 
@@ -1037,6 +1052,21 @@ const Home = () => {
                       .getParent()
                       ?.navigate("Main", { screen: "WasteAnalyzer" })
                   }
+                />
+                <QuickActionButton
+                  icon="🏆"
+                  label="Eco Points"
+                  onPress={() => navigation.navigate("EcoPoints")}
+                />
+                <QuickActionButton
+                  icon="🗺️"
+                  label="Centers"
+                  onPress={() => navigation.navigate("NearbyMap")}
+                />
+                <QuickActionButton
+                  icon="🚛"
+                  label="Pickup"
+                  onPress={() => navigation.navigate("PickupSchedule")}
                 />
               </View>
             </View>

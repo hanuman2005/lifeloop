@@ -174,6 +174,52 @@ const userSchema = new mongoose.Schema(
       code: String,
       expiresAt: Date,
     },
+
+    // ============================================
+    // Eco Points & Pickup Requests
+    // ============================================
+    ecoPoints: { type: Number, default: 0 },
+    ecoTransactions: [
+      {
+        action: String,
+        points: Number,
+        description: String,
+        itemLabel: String,
+        category: String,
+        metadata: mongoose.Schema.Types.Mixed,
+        date: { type: Date, default: Date.now },
+      },
+    ],
+    pickupRequests: [
+      {
+        id: String,
+        items: [
+          {
+            label: String,
+            category: String,
+            quantity: String,
+          },
+        ],
+        address: {
+          street: String,
+          city: String,
+          pincode: String,
+          landmark: String,
+        },
+        scheduledDate: Date,
+        scheduledSlot: String,
+        centerId: String,
+        notes: String,
+        status: {
+          type: String,
+          default: "pending",
+          enum: ["pending", "confirmed", "completed", "cancelled"],
+        },
+        createdAt: { type: Date, default: Date.now },
+        confirmedAt: Date,
+        cancelledAt: Date,
+      },
+    ],
   },
   {
     timestamps: true,
