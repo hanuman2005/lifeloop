@@ -1,8 +1,8 @@
 // backend/controllers/aiController.js
 // ✅ SMART SPLIT: Gemini for images, OpenAI for text ideas
-// ✅ Keeps Gemini quota for expensive vision analysis
-// ✅ OpenAI $5 credit = unlimited text generation
-// ✅ Auto-retry on 429 (waits the time API tells us, then retries)
+// ✅ Return 429 errors IMMEDIATELY (don't retry, let frontend handle)
+// ✅ Cache results for 5 minutes to reduce API calls
+// ✅ Deduplicate simultaneous identical requests
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
@@ -11,8 +11,25 @@ const crypto = require("crypto");
 
 const GEMINI_FLASH = "gemini-2.0-flash";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REQUEST DEDUPLICATION & CACHING
+// ─────────────────────────────────────────────────────────────────────────────
+const pendingRequests = new Map();
+const requestCache = new Map();
+const CACHE_TTL = 300000; // 5 minutes
+
+const getCacheKey = (prompt, material, item) => {
+  return crypto
+    .createHash("md5")
+    .update(`${prompt}-${material}-${item}`)
+    .digest("hex");
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INITIALIZE APIs
+// ─────────────────────────────────────────────────────────────────────────────
 if (!process.env.GEMINI_API_KEY) {
-  console.warn("⚠️  GEMINI_API_KEY not set — vision analysis disabled.");
+  console.warn("⚠️  GEMINI_API_KEY not set — image analysis disabled.");
 }
 
 const genAI = process.env.GEMINI_API_KEY
@@ -23,18 +40,22 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-console.log("🤖 Gemini:", genAI ? `ready (${GEMINI_FLASH} for vision)` : "NOT configured");
-console.log("🤖 OpenAI:", openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured");
+console.log(
+  "🤖 Gemini:",
+  genAI ? `ready (${GEMINI_FLASH} for vision)` : "NOT configured",
+);
+console.log(
+  "🤖 OpenAI:",
+  openai ? "ready (gpt-4o-mini for ideas)" : "NOT configured",
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RETRY HELPER
-// Gemini 429 response includes "retryDelay: Xs" — we parse it and wait
-// Max 3 retries with increasing wait time
+// GEMINI HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 const callGeminiWithRetry = async (
   prompt,
   modelName = GEMINI_FLASH,
-  retries = 3,
+  retries = 1, // Only 1 attempt - fail fast on rate limits
 ) => {
   if (!genAI) throw new Error("GEMINI_API_KEY not configured");
 
@@ -49,32 +70,27 @@ const callGeminiWithRetry = async (
         err.message?.includes("Too Many Requests");
 
       if (is429 && attempt < retries) {
-        // Parse retry delay from Gemini error message e.g. "Please retry in 12.5s"
         const delayMatch = err.message?.match(/retry[^0-9]*([0-9.]+)\s*s/i);
         const waitSec = delayMatch
           ? Math.ceil(parseFloat(delayMatch[1])) + 1
           : attempt * 15;
-
         console.warn(
-          `⏳ Gemini 429 (attempt ${attempt}/${retries}) — waiting ${waitSec}s before retry...`,
+          `⏳ Gemini 429 (attempt ${attempt}/${retries}) — waiting ${waitSec}s...`,
         );
         await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-        continue; // retry
+        continue;
       }
 
-      throw err; // not 429, or out of retries — let caller handle
+      throw err; // Fail fast on first attempt
     }
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VISION CALL (needs image data, separate from text)
-// ─────────────────────────────────────────────────────────────────────────────
 const callGeminiVisionWithRetry = async (
   prompt,
   imageBase64,
   mediaType,
-  retries = 3,
+  retries = 1,
 ) => {
   if (!genAI) throw new Error("GEMINI_API_KEY not configured");
 
@@ -109,54 +125,39 @@ const callGeminiVisionWithRetry = async (
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OPENAI CALL (for reuse/upcycle ideas — saves Gemini quota)
+// OPENAI HELPER - Return 429 errors immediately (don't retry)
 // ─────────────────────────────────────────────────────────────────────────────
-const callOpenAIWithRetry = async (
-  prompt,
-  isUpcycle = true,
-  retries = 3,
-) => {
+const callOpenAI = async (prompt, isUpcycle = true) => {
   if (!openai) throw new Error("OPENAI_API_KEY not configured");
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: isUpcycle
-              ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown fences, no extra text."
-              : "You are a sustainability expert helping with reuse ideas. Always respond ONLY with a valid JSON array, no markdown fences, no extra text.",
-          },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: isUpcycle
+            ? "You are a creative upcycling expert. Always respond ONLY with a valid JSON array, no markdown fences."
+            : "You are a sustainability expert. Always respond ONLY with a valid JSON array, no markdown fences.",
+        },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
 
-      const content = completion.choices[0].message.content;
-      if (!content) throw new Error("Empty response from OpenAI");
-      return content;
-    } catch (err) {
-      const is429 = err.status === 429 || err.message?.includes("429");
-      const is5xx = err.status >= 500;
-
-      if ((is429 || is5xx) && attempt < retries) {
-        const waitSec = is429 ? attempt * 10 : attempt * 5;
-        console.warn(
-          `⏳ OpenAI ${err.status || "error"} (attempt ${attempt}/${retries}) — waiting ${waitSec}s...`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, waitSec * 1000));
-        continue;
-      }
-
-      throw err;
-    }
+    const content = completion.choices[0].message.content;
+    if (!content) throw new Error("Empty response from OpenAI");
+    return content;
+  } catch (err) {
+    // Return 429 immediately - don't retry
+    throw err;
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARSE JSON (strips markdown fences)
 // ─────────────────────────────────────────────────────────────────────────────
 const parseGeminiJSON = (raw) => {
   const clean = raw.replace(/```json\s*|```\s*/g, "").trim();
@@ -167,17 +168,20 @@ const parseGeminiJSON = (raw) => {
     const objMatch = clean.match(/\{[\s\S]*\}/);
     if (arrayMatch) return JSON.parse(arrayMatch[0]);
     if (objMatch) return JSON.parse(objMatch[0]);
-    throw new Error("No valid JSON in Gemini response");
+    throw new Error("No valid JSON in response");
   }
 };
 
-// Mock only for image analysis (no key case)
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK DATA (fallback for image analysis only)
+// ─────────────────────────────────────────────────────────────────────────────
 const MOCK_ANALYSES = [
   {
-    label: "Plastic Bottle",
+    label: "Plastic Water Bottle",
     material: "Plastic",
-    confidence: 88,
-    reasoning: "Transparent plastic container with ribbed sides",
+    confidence: 92,
+    reasoning:
+      "Clear plastic container with ribbed sides typical of single-use bottles",
     isRecyclable: true,
     urgency: "medium",
     donationPossible: false,
@@ -185,8 +189,8 @@ const MOCK_ANALYSES = [
   {
     label: "Glass Jar",
     material: "Glass",
-    confidence: 92,
-    reasoning: "Clear glass container suitable for storage",
+    confidence: 88,
+    reasoning: "Clear glass container suitable for storage and reuse",
     isRecyclable: true,
     urgency: "high",
     donationPossible: true,
@@ -195,54 +199,9 @@ const MOCK_ANALYSES = [
     label: "Metal Can",
     material: "Metal",
     confidence: 95,
-    reasoning: "Aluminum or steel beverage/food can",
+    reasoning: "Aluminum beverage can - easily recyclable",
     isRecyclable: true,
     urgency: "medium",
-    donationPossible: false,
-  },
-  {
-    label: "Cardboard Box",
-    material: "Paper",
-    confidence: 90,
-    reasoning: "Corrugated cardboard shipping or storage box",
-    isRecyclable: true,
-    urgency: "low",
-    donationPossible: true,
-  },
-  {
-    label: "Electronic Device",
-    material: "Electronic",
-    confidence: 87,
-    reasoning: "Electronic equipment with circuit boards",
-    isRecyclable: true,
-    urgency: "high",
-    donationPossible: true,
-  },
-  {
-    label: "Textile Clothing",
-    material: "Textile",
-    confidence: 85,
-    reasoning: "Woven fabric garment or cloth item",
-    isRecyclable: true,
-    urgency: "low",
-    donationPossible: true,
-  },
-  {
-    label: "Wooden Furniture",
-    material: "Wood",
-    confidence: 92,
-    reasoning: "Solid or composite wood furniture piece",
-    isRecyclable: true,
-    urgency: "medium",
-    donationPossible: true,
-  },
-  {
-    label: "Food Waste",
-    material: "Organic",
-    confidence: 88,
-    reasoning: "Organic matter suitable for composting",
-    isRecyclable: false,
-    urgency: "high",
     donationPossible: false,
   },
 ];
@@ -263,27 +222,22 @@ const MATERIAL_MAP = {
 // ─────────────────────────────────────────────────────────────────────────────
 const analyzeWasteImage = async (req, res) => {
   try {
-    const {
-      imageBase64,
-      mediaType = "image/jpeg",
-      prompt,
-      textOnly,
-    } = req.body;
+    const { imageBase64, mediaType = "image/jpeg", prompt } = req.body;
 
-    // Text-only legacy mode
-    if (textOnly && prompt) {
+    // Text-only mode
+    if (prompt && !imageBase64) {
       if (!genAI)
         return res.json({
           success: true,
-          result: "This item can likely be reused or recycled.",
+          result: "This can likely be reused or recycled.",
         });
       try {
         const text = await callGeminiWithRetry(prompt);
         return res.json({ success: true, result: text });
-      } catch (err) {
+      } catch {
         return res.json({
           success: true,
-          result: "This item can likely be reused or recycled.",
+          result: "This can likely be reused or recycled.",
         });
       }
     }
@@ -304,25 +258,19 @@ const analyzeWasteImage = async (req, res) => {
       try {
         console.log("📤 Calling Gemini Vision...");
 
-        const visionPrompt = `You are a waste classification expert. Analyze this image carefully.
+        const visionPrompt = `You are a waste classification expert. Analyze this image.
 
-Respond ONLY with valid JSON, no markdown, no extra text:
+Respond ONLY with valid JSON, no markdown:
 {
-  "label": "specific item name (e.g. Plastic Water Bottle, Old Cotton Shirt, Broken Smartphone)",
-  "material": "one of exactly: Plastic, Glass, Metal, Paper, Organic, Electronic, Textile, Wood",
-  "confidence": <number 0-100>,
-  "reasoning": "one sentence explaining what you see and why you classified it this way",
-  "isRecyclable": <true or false>,
+  "label": "specific item name",
+  "material": "one of: Plastic, Glass, Metal, Paper, Organic, Electronic, Textile, Wood",
+  "confidence": <0-100>,
+  "reasoning": "one sentence explanation",
+  "isRecyclable": <boolean>,
   "urgency": "low or medium or high",
-  "donationPossible": <true or false>,
+  "donationPossible": <boolean>,
   "condition": "excellent or good or fair or poor or broken"
-}
-
-Rules:
-- Electronic = ANY device, cable, battery, charger, circuit board, phone, laptop, TV, remote
-- Textile = clothing, fabric, shoes, bags, curtains, towels
-- urgency=high for e-waste, hazardous materials, perishables
-- donationPossible=true only if item is in usable condition`;
+}`;
 
         const raw = await callGeminiVisionWithRetry(
           visionPrompt,
@@ -330,11 +278,11 @@ Rules:
           mediaType,
         );
         analysis = parseGeminiJSON(raw.trim());
-        if (!analysis?.label) throw new Error("Invalid response structure");
+        if (!analysis?.label) throw new Error("Invalid response");
 
         console.log(`✅ Vision: ${analysis.label} (${analysis.confidence}%)`);
       } catch (err) {
-        console.warn("⚠️  Vision failed after retries:", err.message);
+        console.warn("⚠️  Vision failed:", err.message);
         analysis =
           MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
         usedMock = true;
@@ -355,7 +303,7 @@ Rules:
         label: "Unknown Item",
         material: "Plastic",
         confidence: 60,
-        reasoning: "Service unavailable",
+        reasoning: "Service temporarily unavailable",
         isRecyclable: true,
         urgency: "medium",
         donationPossible: false,
@@ -367,7 +315,7 @@ Rules:
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/ai/upcycle
-// NO static fallback for ideas — returns error so frontend shows retry button
+// Smart split: OpenAI (fast) → Gemini (fallback) → return errors immediately
 // ─────────────────────────────────────────────────────────────────────────────
 const generateUpcyclingIdeas = async (req, res) => {
   try {
@@ -377,147 +325,105 @@ const generateUpcyclingIdeas = async (req, res) => {
       hasPrompt: !!prompt,
       item: item || itemLabel,
       material,
-      user: req.user ? "auth" : "public",
     });
 
-    // ── PATH A: Custom prompt from screens ────────────────────────────────
+    // ── PATH A: Custom prompt from screens ──────────────────────────────
     if (prompt) {
       console.log("🎯 Custom prompt mode");
 
-      if (!genAI) {
-        return res
-          .status(503)
-          .json({
-            success: false,
-            error:
-              "GEMINI_API_KEY not configured. Please add it to your .env file.",
-          });
+      if (!genAI && !openai) {
+        return res.status(503).json({
+          success: false,
+          error: "Neither OpenAI nor Gemini API keys configured",
+        });
       }
 
       const isUpcycle = prompt.toLowerCase().includes("upcycl");
+      const ideasType = isUpcycle ? "upcycle" : "reuse";
+      const cacheKey = getCacheKey(prompt, material, item);
+
+      // Check cache
+      const cached = requestCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`♻️  Cache hit for ${ideasType}`);
+        return res.json({ success: true, ideas: cached.ideas });
+      }
+
+      // Check for pending request (deduplication)
+      if (pendingRequests.has(cacheKey)) {
+        console.log(`⏳ Deduplicating: waiting for pending ${ideasType}...`);
+        try {
+          const ideas = await pendingRequests.get(cacheKey);
+          return res.json({ success: true, ideas });
+        } catch {
+          // Fall through to retry
+        }
+      }
 
       const geminiPrompt = isUpcycle
-        ? `You are a creative upcycling expert helping people transform waste into valuable items.
+        ? `You are a creative upcycling expert. Give exactly 4 CREATIVE upcycling ideas for: "${item}" (material: ${material}).
 
-Give exactly 4 CREATIVE upcycling project ideas for: "${item || "this item"}" (material: ${material || "unknown"}).
-Upcycling = transform into something NEW and MORE VALUABLE (not just reusing as-is).
+RESPOND ONLY WITH JSON ARRAY. No text before/after. No markdown fences.
 
-RESPOND ONLY WITH A JSON ARRAY. No text before or after. No markdown fences.
+[{"title":"","description":"","difficulty":"Easy","timeMin":45,"toolsNeeded":[],"materials":[],"steps":[],"valueAdded":"","youtubeQuery":""}]`
+        : `You are a sustainability expert. Give exactly 4 PRACTICAL reuse ideas for: "${item}" (material: ${material}).
 
-[
-  {
-    "title": "Creative project name",
-    "description": "2 sentences: what it becomes and why it is valuable",
-    "difficulty": "Easy",
-    "timeMin": 45,
-    "toolsNeeded": ["tool1", "tool2"],
-    "materials": ["material1", "material2"],
-    "steps": ["Step 1: do this", "Step 2: do this", "Step 3: do this", "Step 4: finish"],
-    "valueAdded": "Specific value created",
-    "youtubeQuery": "upcycle ${item || material} into [what] diy tutorial"
-  }
-]
+RESPOND ONLY WITH JSON ARRAY. No text before/after. No markdown fences.
 
-All 4 ideas must be different and specific to ${material || "the material"}. Be creative and practical.`
-        : `You are a sustainability expert helping people creatively reuse waste items.
-
-Give exactly 4 PRACTICAL reuse ideas for: "${item || "this item"}" (material: ${material || "unknown"}).
-Reuse = find new purpose AS-IS with minimal effort (not a full transformation).
-
-RESPOND ONLY WITH A JSON ARRAY. No text before or after. No markdown fences.
-
-[
-  {
-    "title": "Reuse idea name",
-    "description": "2 sentences describing the reuse and its benefit",
-    "difficulty": "Easy",
-    "timeMin": 15,
-    "materials": ["item needed if any"],
-    "steps": ["Step 1: do this", "Step 2: do this", "Step 3: done"],
-    "youtubeQuery": "how to reuse ${item || material} at home diy"
-  }
-]
-
-All 4 ideas must be different and specific to ${material || "the item"}.`;
+[{"title":"","description":"","difficulty":"Easy","timeMin":15,"materials":[],"steps":[],"youtubeQuery":""}]`;
 
       try {
-        const ideasType = isUpcycle ? "upcycle" : "reuse";
+        const apiCall = (async () => {
+          // Try OpenAI first
+          if (openai) {
+            try {
+              console.log(`📤 OpenAI for ${ideasType}...`);
+              const raw = await callOpenAI(geminiPrompt, isUpcycle);
+              const ideas = parseGeminiJSON(raw);
+              if (!Array.isArray(ideas) || !ideas.length)
+                throw new Error("Empty ideas");
+              console.log(`✅ OpenAI: ${ideas.length} ideas`);
+              requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
+              return ideas;
+            } catch (err) {
+              const is429 = err.status === 429 || err.message?.includes("429");
+              console.warn(`⚠️  OpenAI failed:`, err.message);
 
-        // Try OpenAI first (saves Gemini quota for expensive vision analysis)
-        if (openai) {
-          try {
-            console.log(
-              `📤 Calling OpenAI for ${ideasType} ideas (gpt-4o-mini)...`,
-            );
-            const raw = await callOpenAIWithRetry(geminiPrompt, isUpcycle);
-            console.log("✅ Raw response (first 300):", raw.substring(0, 300));
+              // If 429, throw immediately (don't try Gemini)
+              if (is429) throw err;
 
-            const ideas = parseGeminiJSON(raw);
-
-            if (!Array.isArray(ideas) || ideas.length === 0) {
-              throw new Error("OpenAI returned empty ideas array");
+              // Otherwise, try Gemini
+              if (!genAI) throw err;
+              console.log("🔄 Falling back to Gemini...");
             }
-
-            console.log(
-              `✅ OpenAI: ${ideas.length} ${ideasType} ideas generated`,
-            );
-            return res.json({ success: true, ideas });
-          } catch (openaiErr) {
-            console.warn(
-              `⚠️  OpenAI ${ideasType} failed:`,
-              openaiErr.message,
-            );
-
-            // If OpenAI fails and Gemini is available, fall through to try Gemini
-            if (!genAI) {
-              throw openaiErr; // No fallback available
-            }
-            console.log("🔄 Falling back to Gemini for ideas...");
           }
-        }
 
-        // Fallback to Gemini if OpenAI not available or failed
-        if (!genAI) {
-          return res.status(503).json({
-            success: false,
-            error:
-              "Neither OpenAI nor Gemini configured. Please add OPENAI_API_KEY or GEMINI_API_KEY to .env",
-          });
-        }
+          // Use Gemini
+          if (!genAI) throw new Error("No APIs available");
+          console.log(`📤 Gemini for ${ideasType}...`);
+          const raw = await callGeminiWithRetry(geminiPrompt, GEMINI_FLASH, 1);
+          const ideas = parseGeminiJSON(raw);
+          if (!Array.isArray(ideas) || !ideas.length)
+            throw new Error("Empty ideas");
+          console.log(`✅ Gemini: ${ideas.length} ideas`);
+          requestCache.set(cacheKey, { ideas, timestamp: Date.now() });
+          return ideas;
+        })();
 
-        console.log(
-          `📤 Calling Gemini for ${ideasType} ideas (with retry)...`,
-        );
-        const raw = await callGeminiWithRetry(geminiPrompt, GEMINI_FLASH);
-        console.log("✅ Raw response (first 300):", raw.substring(0, 300));
-
-        const ideas = parseGeminiJSON(raw);
-
-        if (!Array.isArray(ideas) || ideas.length === 0) {
-          throw new Error("Gemini returned empty ideas array");
-        }
-
-        console.log(
-          `✅ ${ideas.length} ${isUpcycle ? "upcycle" : "reuse"} ideas from Gemini`,
-        );
+        pendingRequests.set(cacheKey, apiCall);
+        const ideas = await apiCall;
+        pendingRequests.delete(cacheKey);
         return res.json({ success: true, ideas });
       } catch (err) {
-        const is429 =
-          err.message?.includes("429") ||
-          err.message?.includes("quota") ||
-          err.message?.includes("Too Many");
-        console.error(
-          `❌ Gemini ${isUpcycle ? "upcycle" : "reuse"} error:`,
-          err.message,
-        );
+        pendingRequests.delete(cacheKey);
+        const is429 = err.status === 429 || err.message?.includes("429");
 
-        // Return proper error — frontend will show retry button
-        // NO static fallback — user gets real data or retry
+        console.error(`❌ ${ideasType} error:`, err.message);
         return res.status(is429 ? 429 : 500).json({
           success: false,
           error: is429
-            ? "Gemini rate limit reached. Please wait 1 minute and try again."
-            : `Failed to generate ideas: ${err.message}`,
+            ? `API rate limit. Please wait 1 minute and try again.`
+            : `Failed to generate ${ideasType} ideas: ${err.message}`,
           retryAfter: is429 ? 60 : undefined,
         });
       }
@@ -525,21 +431,20 @@ All 4 ideas must be different and specific to ${material || "the item"}.`;
 
     // ── PATH B: Original shape { itemLabel, condition, material } ─────────
     if (!itemLabel || !condition || !material) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "Missing: itemLabel, condition, material",
-        });
+      return res.status(400).json({
+        success: false,
+        error: "Missing: itemLabel, condition, material",
+      });
     }
 
     const cacheKey = crypto
       .createHash("md5")
       .update(`${itemLabel}-${condition}-${material}`)
       .digest("hex");
+
     const cached = await UpcycleIdea.findOne({ cacheKey });
     if (cached) {
-      console.log("✅ Cache hit:", itemLabel);
+      console.log("✅ DB cache hit:", itemLabel);
       return res.json({ success: true, data: cached.ideas });
     }
 
@@ -550,10 +455,10 @@ All 4 ideas must be different and specific to ${material || "the item"}.`;
 
     try {
       const raw = await callGeminiWithRetry(
-        `User has: "${itemLabel}", condition: "${condition}", material: "${material}".
-Provide 3 creative beginner upcycling ideas.
-RESPOND ONLY WITH JSON ARRAY, no markdown:
-[{"title":"name","description":"1 sentence","steps":["Step 1","Step 2","Step 3"],"materials":["m1"],"difficulty":"easy","timeMin":30}]`,
+        `Item: "${itemLabel}", condition: "${condition}", material: "${material}".
+Provide 3 beginner upcycling ideas.
+RESPOND ONLY WITH JSON ARRAY:
+[{"title":"","description":"","steps":[],"materials":[],"difficulty":"easy","timeMin":30}]`,
       );
 
       const ideas = parseGeminiJSON(raw);
@@ -570,17 +475,14 @@ RESPOND ONLY WITH JSON ARRAY, no markdown:
       });
       return res.json({ success: true, data: ideas });
     } catch (err) {
-      const is429 =
-        err.message?.includes("429") || err.message?.includes("quota");
+      const is429 = err.status === 429 || err.message?.includes("429");
       return res.status(is429 ? 429 : 500).json({
         success: false,
-        error: is429
-          ? "Rate limit — please try again in 1 minute"
-          : err.message,
+        error: is429 ? "Rate limit — wait 1 minute" : err.message,
       });
     }
   } catch (error) {
-    console.error("❌ generateUpcyclingIdeas crash:", error.message);
+    console.error("❌ generateUpcyclingIdeas:", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
