@@ -842,18 +842,82 @@ const WasteAnalyzer = () => {
             selectedCategory.id === "Electronic" ||
             selectedCategory.id === "Textile",
         };
+      } else if (images.length > 0) {
+        // ✅ Use real Gemini Vision API for image analysis
+        console.log("🤖 Calling Gemini Vision API...");
+        setAnalyzeProgress("🔍 Analyzing image with Gemini...");
+
+        try {
+          const token = await AsyncStorage.getItem("token");
+
+          // Convert image to base64
+          const imageBase64 = await fetch(images[0])
+            .then((res) => res.arrayBuffer())
+            .then((buffer) => {
+              const bytes = new Uint8Array(buffer);
+              let binary = "";
+              for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+              }
+              return btoa(binary);
+            });
+
+          const analyzeResponse = await fetch(
+            `${BACKEND_URL}/api/ai/analyze-image`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                imageBase64: `data:image/jpeg;base64,${imageBase64}`,
+                mediaType: "image/jpeg",
+              }),
+            },
+          );
+
+          if (!analyzeResponse.ok) {
+            throw new Error(
+              `Analysis failed: ${analyzeResponse.status} ${analyzeResponse.statusText}`,
+            );
+          }
+
+          const analyzeData = await analyzeResponse.json();
+          if (analyzeData.success && analyzeData.analysis) {
+            analysis = analyzeData.analysis;
+            console.log("✅ Gemini Vision Analysis:", analysis);
+          } else {
+            throw new Error("Invalid response from Gemini Vision API");
+          }
+        } catch (geminiErr) {
+          console.error("❌ Gemini Vision API error:", geminiErr.message);
+          // Fallback to mock if API fails
+          Toast.show({
+            type: "warning",
+            text1: "Using default analysis",
+            text2: "Gemini API unavailable",
+          });
+          analysis = {
+            label: "Unknown Item",
+            material: "Plastic",
+            confidence: 60,
+            reasoning: "Gemini API temporarily unavailable, using default",
+            isRecyclable: true,
+            urgency: "medium",
+            donationPossible: false,
+          };
+        }
       } else {
-        // Skip AI analysis for now, use mock
-        console.log("🤖 Using mock analysis");
-        analysis = {
-          label: "Plastic Bottle",
-          material: "Plastic",
-          confidence: 85,
-          reasoning: "Mock analysis for testing",
-          isRecyclable: true,
-          urgency: "medium",
-          donationPossible: false,
-        };
+        // No category selected and no images
+        console.log("⚠️ No category selected and no images");
+        Toast.show({
+          type: "error",
+          text1: "Select category or upload image",
+          text2: "Please choose a category or add an image for analysis",
+        });
+        setAnalyzing(false);
+        return;
       }
 
       // ✅ Since we prioritize user selection, use selected category directly
@@ -1099,7 +1163,10 @@ const WasteAnalyzer = () => {
           visibilityTime: 2000,
         });
       } catch (saveErr) {
-        console.warn("⚠️ Save to DB failed (continuing anyway):", saveErr.message);
+        console.warn(
+          "⚠️ Save to DB failed (continuing anyway):",
+          saveErr.message,
+        );
         // Don't show error - continue with analysis display
         // Toast.show({
         //   type: "info",
@@ -1121,7 +1188,7 @@ const WasteAnalyzer = () => {
         hasReuse: !!reuseIdeas?.length,
         hasUpcycle: !!upcycleIdeas?.length,
       });
-      
+
       setResult(analysisResult);
       setStep(3);
       setShowConfetti(true);
@@ -1189,7 +1256,9 @@ const WasteAnalyzer = () => {
                   Transform waste into opportunity
                 </Text>
                 <View style={s.geminiBadge}>
-                  <Text style={s.geminiBadgeText}>✦ Hybrid AI (Gemini + OpenAI)</Text>
+                  <Text style={s.geminiBadgeText}>
+                    ✦ Hybrid AI (Gemini + OpenAI)
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -1515,7 +1584,9 @@ const WasteAnalyzer = () => {
               {/* Quick reuse ideas - from Gemini only */}
               {result.reuseIdeas && result.reuseIdeas.length > 0 && (
                 <View style={s.infoCard}>
-                  <Text style={s.infoCardTitle}>🔄 Reuse Ideas (by Gemini)</Text>
+                  <Text style={s.infoCardTitle}>
+                    🔄 Reuse Ideas (by Gemini)
+                  </Text>
                   {result.reuseIdeas.map((idea, idx) => (
                     <View key={idx} style={s.ideaRow}>
                       <Text style={s.ideaBullet}>•</Text>
