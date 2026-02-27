@@ -1,7 +1,7 @@
-// backend/utils/aiMatching.js 
-const User = require('../models/User');
-const Listing = require('../models/Listing');
-const Transaction = require('../models/Transaction');
+// backend/utils/aiMatching.js
+const User = require("../models/User");
+const Listing = require("../models/Listing");
+const Transaction = require("../models/Transaction");
 
 /**
  * AI-Powered Smart Matching Algorithm
@@ -19,7 +19,7 @@ const calculateMatchScore = async (listing, recipient) => {
       listing.location.coordinates[1], // lat
       listing.location.coordinates[0], // lng
       recipient.location.coordinates[1],
-      recipient.location.coordinates[0]
+      recipient.location.coordinates[0],
     );
 
     if (distance <= 1) {
@@ -45,7 +45,7 @@ const calculateMatchScore = async (listing, recipient) => {
 
   const totalReceived = recipientTransactions.length;
   const completed = recipientTransactions.filter(
-    (t) => t.status === 'completed'
+    (t) => t.status === "completed",
   ).length;
 
   if (totalReceived > 0) {
@@ -87,8 +87,8 @@ const calculateMatchScore = async (listing, recipient) => {
   // ========================================
   const categoryHistory = await Transaction.find({
     recipient: recipient._id,
-    status: 'completed',
-  }).populate('listing', 'category');
+    status: "completed",
+  }).populate("listing", "category");
 
   const preferredCategories = categoryHistory
     .map((t) => t.listing?.category)
@@ -105,11 +105,11 @@ const calculateMatchScore = async (listing, recipient) => {
   // 6. TRUST BADGES (Bonus)
   // ========================================
   const badges = recipient.badges || [];
-  if (badges.includes('verified')) {
+  if (badges.includes("verified")) {
     factors.verified = 5;
     score += 5;
   }
-  if (badges.includes('trusted-recipient')) {
+  if (badges.includes("trusted-recipient")) {
     factors.trustedRecipient = 5;
     score += 5;
   }
@@ -170,11 +170,11 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
  * Get confidence level based on score
  */
 const getConfidenceLevel = (score) => {
-  if (score >= 85) return 'Excellent Match';
-  if (score >= 70) return 'Great Match';
-  if (score >= 55) return 'Good Match';
-  if (score >= 40) return 'Fair Match';
-  return 'Low Match';
+  if (score >= 85) return "Excellent Match";
+  if (score >= 70) return "Great Match";
+  if (score >= 55) return "Good Match";
+  if (score >= 40) return "Fair Match";
+  return "Low Match";
 };
 
 /**
@@ -182,18 +182,18 @@ const getConfidenceLevel = (score) => {
  */
 const getRecommendationMessage = (score) => {
   if (score >= 85) {
-    return 'Highly recommended! This recipient is an excellent match based on proximity, reliability, and past behavior.';
+    return "Highly recommended! This recipient is an excellent match based on proximity, reliability, and past behavior.";
   }
   if (score >= 70) {
-    return 'Recommended! This recipient is a great match with strong history and good location.';
+    return "Recommended! This recipient is a great match with strong history and good location.";
   }
   if (score >= 55) {
-    return 'Good option! This recipient meets most criteria and is nearby.';
+    return "Good option! This recipient meets most criteria and is nearby.";
   }
   if (score >= 40) {
-    return 'Consider this recipient. They may be a bit farther but have good credentials.';
+    return "Consider this recipient. They may be a bit farther but have good credentials.";
   }
-  return 'This recipient is available but may not be the optimal match. Consider other options.';
+  return "This recipient is available but may not be the optimal match. Consider other options.";
 };
 
 /**
@@ -203,23 +203,23 @@ const findBestMatches = async (listingId, limit = 5) => {
   try {
     const listing = await Listing.findById(listingId);
     if (!listing) {
-      throw new Error('Listing not found');
+      throw new Error("Listing not found");
     }
 
     // Get all interested users + nearby users
     const interestedUserIds = listing.interestedUsers.map((u) => u.user);
-    
+
     // Find nearby users (within 50km)
     let nearbyUsers = [];
     if (listing.location?.coordinates) {
       nearbyUsers = await User.find({
         _id: { $ne: listing.donor }, // Exclude donor
         isActive: true,
-        userType: { $in: ['recipient', 'both'] },
+        userType: { $in: ["recipient", "both"] },
         location: {
           $near: {
             $geometry: {
-              type: 'Point',
+              type: "Point",
               coordinates: listing.location.coordinates,
             },
             $maxDistance: 50000, // 50km
@@ -234,18 +234,21 @@ const findBestMatches = async (listingId, limit = 5) => {
       ...(await User.find({ _id: { $in: interestedUserIds } })),
     ].filter(
       (user, index, self) =>
-        index === self.findIndex((u) => u._id.toString() === user._id.toString())
+        index ===
+        self.findIndex((u) => u._id.toString() === user._id.toString()),
     );
 
     // Calculate scores for all
     const matchPromises = allPotentialRecipients.map((recipient) =>
-      calculateMatchScore(listing, recipient)
+      calculateMatchScore(listing, recipient),
     );
 
     const matches = await Promise.all(matchPromises);
 
     // Sort by score (descending) and return top N
-    const sortedMatches = matches.sort((a, b) => b.score - a.score).slice(0, limit);
+    const sortedMatches = matches
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
 
     return {
       success: true,
@@ -258,14 +261,86 @@ const findBestMatches = async (listingId, limit = 5) => {
       totalCandidates: allPotentialRecipients.length,
     };
   } catch (error) {
-    console.error('AI Matching error:', error);
+    console.error("AI Matching error:", error);
     throw error;
+  }
+};
+
+/**
+ * Find single top match for auto-assignment
+ */
+const findTopMatch = async (listingId) => {
+  try {
+    const listing = await Listing.findById(listingId);
+    if (!listing) {
+      console.error("Listing not found:", listingId);
+      return null;
+    }
+
+    // Get all interested users + nearby users
+    const interestedUserIds = listing.interestedUsers.map((u) => u.user);
+
+    // Find nearby users (within 50km)
+    let nearbyUsers = [];
+    if (listing.location?.coordinates) {
+      nearbyUsers = await User.find({
+        _id: { $ne: listing.donor }, // Exclude donor
+        isActive: true,
+        userType: { $in: ["recipient", "both"] },
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: listing.location.coordinates,
+            },
+            $maxDistance: 50000, // 50km
+          },
+        },
+      }).limit(20);
+    }
+
+    // Combine interested + nearby users (unique)
+    const allPotentialRecipients = [
+      ...nearbyUsers,
+      ...(await User.find({ _id: { $in: interestedUserIds } })),
+    ].filter(
+      (user, index, self) =>
+        index ===
+        self.findIndex((u) => u._id.toString() === user._id.toString()),
+    );
+
+    if (allPotentialRecipients.length === 0) {
+      console.log("No potential recipients found for:", listingId);
+      return null;
+    }
+
+    // Calculate scores for all
+    const matchPromises = allPotentialRecipients.map((recipient) =>
+      calculateMatchScore(listing, recipient),
+    );
+
+    const matches = await Promise.all(matchPromises);
+
+    // Get top match
+    const topMatch = matches.sort((a, b) => b.score - a.score)[0];
+
+    if (!topMatch || topMatch.score < 20) {
+      console.log("Top match score too low:", topMatch?.score);
+      return null;
+    }
+
+    // Return the user object of top match
+    return topMatch.recipient;
+  } catch (error) {
+    console.error("Error finding top match:", error);
+    return null;
   }
 };
 
 module.exports = {
   calculateMatchScore,
   findBestMatches,
+  findTopMatch,
   calculateDistance,
   getConfidenceLevel,
 };

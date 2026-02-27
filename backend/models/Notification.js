@@ -27,15 +27,17 @@ const notificationSchema = new mongoose.Schema(
         "new_listing",
         "interest",
         "assignment",
+        "assignment_accepted",
+        "assignment_failed",
         "message",
         "rating",
         "completion",
         "pickup_scheduled",
         "pickup_completed",
         "listing_expired",
-        "listing_updated", // 🆕 ADD
-        "listing_cancelled", // 🆕 ADD
-        "listing_unavailable", // 🆕 ADD
+        "listing_updated",
+        "listing_cancelled",
+        "listing_unavailable",
         "impact_milestone",
         "badge_earned",
         "system",
@@ -107,7 +109,7 @@ const notificationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for performance
@@ -119,7 +121,7 @@ notificationSchema.index(
   {
     expireAfterSeconds: 2592000,
     partialFilterExpression: { read: true },
-  }
+  },
 );
 
 // Virtual for time ago
@@ -155,7 +157,7 @@ notificationSchema.statics.markAllAsRead = async function (userId) {
         read: true,
         readAt: new Date(),
       },
-    }
+    },
   );
   return result;
 };
@@ -171,7 +173,7 @@ notificationSchema.statics.getUnreadCount = async function (userId) {
 // Static method to create and send notification
 notificationSchema.statics.createAndSend = async function (
   notificationData,
-  io
+  io,
 ) {
   const notification = await this.create(notificationData);
 
@@ -185,7 +187,7 @@ notificationSchema.statics.createAndSend = async function (
   if (io) {
     io.to(notification.recipient.toString()).emit(
       "newNotification",
-      notification
+      notification,
     );
     console.log(`🔔 Notification sent to user ${notification.recipient}`);
   }

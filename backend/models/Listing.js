@@ -23,12 +23,24 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: [true, "Category is required"],
       enum: [
+        // Food categories
         "produce",
+        "vegetables",
+        "cooked_food",
         "canned-goods",
         "dairy",
         "bakery",
+        "beverages",
+        "frozen",
+        "snacks",
+        // Non-food categories
         "household-items",
         "clothing",
+        "electronics",
+        "furniture",
+        "books",
+        "toys",
+        "sports",
         "other",
       ],
     },
@@ -147,6 +159,9 @@ const listingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    assignedAt: Date,
+    assignmentDeadline: Date,
+    acceptedAt: Date,
 
     schedule: {
       type: mongoose.Schema.Types.ObjectId,
@@ -267,7 +282,7 @@ const listingSchema = new mongoose.Schema(
       default: "not_generated",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 //
@@ -289,7 +304,7 @@ listingSchema.index({ schedule: 1 });
 // --------------------------------------------------
 listingSchema.methods.addToQueue = async function (userId) {
   const inQueue = this.queue.some(
-    (q) => q.user.toString() === userId.toString()
+    (q) => q.user.toString() === userId.toString(),
   );
   if (inQueue) throw new Error("Already in queue");
 
@@ -308,7 +323,7 @@ listingSchema.methods.addToQueue = async function (userId) {
 
 listingSchema.methods.removeFromQueue = async function (userId) {
   this.queue = this.queue.filter(
-    (q) => q.user.toString() !== userId.toString()
+    (q) => q.user.toString() !== userId.toString(),
   );
   this.queue.sort((a, b) => a.joinedAt - b.joinedAt);
   this.queue.forEach((q, i) => (q.position = i + 1));

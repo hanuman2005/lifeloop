@@ -1,38 +1,69 @@
-// backend/config/db.js - UPDATE YOUR CONNECTION STRING
+// backend/config/db.js - OPTIMIZED
 
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  const maxRetries = 5;
+  const MAX_RETRIES = 5;
   let retries = 0;
 
-  while (retries < maxRetries) {
+  while (retries < MAX_RETRIES) {
     try {
       console.log('🔄 Connecting to MongoDB...');
       
-      await mongoose.connect(process.env.MONGO_URI, {
-        // ✅ ADD THESE OPTIONS TO FIX DNS ISSUES
+      const conn = await mongoose.connect(process.env.MONGO_URI, {
         family: 4, // Force IPv4
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
       });
 
       console.log('✅ MongoDB Connected Successfully');
-      break;
+      console.log(`📊 Database: ${conn.connection.name}`);
+      console.log(`🏠 Host: ${conn.connection.host}`);
+      
+      // Setup event listeners after successful connection
+      setupEventListeners();
+      
+      return; // Exit the retry loop on success
+      
     } catch (error) {
       retries++;
       console.error(`❌ MongoDB connection error: ${error.message}`);
       
-      if (retries < maxRetries) {
-        console.log(`🔄 Retrying connection... (${retries}/${maxRetries})`);
+      if (retries < MAX_RETRIES) {
+        console.log(`🔄 Retrying connection... (${retries}/${MAX_RETRIES})`);
         console.log('⏳ Waiting 5 seconds before retry...');
         await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
-        console.error('❌ Max retries reached. Exiting...');
+        console.error('');
+        console.error('╔════════════════════════════════════════════════╗');
+        console.error('║  ❌ MONGODB CONNECTION FAILED AFTER 5 RETRIES  ║');
+        console.error('╚════════════════════════════════════════════════╝');
+        console.error('');
+        console.error('💡 Troubleshooting Steps:');
+        console.error('');
+        console.error('1. Check your .env file:');
+        console.error('   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname');
+        console.error('');
+        console.error('2. Verify MongoDB Atlas settings:');
+        console.error('   • IP Address is whitelisted (0.0.0.0/0 for testing)');
+        console.error('   • Username and password are correct');
+        console.error('   • Database user has "Read and Write" permissions');
+        console.error('');
+        console.error('3. Check MongoDB Atlas status:');
+        console.error('   https://status.mongodb.com/');
+        console.error('');
+        
         process.exit(1);
       }
     }
   }
+};
+
+// Setup MongoDB event listeners
+const setupEventListeners = () => {
+  mongoose.connection.on('connected', () => {
+    console.log('🔗 Mongoose connected to MongoDB');
+  });
 
   mongoose.connection.on('disconnected', () => {
     console.log('⚠️ Mongoose disconnected from MongoDB');

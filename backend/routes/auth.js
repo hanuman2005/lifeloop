@@ -4,6 +4,7 @@
 const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
+
 const {
   register,
   login,
@@ -17,9 +18,6 @@ const {
 
 const { auth } = require("../middleware/auth");
 
-console.log("getMe type:", typeof getMe); // should print 'function'
-
-// ✅ FIXED: Validation for firstName and lastName instead of name
 router.post(
   "/register",
   [
@@ -71,7 +69,6 @@ router.post(
 
 router.get("/me", auth, getMe);
 
-// ✅ FIXED: Validation for firstName and lastName in profile update
 router.put(
   "/profile",
   auth,

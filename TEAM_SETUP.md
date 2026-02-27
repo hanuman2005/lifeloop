@@ -24,6 +24,7 @@ cd lifeloop
 ```
 
 **Expected output:**
+
 ```
 Cloning into 'lifeloop'...
 remote: Enumerating objects: 120, done.
@@ -53,25 +54,31 @@ npm install
 ## 🔑 STEP 3: Set Up Environment Variables
 
 ### For Backend (`backend/.env`)
+
 Copy the example and add your values:
+
 ```bash
 cd backend
 cp .env.example .env  # or copy manually on Windows
 ```
 
 Then edit `backend/.env` with:
+
 ```
 GEMINI_API_KEY=your_gemini_api_key  # Your personal API key
 ```
 
 ### For LifeLoop App (`LifeLoop/.env`)
+
 Copy the example and add your values:
+
 ```bash
 cd LifeLoop
 cp .env.example .env  # or copy manually on Windows
 ```
 
 Then edit `LifeLoop/.env` with:
+
 ```
 EXPO_PUBLIC_API_URL=http://YOUR_IP:5000/api
 EXPO_PUBLIC_SOCKET_URL=http://YOUR_IP:5000
@@ -109,6 +116,7 @@ git checkout -b feature/mike-component-audit
 ```
 
 **Branch naming rules:**
+
 - `feature/task-name` - for new features
 - `bugfix/bug-name` - for bug fixes
 - `docs/doc-name` - for documentation
@@ -120,19 +128,25 @@ git checkout -b feature/mike-component-audit
 Now work on your assigned task. Your assigned tasks:
 
 ### Member 1 (You - Main Maintainer)
+
 Already handling:
+
 - Gemini Vision integration ✅
 - Code reviews
 - Merging PRs
 
 ### Member 2
+
 Assigned to:
+
 1. Test Reuse Ideas Screen (`LifeLoop/src/screens/ReuseGuide.js`)
 2. Test Upcycle Screen (`LifeLoop/src/screens/UpcycleScreen.js`)
 3. Test Material Composition Display
 
 ### Member 3
+
 Assigned to:
+
 1. Component Audit (all components in `LifeLoop/src/components/`)
 2. QR & Notifications testing
 3. Create documentation
@@ -163,6 +177,7 @@ git commit -m "Test: Verified reuse ideas screen works with Gemini API
 ```
 
 **Commit message format:**
+
 ```
 [Type]: Description
 
@@ -191,6 +206,7 @@ git push origin feature/john-gemini-vision
 ```
 
 **First time pushing a new branch?** Git will suggest:
+
 ```bash
 git push --set-upstream origin feature/your-branch-name
 ```
@@ -205,22 +221,24 @@ After pushing, create a PR:
 2. You'll see a "Compare & Pull Request" button
 3. Fill in:
    - **Title:** Brief description of your work
-   - **Description:** 
+   - **Description:**
+
      ```
      ## What I tested/fixed
      - Item 1
      - Item 2
-     
+
      ## How to test
      1. Step 1
      2. Step 2
-     
+
      ## Screenshots/Results
      (if applicable)
      ```
 4. Click "Create Pull Request"
 
 **Example PR description:**
+
 ```
 ## Testing Reuse Ideas Screen
 
@@ -248,12 +266,14 @@ Closes #N/A
 ## ✅ STEP 10: Wait for Code Review
 
 The main maintainer (You) will:
+
 1. Review your code
 2. Leave comments if needed
 3. Approve when ready
 4. Merge to main
 
 **What happens:**
+
 ```
 Your PR → Main maintainer reviews → Approved → Merged to main
 ```
@@ -281,24 +301,28 @@ git push origin --delete feature/your-branch-name
 ## 🔄 DAILY WORKFLOW SUMMARY
 
 **Start of day:**
+
 ```bash
 git checkout main
 git pull origin main
 ```
 
 **While working:**
+
 ```bash
 git add .
 git commit -m "Your message"
 ```
 
 **End of day/When ready to submit:**
+
 ```bash
 git push origin feature/your-branch
 # Then create PR on GitHub
 ```
 
 **After PR merged:**
+
 ```bash
 git checkout main
 git pull origin main
@@ -310,18 +334,21 @@ git branch -d feature/your-branch
 ## ⚠️ COMMON ISSUES & SOLUTIONS
 
 ### "fatal: Not a git repository"
+
 ```bash
 # You need to be in the cloned folder
 cd lifeloop
 ```
 
 ### "Your branch is behind origin/main"
+
 ```bash
 # Pull latest changes
 git pull origin main
 ```
 
 ### "Conflict in files"
+
 ```bash
 # You and main maintainer edited same file
 # Open the file and look for:
@@ -338,6 +365,7 @@ git push origin feature/your-branch
 ```
 
 ### "Changes not showing up"
+
 ```bash
 # Make sure you're on the right branch
 git branch  # shows all branches, current one has *
@@ -350,13 +378,13 @@ git checkout feature/your-branch
 
 ## 🎯 YOUR ASSIGNED TASKS & STATUS
 
-| Task | Member | Branch Name | Status |
-|------|--------|-------------|--------|
-| Gemini Vision Setup | You | `feature/main-gemini-vision` | ✅ Done |
-| Reuse Screen Testing | Member 2 | `feature/member2-reuse-testing` | ⏳ To Do |
-| Upcycle Screen Testing | Member 2 | `feature/member2-upcycle-testing` | ⏳ To Do |
-| Component Audit | Member 3 | `feature/member3-component-audit` | ⏳ To Do |
-| QR & Notifications | Member 3 | `feature/member3-qr-notifications` | ⏳ To Do |
+| Task                   | Member   | Branch Name                        | Status   |
+| ---------------------- | -------- | ---------------------------------- | -------- |
+| Gemini Vision Setup    | You      | `feature/main-gemini-vision`       | ✅ Done  |
+| Reuse Screen Testing   | Member 2 | `feature/member2-reuse-testing`    | ⏳ To Do |
+| Upcycle Screen Testing | Member 2 | `feature/member2-upcycle-testing`  | ⏳ To Do |
+| Component Audit        | Member 3 | `feature/member3-component-audit`  | ⏳ To Do |
+| QR & Notifications     | Member 3 | `feature/member3-qr-notifications` | ⏳ To Do |
 
 ---
 

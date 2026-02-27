@@ -1,6 +1,5 @@
-// ============================================
-// backend/models/User.js - FINAL IMPROVED VERSION
-// ============================================
+// backend/models/User.js - STREAMLINED FOR DEVELOPMENT
+
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
@@ -30,16 +29,20 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
-
     userType: {
       type: String,
       enum: ["donor", "recipient", "both", "admin"],
       default: "both",
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
 
-    phone: String,
-    phoneNumber: String, // backward compatibility
-
+    // ============================================
+    // PROFILE INFO
+    // ============================================
+    phoneNumber: String,
     address: {
       street: String,
       city: String,
@@ -47,7 +50,15 @@ const userSchema = new mongoose.Schema(
       zipCode: String,
       country: { type: String, default: "India" },
     },
+    avatar: String,
+    bio: {
+      type: String,
+      maxlength: 500,
+    },
 
+    // ============================================
+    // LOCATION (CRITICAL FOR LIFELOOP)
+    // ============================================
     location: {
       type: {
         type: String,
@@ -60,17 +71,13 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    avatar: String,
-    bio: {
-      type: String,
-      maxlength: 500,
-    },
-
+    // ============================================
+    // RATINGS & REVIEWS (CORE TRUST)
+    // ============================================
     rating: {
       average: { type: Number, default: 0 },
       count: { type: Number, default: 0 },
     },
-
     reviews: [
       {
         reviewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -80,23 +87,10 @@ const userSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    ecoScore: {
-      type: Number,
-      default: 0,
-    },
 
-    wasteAnalysisCount: {
-      type: Number,
-      default: 0,
-    },
-
-    badges: [String],
-    listingsCount: { type: Number, default: 0 },
-
-    isVerified: { type: Boolean, default: false },
-    isActive: { type: Boolean, default: true },
-
-    // 🔒 Trust & Verification Fields
+    // ============================================
+    // TRUST & MODERATION (GOOD FOR DEMO)
+    // ============================================
     trustScore: {
       type: Number,
       default: 50,
@@ -104,39 +98,27 @@ const userSchema = new mongoose.Schema(
       max: 100,
     },
 
-    verificationStatus: {
-      phone: { type: Boolean, default: false },
-      email: { type: Boolean, default: false },
-      identity: { type: Boolean, default: false },
-      address: { type: Boolean, default: false },
-    },
-
-    trustBadges: [
+    // Simplified badges - keep only essential ones
+    badges: [
       {
-        badge: {
-          type: String,
-          enum: [
-            "verified_contributor",
-            "trusted_recipient",
-            "community_champion",
-            "early_adopter",
-            "power_donor",
-            "reliability_star",
-          ],
-        },
-        earnedAt: { type: Date, default: Date.now },
-        description: String,
+        type: String,
+        enum: [
+          "verified_contributor",
+          "trusted_recipient",
+          "community_champion",
+          "early_adopter",
+        ],
       },
     ],
 
+    // Activity counters
     completedDonations: { type: Number, default: 0 },
     completedPickups: { type: Number, default: 0 },
-    reportedCount: { type: Number, default: 0 },
 
+    // Moderation
     isSuspended: { type: Boolean, default: false },
     suspendedUntil: Date,
     suspensionReason: String,
-
     accountWarnings: [
       {
         type: String,
@@ -145,52 +127,101 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // Password Reset
-    passwordResetToken: String,
-    passwordResetExpires: Date,
+    // ============================================
+    // LIFELOOP-SPECIFIC METRICS
+    // ============================================
+    ecoScore: {
+      type: Number,
+      default: 0,
+    },
+    wasteAnalysisCount: {
+      type: Number,
+      default: 0,
+    },
 
-    // Email Verification
-    emailVerifyToken: String,
-    emailVerifyExpires: Date,
+    // ============================================
+    // FUTURE FEATURES (Commented for reference)
+    // ============================================
+    // FUTURE: Email verification with tokens
+    // passwordResetToken: String,
+    // passwordResetExpires: Date,
+    // emailVerifyToken: String,
+    // emailVerifyExpires: Date,
 
-    // Email Preferences
+    // FUTURE: Advanced notification preferences
     emailPreferences: {
       marketing: { type: Boolean, default: true },
       donations: { type: Boolean, default: true },
       messages: { type: Boolean, default: true },
-      reminders: { type: Boolean, default: true },
-      weeklyDigest: { type: Boolean, default: true },
     },
 
-    // SMS Preferences
-    phoneVerified: { type: Boolean, default: false },
-    smsPreferences: {
-      enabled: { type: Boolean, default: false },
-      pickupReminders: { type: Boolean, default: true },
-      newMatches: { type: Boolean, default: false },
-      scheduleConfirmations: { type: Boolean, default: true },
+    // ============================================
+    // OTP VERIFICATION (Email & Phone)
+    // ============================================
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailOTP: {
+      code: String,
+      expiresAt: Date,
+    },
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    phoneOTP: {
+      code: String,
+      expiresAt: Date,
     },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
-// =======================
-// Indexes
-// =======================
-userSchema.index({ location: "2dsphere" });
-userSchema.index({ "rating.average": -1 });
-userSchema.index({ "rating.count": -1 });
+// ============================================
+// INDEXES
+// ============================================
+userSchema.index({ location: "2dsphere" }); // Critical for matching
+userSchema.index({ email: 1 });
 userSchema.index({ trustScore: -1 });
-userSchema.index({ "verificationStatus.email": 1 });
-userSchema.index({ isSuspended: 1 });
+userSchema.index({ "rating.average": -1 });
 
-// =======================
-// Methods
-// =======================
+// ============================================
+// VIRTUALS
+// ============================================
+userSchema.virtual("name").get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// ============================================
+// PRE-SAVE HOOKS
+// ============================================
+// Password hashing
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// ============================================
+// INSTANCE METHODS
+// ============================================
+
+// Password comparison
+userSchema.methods.comparePassword = function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
+// Hide password in JSON responses
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
 // Update rating
 userSchema.methods.updateRating = function () {
@@ -207,8 +238,9 @@ userSchema.methods.addReview = async function (
   reviewerId,
   rating,
   reviewText,
-  listingId
+  listingId,
 ) {
+  // Prevent duplicate reviews
   if (
     this.reviews.some((r) => r.reviewer.toString() === reviewerId.toString())
   ) {
@@ -225,90 +257,48 @@ userSchema.methods.addReview = async function (
   this.rating.count += 1;
   this.updateRating();
 
-  if (this.rating.count >= 1 && !this.badges.includes("verified")) {
-    this.badges.push("verified");
-  }
-  if (this.rating.average >= 4.5 && this.rating.count >= 5) {
-    this.badges.push("top-donor");
-  }
-
   await this.save();
   return this.reviews[0];
 };
 
-// Password hashing
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-// Password compare
-userSchema.methods.comparePassword = function (password) {
-  return bcrypt.compare(password, this.password);
-};
-
-// Hide password
-userSchema.methods.toJSON = function () {
-  const obj = this.toObject();
-  delete obj.password;
-  return obj;
-};
-
-// Virtual full name
-userSchema.virtual("name").get(function () {
-  return `${this.firstName} ${this.lastName}`;
-});
-
-// =======================
-// Trust & Badge Methods
-// =======================
-
-userSchema.methods.awardBadge = async function (badgeName, description) {
-  const badgeExists = this.trustBadges.some((b) => b.badge === badgeName);
-
-  if (!badgeExists) {
-    this.trustBadges.push({
-      badge: badgeName,
-      description,
-      earnedAt: new Date(),
-    });
-
+// Simple badge awarding
+userSchema.methods.awardBadge = async function (badgeName) {
+  if (!this.badges.includes(badgeName)) {
+    this.badges.push(badgeName);
     this.trustScore = Math.min(this.trustScore + 5, 100);
     await this.save();
   }
-
   return this;
 };
 
+// Check and award automatic badges
 userSchema.methods.checkAndAwardBadges = async function () {
-  if (this.completedDonations >= 5 && !this.hasBadge("verified_contributor")) {
-    await this.awardBadge("verified_contributor", "Completed 5+ donations");
+  if (
+    this.completedDonations >= 5 &&
+    !this.badges.includes("verified_contributor")
+  ) {
+    await this.awardBadge("verified_contributor");
   }
 
-  if (this.completedPickups >= 5 && !this.hasBadge("trusted_recipient")) {
-    await this.awardBadge("trusted_recipient", "Completed 5+ pickups");
-  }
-
-  if (this.completedDonations >= 20 && !this.hasBadge("power_donor")) {
-    await this.awardBadge("power_donor", "Donated 20+ items");
+  if (
+    this.completedPickups >= 5 &&
+    !this.badges.includes("trusted_recipient")
+  ) {
+    await this.awardBadge("trusted_recipient");
   }
 
   if (
     this.trustScore >= 80 &&
     this.completedDonations + this.completedPickups >= 15 &&
-    !this.hasBadge("community_champion")
+    !this.badges.includes("community_champion")
   ) {
-    await this.awardBadge("community_champion", "Outstanding community member");
+    await this.awardBadge("community_champion");
   }
 
   return this;
 };
 
-userSchema.methods.hasBadge = function (badgeName) {
-  return this.trustBadges.some((b) => b.badge === badgeName);
-};
-
+// Increment donation counter
 userSchema.methods.incrementCompletedDonations = async function () {
   this.completedDonations += 1;
   this.trustScore = Math.min(this.trustScore + 2, 100);
@@ -317,6 +307,7 @@ userSchema.methods.incrementCompletedDonations = async function () {
   return this;
 };
 
+// Increment pickup counter
 userSchema.methods.incrementCompletedPickups = async function () {
   this.completedPickups += 1;
   this.trustScore = Math.min(this.trustScore + 2, 100);
@@ -325,10 +316,12 @@ userSchema.methods.incrementCompletedPickups = async function () {
   return this;
 };
 
+// Moderation methods
 userSchema.methods.addWarning = async function (type, reason) {
   this.accountWarnings.push({ type, reason });
   this.trustScore = Math.max(this.trustScore - 10, 0);
 
+  // Auto-suspend after 3 warnings
   if (this.accountWarnings.length >= 3) {
     await this.suspend("Multiple violations", 30);
   }

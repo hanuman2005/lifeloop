@@ -15,6 +15,9 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    qrCodeImage: {
+      type: String, // Base64 data URL of QR image
+    },
 
     // Transaction parties
     listing: {

@@ -20,14 +20,12 @@ exports.saveAnalysis = async (req, res) => {
       donationPossible,
       donationCategory,
       impact, 
-      // ✨ NEW: Material composition data
       materialComposition,
       recyclingComplexity,
       environmentalImpact,
       hazards,
       recyclingRecommendations,
       eWasteCategory,
-
       userDescription,
       location,
       deviceType,

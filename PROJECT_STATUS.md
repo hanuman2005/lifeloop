@@ -7,6 +7,7 @@
 ## ✅ COMPLETED BY MAIN MAINTAINER (You)
 
 ### Code Integration & Setup (2 hours)
+
 - ✅ **Removed sensitive files from git**
   - ❌ Deleted `LifeLoop/.env` from history
   - ✅ Created `.env.example` templates
@@ -35,15 +36,19 @@
 ## 👥 TEAM MEMBER ASSIGNMENTS (3 people)
 
 ### 👤 Member 1 (You)
+
 **Role:** Main Maintainer | **Hours:** 1 hour remaining
+
 - ✅ Code reviews (when PRs submitted)
 - ✅ Merge approved PRs to main
 - ✅ Handle any conflicts/issues
 
 ### 👤 Member 2
+
 **Role:** AI Features Tester | **Hours:** 3 hours available | **Branch:** `feature/member2-ai-testing`
 
 **Tasks:**
+
 1. **Test Reuse Ideas Screen** (1 hour)
    - File: `LifeLoop/src/screens/ReuseGuide.js`
    - Verify endpoint: `POST /api/ai/upcycle`
@@ -68,9 +73,11 @@
 **Deliverable:** PR with title "Test: Reuse/Upcycle/Material screens verified"
 
 ### 👤 Member 3
+
 **Role:** Component & QR Audit | **Hours:** 3 hours available | **Branch:** `feature/member3-component-audit`
 
 **Tasks:**
+
 1. **Component Status Audit** (1.5 hours)
    - Review all files in `LifeLoop/src/components/`
    - Create audit checklist:
@@ -99,12 +106,12 @@
 
 ## 📅 TIMELINE (10 hours total)
 
-| Phase | Time | What Happens |
-|-------|------|--------------|
-| **Setup** | 2 hrs | ✅ Done - Main setup code integration |
-| **Development** | 5 hrs | ⏳ Members 2 & 3 working on assigned tasks |
-| **Review & Merge** | 1.5 hrs | Main maintainer reviews PRs |
-| **Testing & Buffer** | 1.5 hrs | Final testing before submission |
+| Phase                | Time    | What Happens                               |
+| -------------------- | ------- | ------------------------------------------ |
+| **Setup**            | 2 hrs   | ✅ Done - Main setup code integration      |
+| **Development**      | 5 hrs   | ⏳ Members 2 & 3 working on assigned tasks |
+| **Review & Merge**   | 1.5 hrs | Main maintainer reviews PRs                |
+| **Testing & Buffer** | 1.5 hrs | Final testing before submission            |
 
 ---
 
@@ -155,6 +162,7 @@ git push origin feature/member2-ai-testing
 ## 📋 CURRENT PROJECT STATUS
 
 ### ✅ READY TO USE
+
 - Backend server (Express.js running on :5000)
 - MongoDB database connected
 - Authentication system (JWT)
@@ -166,6 +174,7 @@ git push origin feature/member2-ai-testing
 - Context providers
 
 ### ⚠️ PARTIALLY TESTED
+
 - Gemini Vision API (just enabled)
 - Reuse ideas endpoint
 - Upcycle ideas endpoint
@@ -173,6 +182,7 @@ git push origin feature/member2-ai-testing
 - Real-time notifications
 
 ### 🔴 NEEDS TESTING (Your Tasks)
+
 - Reuse screen UI flow
 - Upcycle screen UI flow
 - Material composition display
@@ -187,6 +197,7 @@ git push origin feature/member2-ai-testing
 **Status:** ✅ Ready with 4 keys
 
 Current `.env` keys:
+
 ```
 GEMINI_API_KEY1=AIzaSyBCtT7MIkLVmSAayiBlKJoCgVx1ozECuC4
 GEMINI_API_KEY=AIzaSyBg8fEtftdSEWuRsQ0VGkWU-wG-UqSdIXE
@@ -201,6 +212,7 @@ Perfect for 3-person team testing!
 ## 🎯 SUCCESS CRITERIA
 
 ### For Member 2 (AI Features):
+
 - [ ] Reuse screen loads ideas from API
 - [ ] Upcycle screen displays all fields correctly
 - [ ] Material composition shows in analysis detail
@@ -208,6 +220,7 @@ Perfect for 3-person team testing!
 - [ ] API errors handled gracefully
 
 ### For Member 3 (Components):
+
 - [ ] All 25+ components audited
 - [ ] 80%+ working properly
 - [ ] QR generation tested
@@ -215,6 +228,7 @@ Perfect for 3-person team testing!
 - [ ] Audit documentation complete
 
 ### For Main (Code Review):
+
 - [ ] Both PRs reviewed
 - [ ] Code quality verified
 - [ ] Tests validated
@@ -226,6 +240,7 @@ Perfect for 3-person team testing!
 ## 📚 IMPORTANT FILES TO KNOW
 
 ### Documentation
+
 - `TEAM_ANALYSIS.md` - Detailed analysis & task breakdown
 - `TEAM_SETUP.md` - Clone & setup step-by-step guide
 - `GIT_CHEATSHEET.md` - Quick git commands
@@ -233,11 +248,13 @@ Perfect for 3-person team testing!
 - `ARCHITECTURE.md` - System architecture
 
 ### Backend
+
 - `backend/.env.example` - Template for env vars
 - `backend/controllers/aiController.js` - Gemini API calls
 - `backend/routes/ai.js` - AI endpoints
 
 ### Frontend (LifeLoop)
+
 - `LifeLoop/.env.example` - Template for env vars
 - `LifeLoop/src/screens/WasteAnalyzer.js` - **Gemini Vision (just updated)**
 - `LifeLoop/src/screens/ReuseGuide.js` - Reuse ideas screen
@@ -282,7 +299,8 @@ git checkout -b feature/your-task
 
 ---
 
-**Questions for team members?** 
+**Questions for team members?**
+
 - Check `TEAM_SETUP.md` for detailed guide
 - Check `GIT_CHEATSHEET.md` for commands
 - Ask in PR comments or through your communication channel

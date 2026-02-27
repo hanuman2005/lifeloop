@@ -175,11 +175,10 @@ router.get("/search", searchValidation, searchListings);
 // Nearby route (must be before /:id)
 router.get("/nearby", nearbyValidation, getNearbyListings);
 
-
 router.get("/user/pending", auth, async (req, res) => {
   try {
     const Listing = require("../models/Listing"); // ← Add this import
-    
+
     const listings = await Listing.find({
       donor: req.user._id,
       status: "pending",
@@ -199,13 +198,72 @@ router.get("/user/pending", auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch pending listings",
-      error: error.message
+      error: error.message,
+    });
+  }
+});
+
+// Get listings assigned to current user (as recipient)
+router.get("/user/assigned-to-me", auth, async (req, res) => {
+  try {
+    const Listing = require("../models/Listing");
+
+    const listings = await Listing.find({
+      assignedTo: req.user._id,
+      status: { $in: ["pending", "assigned"] },
+    })
+      .populate("donor", "firstName lastName email avatar phone")
+      .populate("assignedTo", "firstName lastName")
+      .sort("-updatedAt");
+
+    res.json({
+      success: true,
+      count: listings.length,
+      listings,
+    });
+  } catch (error) {
+    console.error("Error fetching assigned listings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch assigned listings",
+      error: error.message,
     });
   }
 });
 
 // User listings route (must be before /:id)
 router.get("/user", auth, getUserListings);
+
+// Match suggestions endpoint (AI powered)
+router.get("/:id/match-suggestions", auth, async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const Listing = require("../models/Listing");
+    const aiMatching = require("../utils/aiMatching");
+
+    const listing = await Listing.findById(listingId);
+    if (!listing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing not found" });
+    }
+
+    // Get best matches using AI
+    const matchResult = await aiMatching.findBestMatches(listingId, 5);
+
+    res.json({
+      success: true,
+      ...matchResult,
+    });
+  } catch (error) {
+    console.error("Error fetching match suggestions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch match suggestions",
+      error: error.message,
+    });
+  }
+});
 
 // General listing routes
 router.get("/", getListings);
@@ -217,7 +275,7 @@ router.post(
   auth,
   upload.array("images", 5),
   listingValidation,
-  createListing
+  createListing,
 );
 
 // Update listing
@@ -226,7 +284,7 @@ router.put(
   auth,
   upload.array("images", 5),
   listingValidation,
-  updateListing
+  updateListing,
 );
 
 // Delete listing
@@ -244,6 +302,232 @@ router.put("/:id/complete", auth, completeListing);
 // Check-in listing
 router.post("/:id/check-in", auth, checkIn);
 
+// Auto-assign top match
+router.post("/:id/assign-top-match", auth, async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const Listing = require("../models/Listing");
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing not found" });
+    }
+
+    // Check if user is the donor
+    if (listing.donor.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    // Get top match from AI matching system
+    const aiMatching = require("../utils/aiMatching");
+    const topMatch = await aiMatching.findTopMatch(listingId);
+
+    if (!topMatch) {
+      return res.json({
+        success: true,
+        topMatch: null,
+        message: "No matches found",
+      });
+    }
+
+    // Assign to top match
+    listing.assignedTo = topMatch._id;
+    listing.status = "assigned";
+    listing.assignedAt = new Date();
+    listing.assignmentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await listing.save();
+
+    // Send notification to recipient
+    const Notification = require("../models/Notification");
+    await Notification.create({
+      recipient: topMatch._id,
+      type: "assignment",
+      title: "New Item Matched!",
+      message: `${listing.donor.firstName || "Someone"} matched you with: ${listing.title}`,
+      data: {
+        listingId: listing._id,
+        donorId: listing.donor._id,
+      },
+    });
+
+    res.json({
+      success: true,
+      topMatch: {
+        _id: topMatch._id,
+        fullName: `${topMatch.firstName} ${topMatch.lastName}`,
+        email: topMatch.email,
+        trustScore: topMatch.trustScore || 0,
+      },
+      message: "Top match assigned successfully",
+    });
+  } catch (error) {
+    console.error("Error in auto-assign:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to auto-assign",
+      error: error.message,
+    });
+  }
+});
+
+// Accept assignment (receiver accepts AI-matched item)
+router.put("/:id/assignment/accept", auth, async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const Listing = require("../models/Listing");
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing not found" });
+    }
+
+    // Check if user is the assigned recipient
+    if (listing.assignedTo.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    // Update listing status
+    listing.status = "accepted";
+    listing.acceptedAt = new Date();
+    await listing.save();
+
+    // Notify donor
+    const Notification = require("../models/Notification");
+    await Notification.create({
+      recipient: listing.donor,
+      type: "assignment_accepted",
+      title: "Assignment Accepted!",
+      message: `${req.user.firstName || "Someone"} accepted your item: ${listing.title}`,
+      data: {
+        listingId: listing._id,
+        recipientId: req.user._id,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Assignment accepted",
+      listing,
+    });
+  } catch (error) {
+    console.error("Error accepting assignment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to accept assignment",
+      error: error.message,
+    });
+  }
+});
+
+// Decline assignment (receiver declines, try next in queue)
+router.put("/:id/assignment/decline", auth, async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const Listing = require("../models/Listing");
+
+    const listing = await Listing.findById(listingId).populate("queue.user");
+
+    if (!listing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing not found" });
+    }
+
+    // Check if user is the assigned recipient
+    if (listing.assignedTo.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    const previousRecipient = listing.assignedTo;
+
+    // Remove current assignment
+    listing.assignedTo = null;
+    listing.status = "available";
+    listing.assignmentDeadline = null;
+
+    // Get next waiting person in queue (sorted by position, excluding previous recipient)
+    const nextQueueEntry = listing.queue.find(
+      (entry) =>
+        entry.user._id.toString() !== previousRecipient.toString() &&
+        entry.status === "waiting",
+    );
+
+    if (nextQueueEntry) {
+      // Assign to next person
+      listing.assignedTo = nextQueueEntry.user._id;
+      listing.status = "assigned";
+      listing.assignedAt = new Date();
+      listing.assignmentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Update queue entry status
+      nextQueueEntry.status = "notified";
+      nextQueueEntry.notifiedAt = new Date();
+
+      await listing.save();
+
+      // Notify next recipient
+      const Notification = require("../models/Notification");
+      await Notification.create({
+        recipient: nextQueueEntry.user._id,
+        type: "assignment",
+        title: "Item Now Available for You!",
+        message: `You're next in line for: ${listing.title}`,
+        data: {
+          listingId: listing._id,
+          donorId: listing.donor._id,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Declined, next recipient assigned",
+        nextRecipient: {
+          _id: nextQueueEntry.user._id,
+          firstName: nextQueueEntry.user.firstName,
+          lastName: nextQueueEntry.user.lastName,
+        },
+      });
+    } else {
+      // No more queue members, listing is available to all
+      await listing.save();
+
+      const Notification = require("../models/Notification");
+      await Notification.create({
+        recipient: listing.donor,
+        type: "assignment_failed",
+        title: "Assignment Declined",
+        message: `${req.user.firstName || "Someone"} declined your item: ${listing.title}. It's now available to all.`,
+        data: {
+          listingId: listing._id,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Declined, listing available to all",
+      });
+    }
+  } catch (error) {
+    console.error("Error declining assignment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to decline assignment",
+      error: error.message,
+    });
+  }
+});
+
+// Queue routes
 router.post("/:id/queue/join", auth, queueController.joinQueue);
 router.delete("/:id/queue/leave", auth, queueController.leaveQueue);
 router.get("/:id/queue/status", auth, queueController.getQueueStatus);

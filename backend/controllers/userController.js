@@ -1,21 +1,19 @@
-
 // ============================================
 // controllers/userController.js - FIXED
 // ============================================
-const User = require('../models/User');
-const Rating = require('../models/Rating');
-const Listing = require('../models/Listing');
+const User = require("../models/User");
+const Rating = require("../models/Rating");
+const Listing = require("../models/Listing");
 
 // Get user profile by ID
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select('-password');
+    const user = await User.findById(req.params.id).select("-password");
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: "User not found",
       });
     }
 
@@ -23,7 +21,7 @@ const getUserProfile = async (req, res) => {
     const recentListings = await Listing.find({ donor: user._id })
       .limit(5)
       .sort({ createdAt: -1 })
-      .select('title images category status createdAt');
+      .select("title images category status createdAt");
 
     res.json({
       success: true,
@@ -34,18 +32,19 @@ const getUserProfile = async (req, res) => {
         avatar: user.avatar,
         bio: user.bio,
         rating: user.rating,
+        trustScore: user.trustScore,
+        ecoScore: user.ecoScore,
         listingsCount: user.listingsCount,
         isVerified: user.isVerified,
         userType: user.userType,
-        recentListings
-      }
+        recentListings,
+      },
     });
-
   } catch (error) {
-    console.error('Get user profile error:', error);
+    console.error("Get user profile error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching user profile'
+      message: "Server error fetching user profile",
     });
   }
 };
@@ -61,7 +60,7 @@ const rateUser = async (req, res) => {
     if (rating < 1 || rating > 5) {
       return res.status(400).json({
         success: false,
-        message: 'Rating must be between 1 and 5'
+        message: "Rating must be between 1 and 5",
       });
     }
 
@@ -70,33 +69,36 @@ const rateUser = async (req, res) => {
     if (!listing) {
       return res.status(404).json({
         success: false,
-        message: 'Listing not found'
+        message: "Listing not found",
       });
     }
 
     // Check if rating already exists
     const existingRating = await Rating.findOne({
       rater: raterId,
-      listing: listingId
+      listing: listingId,
     });
 
     if (existingRating) {
       return res.status(400).json({
         success: false,
-        message: 'You have already rated this transaction'
+        message: "You have already rated this transaction",
       });
     }
 
     // Determine rating type
     let ratingType;
     if (listing.donor.toString() === raterId.toString()) {
-      ratingType = 'recipient';
-    } else if (listing.assignedTo && listing.assignedTo.toString() === raterId.toString()) {
-      ratingType = 'donor';
+      ratingType = "recipient";
+    } else if (
+      listing.assignedTo &&
+      listing.assignedTo.toString() === raterId.toString()
+    ) {
+      ratingType = "donor";
     } else {
       return res.status(403).json({
         success: false,
-        message: 'You are not part of this transaction'
+        message: "You are not part of this transaction",
       });
     }
 
@@ -107,31 +109,31 @@ const rateUser = async (req, res) => {
       listing: listingId,
       rating,
       comment,
-      ratingType
+      ratingType,
     });
 
     await newRating.save();
 
     // Update user's average rating
     const userRatings = await Rating.find({ rated: ratedId });
-    const averageRating = userRatings.reduce((sum, r) => sum + r.rating, 0) / userRatings.length;
+    const averageRating =
+      userRatings.reduce((sum, r) => sum + r.rating, 0) / userRatings.length;
 
     await User.findByIdAndUpdate(ratedId, {
-      'rating.average': averageRating,
-      'rating.count': userRatings.length
+      "rating.average": averageRating,
+      "rating.count": userRatings.length,
     });
 
     res.json({
       success: true,
-      message: 'Rating submitted successfully',
-      rating: newRating
+      message: "Rating submitted successfully",
+      rating: newRating,
     });
-
   } catch (error) {
-    console.error('Rate user error:', error);
+    console.error("Rate user error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error submitting rating'
+      message: "Server error submitting rating",
     });
   }
 };
@@ -145,8 +147,8 @@ const getUserRatings = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const ratings = await Rating.find({ rated: userId })
-      .populate('rater', 'firstName lastName avatar')
-      .populate('listing', 'title category')
+      .populate("rater", "firstName lastName avatar")
+      .populate("listing", "title category")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -154,9 +156,11 @@ const getUserRatings = async (req, res) => {
     const total = await Rating.countDocuments({ rated: userId });
 
     // ✅ FIXED: Add raterName for frontend compatibility
-    const ratingsWithNames = ratings.map(rating => ({
+    const ratingsWithNames = ratings.map((rating) => ({
       ...rating.toObject(),
-      raterName: rating.rater ? `${rating.rater.firstName} ${rating.rater.lastName}` : 'Anonymous'
+      raterName: rating.rater
+        ? `${rating.rater.firstName} ${rating.rater.lastName}`
+        : "Anonymous",
     }));
 
     res.json({
@@ -166,15 +170,14 @@ const getUserRatings = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-
   } catch (error) {
-    console.error('Get user ratings error:', error);
+    console.error("Get user ratings error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching ratings'
+      message: "Server error fetching ratings",
     });
   }
 };
@@ -185,19 +188,19 @@ const updateProfileImage = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'No image file provided'
+        message: "No image file provided",
       });
     }
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { avatar: req.file.path }, // ✅ Changed from profileImage to avatar
-      { new: true }
+      { new: true },
     );
 
     res.json({
       success: true,
-      message: 'Profile image updated successfully',
+      message: "Profile image updated successfully",
       imageUrl: req.file.path,
       user: {
         _id: user._id,
@@ -205,14 +208,13 @@ const updateProfileImage = async (req, res) => {
         lastName: user.lastName,
         avatar: user.avatar,
         email: user.email,
-      }
+      },
     });
-
   } catch (error) {
-    console.error('Update profile image error:', error);
+    console.error("Update profile image error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error updating profile image'
+      message: "Server error updating profile image",
     });
   }
 };
@@ -226,22 +228,21 @@ const searchUsers = async (req, res) => {
 
     if (query) {
       searchQuery.$or = [
-        { firstName: { $regex: query, $options: 'i' } },
-        { lastName: { $regex: query, $options: 'i' } }
+        { firstName: { $regex: query, $options: "i" } },
+        { lastName: { $regex: query, $options: "i" } },
       ];
     }
 
-    if (userType && userType !== 'all') {
-      searchQuery.$or = [
-        { userType: userType },
-        { userType: 'both' }
-      ];
+    if (userType && userType !== "all") {
+      searchQuery.$or = [{ userType: userType }, { userType: "both" }];
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const users = await User.find(searchQuery)
-      .select('firstName lastName avatar rating userType location listingsCount')
+      .select(
+        "firstName lastName avatar rating userType location listingsCount",
+      )
       .skip(skip)
       .limit(parseInt(limit));
 
@@ -254,15 +255,14 @@ const searchUsers = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-
   } catch (error) {
-    console.error('Search users error:', error);
+    console.error("Search users error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error searching users'
+      message: "Server error searching users",
     });
   }
 };
@@ -272,5 +272,5 @@ module.exports = {
   rateUser,
   getUserRatings,
   updateProfileImage,
-  searchUsers
+  searchUsers,
 };

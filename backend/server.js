@@ -1,4 +1,4 @@
-// backend/server.js - FIXED & OPTIMIZED
+// backend/server.js - STREAMLINED FOR DEVELOPMENT
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -6,12 +6,12 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
 const socketIO = require("socket.io");
-const helmet = require("helmet");
-const csurf = require("csurf");
-const cookieParser = require("cookie-parser");
 
 // Load env variables
 dotenv.config();
+
+// Import database connection
+const connectDB = require("./config/db");
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -32,6 +32,7 @@ const routeOptimizationRoutes = require("./routes/routeOptimization");
 const queueRoutes = require("./routes/queue");
 const adminRoutes = require("./routes/admin");
 const centersRoutes = require("./routes/centers");
+const verificationOTPRoutes = require("./routes/verificationOTP");
 
 // Import socket handler
 const socketHandler = require("./socket/socketHandler");
@@ -40,18 +41,15 @@ const socketHandler = require("./socket/socketHandler");
 const errorHandler = require("./middleware/errorHandler");
 
 const { initScheduleCronJobs } = require("./utils/scheduleCron");
-// ⏱️ Auto-start queue expiration scheduler
 const { setIO: setQueueIO } = require("./utils/queueCronJob");
-// 📧 Email service
-const { initializeTransporter, verifyConnection } = require("./config/email");
 
-const { swaggerUi, swaggerSpec } = require("./config/swagger");
 const app = express();
 const server = http.createServer(app);
-// Swagger API docs route
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// ✅ Configure CORS properly
+// ============================================
+// CORS Configuration
+// ============================================
+
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
@@ -73,32 +71,39 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["Content-Range", "X-Content-Range"],
-  maxAge: 86400,
 };
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
+// ============================================
+// Middleware
+// ============================================
+
 // Body parser middleware
-app.use(express.json({ limit: "10mb" })); // Increased for image uploads
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ✅ Initialize Socket.IO with CORS
+// Simple logging middleware for development
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// ============================================
+// Socket.IO Setup
+// ============================================
+
 const io = socketIO(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
   },
-  transports: ["websocket", "polling"],
-  pingTimeout: 60000,
-  pingInterval: 25000,
 });
 
 // Initialize socket handlers
 socketHandler(io);
-// After io is initialized
 initScheduleCronJobs(io);
 setQueueIO(io);
 
@@ -108,32 +113,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security headers
-app.use(helmet());
-
-// CSRF protection
-app.use(cookieParser());
-if (process.env.NODE_ENV === "production") {
-  app.use(csurf({ cookie: true }));
-}
-
-// Enforce HTTPS in production
-if (process.env.NODE_ENV === "production") {
-  app.use((req, res, next) => {
-    if (req.headers["x-forwarded-proto"] !== "https") {
-      return res.redirect("https://" + req.headers.host + req.url);
-    }
-    next();
-  });
-}
-
-// Logging middleware (only in development)
-if (process.env.NODE_ENV !== "production") {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
-}
+// ============================================
+// Routes
+// ============================================
 
 // Health check route
 app.get("/health", (req, res) => {
@@ -146,10 +128,10 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Test route
+// Root route
 app.get("/", (req, res) => {
   res.json({
-    message: "Donate Local API is running",
+    message: "LifeLoop API is running",
     version: "1.0.0",
     endpoints: {
       auth: "/api/auth",
@@ -160,6 +142,16 @@ app.get("/", (req, res) => {
       analytics: "/api/analytics",
       qr: "/api/qr",
       impact: "/api/impact",
+      ratings: "/api/ratings",
+      schedules: "/api/schedules",
+      reports: "/api/reports",
+      wasteAnalysis: "/api/waste-analysis",
+      chatbot: "/api/chatbot",
+      routes: "/api/routes",
+      queue: "/api/queue",
+      admin: "/api/admin",
+      centers: "/api/centers",
+      verify: "/api/verify",
     },
   });
 });
@@ -186,10 +178,11 @@ app.use("/api/queue", queueRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/centers", centersRoutes);
 app.use("/api/sms", require("./routes/sms"));
+app.use("/api/verify", verificationOTPRoutes);
 
-// Apply rate limiter middleware
-const rateLimiter = require("./services/rateLimiter");
-app.use(rateLimiter);
+// ============================================
+// Error Handling
+// ============================================
 
 // Error handling middleware
 app.use(errorHandler);
@@ -199,49 +192,22 @@ app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.path}`,
-    availableRoutes: [
-      "/api/auth",
-      "/api/listings",
-      "/api/chat",
-      "/api/users",
-      "/api/notifications",
-      "/api/analytics",
-      "/api/qr",
-      "/api/impact",
-    ],
   });
 });
 
 // ============================================
-// MongoDB Connection with Retry Logic
+// Start Server
 // ============================================
 
 const PORT = process.env.PORT || 5000;
-const MAX_RETRIES = 5;
-let retryCount = 0;
 
-async function connectDB() {
+async function startServer() {
   try {
-    console.log("🔄 Connecting to MongoDB...");
+    // Connect to MongoDB
+    await connectDB();
 
-    // ✅ FIXED: Remove deprecated options
-    const conn = await mongoose.connect(
-      process.env.MONGO_URI || process.env.MONGODB_URI,
-      {
-        serverSelectionTimeoutMS: 5000, // Timeout after 5s
-        socketTimeoutMS: 45000, // Close sockets after 45s
-        family: 4, // Use IPv4, skip trying IPv6
-      }
-    );
-
-    console.log("✅ MongoDB connected successfully");
-    console.log(`📊 Database: ${conn.connection.name}`);
-    console.log(`🏠 Host: ${conn.connection.host}`);
-
-    retryCount = 0; // Reset retry count on success
-
-    // Start server after successful DB connection
-    server.listen(PORT, async () => {
+    // Start server
+    server.listen(PORT, "0.0.0.0", () => {
       console.log("");
       console.log("╔═══════════════════════════════════════════╗");
       console.log("║       🚀 LIFELOOP SERVER RUNNING         ║");
@@ -249,141 +215,17 @@ async function connectDB() {
       console.log("");
       console.log(`✅ Server:        http://localhost:${PORT}`);
       console.log(`✅ Environment:   ${process.env.NODE_ENV || "development"}`);
-      console.log(`✅ CORS:          ${corsOptions.origin}`);
       console.log(`✅ Socket.IO:     Enabled`);
-
-      // Initialize email service
-      await initializeTransporter();
-      await verifyConnection();
-
-      console.log("");
-      console.log("📍 API Endpoints:");
-      console.log(`   • Auth:         /api/auth`);
-      console.log(`   • Listings:     /api/listings`);
-      console.log(`   • Chat:         /api/chat`);
-      console.log(`   • Users:        /api/users`);
-      console.log(`   • Notifications:/api/notifications`);
-      console.log(`   • Analytics:    /api/analytics`);
-      console.log(`   • QR Codes:     /api/qr`);
-      console.log(`   • Impact:       /api/impact`);
       console.log("");
       console.log("Press Ctrl+C to stop");
       console.log("");
     });
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err.message);
-
-    retryCount++;
-
-    if (retryCount <= MAX_RETRIES) {
-      console.log(`🔄 Retrying connection... (${retryCount}/${MAX_RETRIES})`);
-      console.log(`⏳ Waiting 5 seconds before retry...`);
-      setTimeout(connectDB, 5000);
-    } else {
-      console.error("");
-      console.error("╔════════════════════════════════════════════════╗");
-      console.error("║  ❌ MONGODB CONNECTION FAILED AFTER 5 RETRIES  ║");
-      console.error("╚════════════════════════════════════════════════╝");
-      console.error("");
-      console.error("💡 Troubleshooting Steps:");
-      console.error("");
-      console.error("1. Check your .env file:");
-      console.error(
-        "   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname"
-      );
-      console.error("");
-      console.error("2. Verify MongoDB Atlas settings:");
-      console.error("   • IP Address is whitelisted (0.0.0.0/0 for testing)");
-      console.error("   • Username and password are correct");
-      console.error('   • Database user has "Read and Write" permissions');
-      console.error("");
-      console.error("3. Test connection:");
-      console.error("   node backend/test-connection.js");
-      console.error("");
-      console.error("4. Check MongoDB Atlas status:");
-      console.error("   https://status.mongodb.com/");
-      console.error("");
-
-      process.exit(1);
-    }
+  } catch (error) {
+    console.error("❌ Failed to start server:", error.message);
+    process.exit(1);
   }
 }
 
-// ============================================
-// MongoDB Event Listeners
-// ============================================
-
-mongoose.connection.on("connected", () => {
-  console.log("🔗 Mongoose connected to MongoDB");
-});
-
-mongoose.connection.on("error", (err) => {
-  console.error("❌ Mongoose connection error:", err.message);
-});
-
-mongoose.connection.on("disconnected", () => {
-  console.log("⚠️ Mongoose disconnected from MongoDB");
-});
-
-// ============================================
-// Graceful Shutdown
-// ============================================
-
-process.on("SIGINT", async () => {
-  console.log("\n🛑 Received SIGINT. Gracefully shutting down...");
-
-  try {
-    // Close server
-    await new Promise((resolve) => server.close(resolve));
-    console.log("✅ HTTP server closed");
-
-    // Close database connection
-    await mongoose.connection.close();
-    console.log("✅ MongoDB connection closed");
-
-    console.log("👋 Goodbye!");
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Error during shutdown:", err);
-    process.exit(1);
-  }
-});
-
-process.on("SIGTERM", async () => {
-  console.log("\n🛑 Received SIGTERM. Gracefully shutting down...");
-
-  try {
-    await new Promise((resolve) => server.close(resolve));
-    await mongoose.connection.close();
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Error during shutdown:", err);
-    process.exit(1);
-  }
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Promise Rejection:", err.message);
-  console.error("Stack:", err.stack);
-
-  // In production, you might want to exit
-  if (process.env.NODE_ENV === "production") {
-    server.close(() => process.exit(1));
-  }
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err.message);
-  console.error("Stack:", err.stack);
-
-  // Always exit on uncaught exception
-  process.exit(1);
-});
-
-// ============================================
-// Start the server
-// ============================================
-
-connectDB();
+startServer();
 
 module.exports = { app, io, server };

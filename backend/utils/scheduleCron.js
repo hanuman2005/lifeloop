@@ -23,6 +23,9 @@ const initScheduleCronJobs = (io) => {
       // 2. Mark expired schedules
       await markExpiredSchedules(io);
 
+      // 3. Handle assignment timeouts (24-hour expiry)
+      await handleAssignmentTimeouts(io);
+
       console.log("✅ Schedule automation completed");
     } catch (error) {
       console.error("❌ Schedule automation error:", error);
@@ -52,7 +55,7 @@ const sendUpcomingReminders = async (io) => {
         } catch (smsError) {
           console.warn(
             `⚠️ SMS reminder failed for schedule ${schedule._id}:`,
-            smsError.message
+            smsError.message,
           );
         }
 
@@ -60,7 +63,7 @@ const sendUpcomingReminders = async (io) => {
       } catch (error) {
         console.error(
           `❌ Failed to send reminder for schedule ${schedule._id}:`,
-          error
+          error,
         );
       }
     }
@@ -78,15 +81,15 @@ const sendUpcomingReminders = async (io) => {
 const sendSMSReminders = async (schedule) => {
   // Get donor and recipient with their SMS preferences
   const donor = await User.findById(schedule.donor).select(
-    "phone phoneVerified smsPreferences"
+    "phone phoneVerified smsPreferences",
   );
   const recipient = await User.findById(schedule.recipient).select(
-    "phone phoneVerified smsPreferences"
+    "phone phoneVerified smsPreferences",
   );
 
   // Calculate hours until pickup
   const hoursUntil = Math.round(
-    (new Date(schedule.scheduledDate) - new Date()) / (1000 * 60 * 60)
+    (new Date(schedule.scheduledDate) - new Date()) / (1000 * 60 * 60),
   );
 
   const scheduleInfo = {
@@ -105,7 +108,7 @@ const sendSMSReminders = async (schedule) => {
     donor?.smsPreferences?.pickupReminders
   ) {
     promises.push(
-      smsService.sendPickupReminder(scheduleInfo, donor.phone, hoursUntil)
+      smsService.sendPickupReminder(scheduleInfo, donor.phone, hoursUntil),
     );
   }
 
@@ -117,7 +120,7 @@ const sendSMSReminders = async (schedule) => {
     recipient?.smsPreferences?.pickupReminders
   ) {
     promises.push(
-      smsService.sendPickupReminder(scheduleInfo, recipient.phone, hoursUntil)
+      smsService.sendPickupReminder(scheduleInfo, recipient.phone, hoursUntil),
     );
   }
 
@@ -173,6 +176,119 @@ const markExpiredSchedules = async (io) => {
 };
 
 /**
+ * Handle assignment timeouts (24-hour deadline for receivers to accept)
+ */
+const handleAssignmentTimeouts = async (io) => {
+  try {
+    const now = new Date();
+
+    // Find all listings with expired assignments
+    const expiredAssignments = await Listing.find({
+      status: "assigned",
+      assignmentDeadline: { $lt: now },
+      assignedTo: { $exists: true, $ne: null },
+    }).populate([
+      { path: "assignedTo", select: "firstName lastName email" },
+      { path: "donor", select: "firstName lastName email" },
+    ]);
+
+    console.log(`⏳ Found ${expiredAssignments.length} expired assignments`);
+
+    for (const listing of expiredAssignments) {
+      try {
+        const previousRecipient = listing.assignedTo;
+
+        // Remove current assignment
+        listing.assignedTo = null;
+        listing.status = "available";
+        listing.assignmentDeadline = null;
+
+        // Get next waiting person in queue
+        const nextQueueEntry = listing.queue.find(
+          (entry) =>
+            entry.user.toString() !== previousRecipient._id.toString() &&
+            entry.status === "waiting",
+        );
+
+        if (nextQueueEntry) {
+          // Assign to next person
+          listing.assignedTo = nextQueueEntry.user;
+          listing.status = "assigned";
+          listing.assignedAt = new Date();
+          listing.assignmentDeadline = new Date(
+            Date.now() + 24 * 60 * 60 * 1000,
+          );
+
+          // Update queue entry
+          nextQueueEntry.status = "notified";
+          nextQueueEntry.notifiedAt = new Date();
+
+          await listing.save();
+
+          // Notify next recipient
+          const Notification = require("../models/Notification");
+          const notification = await Notification.create({
+            recipient: nextQueueEntry.user,
+            type: "assignment",
+            title: "Item Available - Accept Soon!",
+            message: `Time's running out! You're next for: ${listing.title}`,
+            data: {
+              listingId: listing._id,
+              donorId: listing.donor._id,
+            },
+          });
+
+          // Socket notification
+          if (io) {
+            io.to(nextQueueEntry.user.toString()).emit(
+              "assignment_notification",
+              {
+                message: `You're next in line for ${listing.title}!`,
+                listingId: listing._id,
+                recipientId: nextQueueEntry.user,
+              },
+            );
+          }
+
+          console.log(
+            `✅ Auto-reassigned ${listing.title} from ${previousRecipient.firstName} to next in queue`,
+          );
+        } else {
+          // No more queue members, listing available to all
+          await listing.save();
+
+          // Notify donor
+          const Notification = require("../models/Notification");
+          await Notification.create({
+            recipient: listing.donor._id,
+            type: "assignment_failed",
+            title: "Assignment Expired",
+            message: `No one accepted your item: ${listing.title}. It's now available to all.`,
+            data: {
+              listingId: listing._id,
+            },
+          });
+
+          console.log(
+            `⚠️ Assignment expired for ${listing.title}, listing now available to all`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `❌ Failed to handle timeout for listing ${listing._id}:`,
+          error,
+        );
+      }
+    }
+
+    return expiredAssignments.length;
+  } catch (error) {
+    console.error("handleAssignmentTimeouts error:", error);
+    throw error;
+  }
+};
+
+/**
  * Manual trigger for testing
  */
 const runScheduleAutomationNow = async (io) => {
@@ -191,5 +307,6 @@ module.exports = {
   initScheduleCronJobs,
   sendUpcomingReminders,
   markExpiredSchedules,
+  handleAssignmentTimeouts,
   runScheduleAutomationNow,
 };

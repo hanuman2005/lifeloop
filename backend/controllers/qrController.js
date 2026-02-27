@@ -40,10 +40,11 @@ const generateQR = async (req, res) => {
       });
     }
 
-    if (listing.status !== "pending") {
+    // Allow QR generation for pending OR assigned listings (for regeneration)
+    if (!["pending", "assigned"].includes(listing.status)) {
       return res.status(400).json({
         success: false,
-        message: `QR only allowed when pickup is pending`,
+        message: `QR only allowed when pickup is pending or assigned. Current status: ${listing.status}`,
       });
     }
 
@@ -63,11 +64,29 @@ const generateQR = async (req, res) => {
     });
 
     if (transaction) {
+      // If qrCodeImage is missing, regenerate it
+      if (!transaction.qrCodeImage) {
+        const QRCode = require("qrcode");
+        try {
+          const qrCodeDataURL = await QRCode.toDataURL(transaction.qrCode, {
+            errorCorrectionLevel: "H",
+            type: "image/png",
+            width: 400,
+            margin: 2,
+            color: { dark: "#000000", light: "#FFFFFF" },
+          });
+          transaction.qrCodeImage = qrCodeDataURL;
+          await transaction.save();
+        } catch (err) {
+          console.error("Failed to regenerate QR image:", err);
+        }
+      }
+
       return res.status(200).json({
         success: true,
         message: "QR already exists",
         qrCode: transaction.qrCode,
-        qrCodeImage: transaction.qrCodeImage || null,
+        qrCodeImage: transaction.qrCodeImage,
         transaction,
       });
     }

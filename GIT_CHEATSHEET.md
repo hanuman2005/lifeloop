@@ -1,6 +1,7 @@
 # 🚀 Quick Git Commands Cheatsheet
 
 ## First Time Setup (Clone)
+
 ```bash
 git clone https://github.com/hanuman2005/lifeloop.git
 cd lifeloop
@@ -9,18 +10,21 @@ npm install          # in LifeLoop/
 ```
 
 ## Before You Start Work
+
 ```bash
 git checkout main
 git pull origin main
 ```
 
 ## Create Your Feature Branch
+
 ```bash
 git checkout -b feature/your-task-name
 # Example: git checkout -b feature/sarah-reuse-testing
 ```
 
 ## While Working
+
 ```bash
 # Check what changed
 git status
@@ -34,6 +38,7 @@ git push origin feature/your-task-name
 ```
 
 ## Create Pull Request
+
 1. Go to GitHub.com
 2. Click "Compare & Pull Request"
 3. Add description
@@ -41,6 +46,7 @@ git push origin feature/your-task-name
 5. **Wait for main maintainer to review**
 
 ## After PR is Merged
+
 ```bash
 git checkout main
 git pull origin main
@@ -50,23 +56,24 @@ git pull origin main
 
 ## Common Commands
 
-| Task | Command |
-|------|---------|
-| See current branch | `git branch` |
-| See all changes | `git status` |
-| See what you changed | `git diff` |
-| Switch to main | `git checkout main` |
-| Pull latest changes | `git pull origin main` |
-| Upload your work | `git push origin feature/name` |
-| Delete old branch | `git branch -d feature/old-name` |
-| View commit history | `git log --oneline` |
-| Undo last commit | `git revert HEAD` |
+| Task                 | Command                          |
+| -------------------- | -------------------------------- |
+| See current branch   | `git branch`                     |
+| See all changes      | `git status`                     |
+| See what you changed | `git diff`                       |
+| Switch to main       | `git checkout main`              |
+| Pull latest changes  | `git pull origin main`           |
+| Upload your work     | `git push origin feature/name`   |
+| Delete old branch    | `git branch -d feature/old-name` |
+| View commit history  | `git log --oneline`              |
+| Undo last commit     | `git revert HEAD`                |
 
 ---
 
 ## If Something Goes Wrong
 
 ### "Conflicts" - You and main edited same file
+
 ```bash
 # Fix the conflict manually in VS Code
 # Then:
@@ -76,6 +83,7 @@ git push origin feature/your-branch
 ```
 
 ### "Changes not saved" - Need to commit first
+
 ```bash
 git add .
 git commit -m "Your message"
@@ -83,6 +91,7 @@ git push origin feature/your-branch
 ```
 
 ### "Behind origin/main" - Need latest code
+
 ```bash
 git pull origin main
 ```

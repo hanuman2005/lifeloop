@@ -36,7 +36,7 @@ const createListing = async (req, res) => {
     // 🛡️ Content Moderation Check
     const moderationResult = contentModeration.moderateContent(
       title,
-      description
+      description,
     );
 
     if (moderationResult.autoRejected) {
@@ -91,17 +91,17 @@ const createListing = async (req, res) => {
         const notificationCount = await notificationHelper.broadcastNewListing(
           listing,
           req.user,
-          req.io
+          req.io,
         );
         console.log(
-          `✅ Sent ${notificationCount} notifications for new listing`
+          `✅ Sent ${notificationCount} notifications for new listing`,
         );
       } catch (notifError) {
         console.error("⚠️ Notification error (non-critical):", notifError);
       }
     } else {
       console.log(
-        `⚠️ Listing ${listing._id} flagged for review, notifications held`
+        `⚠️ Listing ${listing._id} flagged for review, notifications held`,
       );
     }
 
@@ -132,13 +132,24 @@ const getListings = async (req, res) => {
   try {
     const {
       category,
-      status = "available",
+      status,
       page = 1,
       limit = 20,
       search,
+      donorId,
     } = req.query;
 
-    let query = { status };
+    let query = {};
+
+    // ✅ Filter by status if provided
+    if (status) {
+      query.status = status;
+    }
+
+    // ✅ Filter by specific donor if donorId is provided
+    if (donorId) {
+      query.donor = donorId;
+    }
 
     if (category && category !== "all") {
       query.category = category;
@@ -202,7 +213,7 @@ const getListingById = async (req, res) => {
     await Listing.findByIdAndUpdate(
       req.params.id,
       { $inc: { views: 1 } },
-      { validateBeforeSave: false }
+      { validateBeforeSave: false },
     );
 
     console.log("✅ Returning listing");
@@ -277,7 +288,7 @@ const updateListing = async (req, res) => {
     const updatedListing = await Listing.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate("donor", "firstName lastName avatar rating")
       .populate("interestedUsers.user", "firstName lastName")
@@ -292,7 +303,7 @@ const updateListing = async (req, res) => {
         await notificationHelper.onListingUpdated(
           updatedListing,
           updateData,
-          req.io
+          req.io,
         );
       }
     } catch (notifError) {
@@ -408,7 +419,7 @@ const expressInterest = async (req, res) => {
     }
 
     const alreadyInterested = listing.interestedUsers.some(
-      (interest) => interest.user.toString() === userId.toString()
+      (interest) => interest.user.toString() === userId.toString(),
     );
 
     if (alreadyInterested) {
@@ -454,7 +465,7 @@ const assignListing = async (req, res) => {
 
     const listing = await Listing.findById(listingId).populate(
       "queue.user",
-      "firstName lastName avatar rating"
+      "firstName lastName avatar rating",
     );
 
     if (!listing) {
@@ -485,7 +496,7 @@ const assignListing = async (req, res) => {
     // Queue priority + AI Manual Selection
     // ==========================================
     const inQueue = listing.queue.find(
-      (q) => q.user._id.toString() === recipientId
+      (q) => q.user._id.toString() === recipientId,
     );
 
     if (inQueue) {
@@ -572,7 +583,7 @@ const completeListing = async (req, res) => {
       await notificationHelper.onListingCompleted(
         listing,
         listing.assignedTo,
-        req.io
+        req.io,
       );
 
       // Send donation confirmation emails
