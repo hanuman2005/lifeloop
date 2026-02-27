@@ -96,4 +96,4 @@ MIT License - See [LICENSE](LICENSE) for details
 
 [![LifeLoop CI/CD](https://github.com/hanuman2005/lifeloop/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/hanuman2005/lifeloop/actions/workflows/ci-cd.yml)
 
----
+```
