@@ -16,7 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useSocket } from "../context/SocketContext";
 import { useNotifications } from "../context/NotificationContext";
-import api from "../services/api";
+import api, { listingsAPI } from "../services/api";
+import Toast from "react-native-toast-message";
 
 // ─────────────────────────────────────────
 // Helpers
@@ -74,7 +75,13 @@ const groupByDate = (notifs) => {
 // ─────────────────────────────────────────
 // Notification Card
 // ─────────────────────────────────────────
-const NotifCard = ({ notif, onRead, onDelete, onNavigate }) => {
+const NotifCard = ({
+  notif,
+  onRead,
+  onDelete,
+  onNavigate,
+  onNavigateWithType,
+}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -108,7 +115,7 @@ const NotifCard = ({ notif, onRead, onDelete, onNavigate }) => {
       }),
     ]).start();
     if (!notif.read) onRead(notif._id);
-    if (notif.actionUrl) onNavigate(notif.actionUrl);
+    if (notif.actionUrl) onNavigateWithType(notif);
   };
 
   const handleDelete = () => {
@@ -166,7 +173,7 @@ const NotifCard = ({ notif, onRead, onDelete, onNavigate }) => {
                 style={s.viewBtn}
                 onPress={() => {
                   if (!notif.read) onRead(notif._id);
-                  onNavigate(notif.actionUrl);
+                  onNavigateWithType(notif.actionUrl, notif.type, notif.data);
                 }}
               >
                 <Text style={s.viewBtnText}>View →</Text>
@@ -335,19 +342,49 @@ const Notifications = () => {
     } catch {}
   };
 
-  const handleNavigate = (actionUrl) => {
-    // Map web route → React Navigation screen
+  const handleNavigate = async (notif) => {
+    // Check if this is an assignment notification
+    if (notif.type === "assignment" && notif.data?.listingId) {
+      try {
+        // Fetch full listing details for AcceptAssignment screen
+        const response = await listingsAPI.getById(notif.data.listingId);
+        const listing = response.data.listing || response.data;
+
+        navigation.navigate("AcceptAssignment", {
+          listingId: listing._id,
+          listingTitle: listing.title,
+          listingImage: listing.image || listing.images?.[0],
+          donorId: listing.donor._id,
+          donorName: `${listing.donor.firstName} ${listing.donor.lastName}`,
+          donorRating: listing.donor.rating || 0,
+          donorReviews: listing.donor.reviews || 0,
+          distance: listing.distance || 0,
+        });
+      } catch (error) {
+        console.error("Error fetching listing for assignment:", error);
+        Toast.show({
+          type: "error",
+          text1: "Could not load assignment details",
+        });
+      }
+      return;
+    }
+
+    // Default route handling for other notification types
+    const actionUrl = notif.actionUrl;
     const route = actionUrl?.replace(/^\//, "").split("/");
 
     if (!route) return;
     if (route[0] === "listings" && route[1]) {
       navigation.navigate("ListingDetails", { id: route[1] });
+    } else if (route[0] === "schedules" && route[1]) {
+      navigation.navigate("Schedules");
     } else if (route[0] === "chat" && route[1]) {
       navigation.navigate("Chat", { chatId: route[1] });
     } else if (route[0] === "profile") {
       navigation.navigate("Main", { screen: "Profile" });
     } else {
-      navigation.navigate("Dashboard");
+      navigation.navigate("Main");
     }
   };
 
@@ -426,6 +463,7 @@ const Notifications = () => {
               onRead={markAsRead}
               onDelete={deleteNotification}
               onNavigate={handleNavigate}
+              onNavigateWithType={handleNavigate}
             />
           )}
           contentContainerStyle={s.listContent}

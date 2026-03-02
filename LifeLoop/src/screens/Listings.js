@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { listingsAPI } from "../services/api";
+import configAPI from "../services/configAPI";
 import Toast from "react-native-toast-message";
 import ListingCard from "../components/ListingCard";
 import Map from "../components/Map";
@@ -25,17 +26,7 @@ import FilterPanel from "../components/FilterPanel";
 import * as Location from "expo-location";
 
 // ─── Category Filter Pills ───
-const CATEGORIES = [
-  "All",
-  "Produce",
-  "Dairy",
-  "Bakery",
-  "Electronics",
-  "Clothing",
-  "Furniture",
-  "Books",
-  "Other",
-];
+// Now loaded from configAPI (no hardcoded data)
 
 const CategoryPill = ({ label, active, onPress }) => (
   <TouchableOpacity
@@ -128,20 +119,17 @@ const Listings = () => {
 
   const fetchAllListings = async () => {
     try {
-      // ✅ If user is an admin, fetch ALL listings (no filters)
-      // ✅ If user is a donor, fetch ALL their listings (no status filter)
-      // If user is a recipient, fetch all available listings
-      if (user?.userType === "admin") {
-        // Fetch ALL listings for admins
-        const response = await listingsAPI.getAll({});
-        const listings = response.data?.listings || response.data?.data || [];
+      // ✅ If user is a donor, fetch ONLY their listings
+      if (user?.userType === "donor") {
+        const response = await listingsAPI.getUserListings({ limit: 100 });
+        const listings = Array.isArray(response.data)
+          ? response.data
+          : response.data?.listings || response.data?.data || [];
         setAllListings(listings);
         setFilteredListings(listings);
-      } else if (user?.userType === "donor") {
-        // Fetch current user's listings - ALL statuses
-        const response = await listingsAPI.getAll({
-          donorId: user._id,
-        });
+      } else if (user?.userType === "admin") {
+        // Fetch ALL listings for admins
+        const response = await listingsAPI.getAll({});
         const listings = response.data?.listings || response.data?.data || [];
         setAllListings(listings);
         setFilteredListings(listings);
@@ -236,7 +224,7 @@ const Listings = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4ade80" />
+          <ActivityIndicator size="large" color="#2A9D8F" />
           <Text style={styles.loadingText}>Loading listings...</Text>
         </View>
       </SafeAreaView>
@@ -340,7 +328,7 @@ const Listings = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#4ade80"
+              tintColor="#2A9D8F"
             />
           }
           onEndReached={loadMore}
@@ -348,7 +336,7 @@ const Listings = () => {
           ListFooterComponent={
             hasMore ? (
               <View style={styles.loadMoreContainer}>
-                <ActivityIndicator color="#4ade80" />
+                <ActivityIndicator color="#2A9D8F" />
                 <Text style={styles.loadMoreText}>Loading more...</Text>
               </View>
             ) : filteredListings.length > itemsPerPage ? (
@@ -387,7 +375,7 @@ const Listings = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FAFAFA", // Light background
   },
   loadingContainer: {
     flex: 1,
@@ -396,17 +384,17 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    color: "#94a3b8",
+    color: "#999",
     fontSize: 14,
   },
 
   // Header
   header: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#2A9D8F", // Teal header
     padding: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#334155",
+    borderBottomColor: "#D0EAE7",
   },
   headerTop: {
     flexDirection: "row",
@@ -422,47 +410,49 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#f1f5f9",
+    color: "#FFFFFF", // White text on teal
   },
   subtitle: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: "#E8F5F3", // Light teal text
     marginTop: 2,
   },
   viewToggleBtn: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#F5F5F5", // Light gray
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
   },
   viewToggleBtnActive: {
-    backgroundColor: "#4ade80",
-    borderColor: "#4ade80",
+    backgroundColor: "#2A9D8F", // Teal when active
+    borderColor: "#2A9D8F",
   },
   viewToggleIcon: {
     fontSize: 18,
+    color: "#333",
   },
   filterBtn: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#F5F5F5", // Light gray
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
   },
   filterBtnIcon: {
     fontSize: 18,
+    color: "#333",
   },
   addButton: {
-    backgroundColor: "#4ade80",
+    backgroundColor: "#2A9D8F", // Teal button
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   addButtonText: {
-    color: "#0f172a",
+    color: "#FFFFFF", // White text
     fontWeight: "700",
     fontSize: 14,
   },
@@ -471,26 +461,27 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF", // White background
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD", // Light Border
     gap: 10,
   },
   searchIcon: {
     fontSize: 16,
+    color: "#2A9D8F", // Teal icon
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: "#f1f5f9",
+    color: "#333", // Dark text
     padding: 0,
   },
   clearSearch: {
-    color: "#64748b",
+    color: "#999",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -500,25 +491,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pill: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#F5F5F5", // Light gray
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 7,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
   },
   pillActive: {
-    backgroundColor: "#4ade80",
-    borderColor: "#4ade80",
+    backgroundColor: "#C8E6E0", // Light teal
+    borderColor: "#2A9D8F",
   },
   pillText: {
-    color: "#94a3b8",
+    color: "#666",
     fontSize: 13,
     fontWeight: "600",
   },
   pillTextActive: {
-    color: "#0f172a",
+    color: "#2A9D8F", // Teal text when active
   },
 
   // List
@@ -537,29 +528,30 @@ const styles = StyleSheet.create({
   emptyIcon: {
     fontSize: 64,
     marginBottom: 16,
+    color: "#DDD",
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#333",
     marginBottom: 8,
     textAlign: "center",
   },
   emptySubtitle: {
     fontSize: 14,
-    color: "#94a3b8",
+    color: "#999",
     textAlign: "center",
     lineHeight: 21,
     marginBottom: 24,
   },
   createButton: {
-    backgroundColor: "#4ade80",
+    backgroundColor: "#2A9D8F", // Teal button
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
   },
   createButtonText: {
-    color: "#0f172a",
+    color: "#FFFFFF", // White text
     fontWeight: "700",
     fontSize: 15,
   },
@@ -573,18 +565,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadMoreText: {
-    color: "#94a3b8",
+    color: "#999",
     fontSize: 13,
   },
   endText: {
     textAlign: "center",
-    color: "#334155",
+    color: "#CCC",
     fontSize: 13,
     padding: 16,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "#0a0f1e",
+    backgroundColor: "#FAFAFA", // Light background
   },
 });
 

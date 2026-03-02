@@ -36,6 +36,7 @@ const verificationOTPRoutes = require("./routes/verificationOTP");
 const ecoRoutes = require("./routes/ecoRoutes");
 const mapRoutes = require("./routes/mapRoutes");
 const pickupRoutes = require("./routes/pickupRoutes");
+const configRoutes = require("./routes/config");
 
 // Import socket handler
 const socketHandler = require("./socket/socketHandler");
@@ -57,6 +58,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
+  "http://172.250.36.214:8081",
+  "http://172.250.36.214:19000",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -188,6 +191,7 @@ app.use("/api/verify", verificationOTPRoutes);
 app.use("/api/eco", ecoRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/pickup", pickupRoutes);
+app.use("/api/config", configRoutes);
 
 // ============================================
 // Error Handling

@@ -14,6 +14,7 @@ import {
   Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import { useChatBot } from "../context/ChatBotContext";
 
 // ─────────────────────────────────────────
@@ -215,14 +216,19 @@ const FloatingChatbot = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/chatbot/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          conversationHistory: messages.slice(-6),
-        }),
-      });
+      const API_URL =
+        Constants.expoConfig?.extra?.API_URL || "http://localhost:5000/api";
+      const response = await fetch(
+        `${API_URL.replace("/api", "")}/api/chatbot/ask`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            conversationHistory: messages.slice(-6),
+          }),
+        },
+      );
       if (!response.ok) throw new Error("API unavailable");
       const data = await response.json();
       setMessages((prev) => [

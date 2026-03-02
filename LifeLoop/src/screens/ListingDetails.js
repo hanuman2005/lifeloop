@@ -153,6 +153,7 @@ const ListingDetailsScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const id = route.params?.id || route.params?.listingId; // ✅ Accept both id and listingId
+  const isMountedRef = useRef(true); // ✅ Prevent state updates on unmounted component
 
   const [listing, setListing] = useState(null);
   const [queueStatus, setQueueStatus] = useState(null);
@@ -166,6 +167,7 @@ const ListingDetailsScreen = () => {
   const [showAISuggestionsModal, setShowAISuggestionsModal] = useState(false);
   const [aiMatches, setAiMatches] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [qrCodeUri, setQrCodeUri] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -175,52 +177,89 @@ const ListingDetailsScreen = () => {
   const isDonor = !!user && donorId === user._id;
   const isRecipient = !!user && assignedId === user._id;
 
+  // ✅ Cleanup on unmount to prevent state updates
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (!id) {
-      setLoading(false);
-      setError("Invalid listing ID");
+      if (isMountedRef.current) {
+        setLoading(false);
+        setError("Invalid listing ID");
+      }
       return;
     }
     fetchListing();
     if (user) fetchQueueStatus();
   }, [id, user]);
 
+  // Generate QR code for listing
+  useEffect(() => {
+    if (
+      id &&
+      isRecipient &&
+      ["pending", "assigned", "accepted"].includes(listing?.status)
+    ) {
+      const fetchQRCode = async () => {
+        try {
+          const res = await api.get(`/listings/${id}/qrcode`);
+          if (res.data?.qrCodeImage) {
+            setQrCodeUri(res.data.qrCodeImage);
+          }
+        } catch (err) {
+          console.log("QR code fetch error:", err.message);
+        }
+      };
+      fetchQRCode();
+    }
+  }, [id, isRecipient, listing?.status]);
+
   const animateIn = () => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 500,
+        duration: 400,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => {
+      // Animation complete
+    });
   };
 
   //── API calls ──────────────────────────
 
   const fetchListing = async () => {
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     try {
-      setLoading(true);
-      setError(null);
+      if (isMountedRef.current) setLoading(true);
       const res = await api.get(`/listings/${id}`);
-      const data = res.data?.listing ?? res.data;
-      setListing(data);
-      animateIn();
+      if (isMountedRef.current) {
+        const data = res.data?.listing ?? res.data;
+        setListing(data);
+        setError(null);
+        animateIn();
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load listing");
+      if (isMountedRef.current) {
+        setError(err.response?.data?.message || "Failed to load listing");
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
   const fetchQueueStatus = async () => {
     try {
       const res = await api.get(`/listings/${id}/queue/status`);
-      setQueueStatus(res.data);
+      if (isMountedRef.current) setQueueStatus(res.data); // ✅ Check mount before setState
     } catch {
       /* silent */
     }
@@ -231,36 +270,46 @@ const ListingDetailsScreen = () => {
       navigation.navigate("Login");
       return;
     }
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     setLoadingQueue(true);
     try {
       const res = await api.post(`/listings/${id}/queue/join`);
-      Toast.show({
-        type: "success",
-        text1: res.data.message || "Joined queue!",
-      });
-      fetchQueueStatus();
-      fetchListing();
+      if (isMountedRef.current) {
+        Toast.show({
+          type: "success",
+          text1: res.data.message || "Joined queue!",
+        });
+        fetchQueueStatus();
+        fetchListing();
+      }
     } catch (err) {
-      Toast.show({
-        type: "error",
-        text1: err.response?.data?.message || "Failed to join queue",
-      });
+      if (isMountedRef.current) {
+        Toast.show({
+          type: "error",
+          text1: err.response?.data?.message || "Failed to join queue",
+        });
+      }
     } finally {
-      setLoadingQueue(false);
+      if (isMountedRef.current) setLoadingQueue(false);
     }
   };
 
   const handleLeaveQueue = async () => {
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     setLoadingQueue(true);
     try {
       await api.delete(`/listings/${id}/queue/leave`);
-      Toast.show({ type: "success", text1: "Left the queue" });
-      fetchQueueStatus();
-      fetchListing();
+      if (isMountedRef.current) {
+        Toast.show({ type: "success", text1: "Left the queue" });
+        fetchQueueStatus();
+        fetchListing();
+      }
     } catch {
-      Toast.show({ type: "error", text1: "Failed to leave queue" });
+      if (isMountedRef.current) {
+        Toast.show({ type: "error", text1: "Failed to leave queue" });
+      }
     } finally {
-      setLoadingQueue(false);
+      if (isMountedRef.current) setLoadingQueue(false);
     }
   };
 
@@ -273,22 +322,25 @@ const ListingDetailsScreen = () => {
       Toast.show({ type: "info", text1: "This item is no longer available" });
       return;
     }
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     setIsClaiming(true);
     try {
       const res = await listingsAPI.expressInterest(id, {
         message: "I want this item!",
       });
-      if (res.data.success) {
+      if (isMountedRef.current && res.data.success) {
         Toast.show({ type: "success", text1: "Interest expressed! 🎯" });
         fetchListing();
       }
     } catch (err) {
-      Toast.show({
-        type: "error",
-        text1: err.response?.data?.message || "Failed to express interest",
-      });
+      if (isMountedRef.current) {
+        Toast.show({
+          type: "error",
+          text1: err.response?.data?.message || "Failed to express interest",
+        });
+      }
     } finally {
-      setIsClaiming(false);
+      if (isMountedRef.current) setIsClaiming(false);
     }
   };
 
@@ -298,6 +350,7 @@ const ListingDetailsScreen = () => {
       return;
     }
     if (!donorId || donorId === user._id) return;
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     setIsContacting(true);
     try {
       const res = await chatAPI.createOrGet({
@@ -305,11 +358,14 @@ const ListingDetailsScreen = () => {
         listingId: id,
       });
       const chatId = res.data?.chat?._id ?? res.data?.data?.chat?._id;
-      if (chatId) navigation.navigate("Chat", { chatId });
+      if (isMountedRef.current && chatId)
+        navigation.navigate("Chat", { chatId });
     } catch {
-      Toast.show({ type: "error", text1: "Could not open chat" });
+      if (isMountedRef.current) {
+        Toast.show({ type: "error", text1: "Could not open chat" });
+      }
     } finally {
-      setIsContacting(false);
+      if (isMountedRef.current) setIsContacting(false);
     }
   };
 
@@ -322,12 +378,20 @@ const ListingDetailsScreen = () => {
         {
           text: "Assign",
           onPress: async () => {
+            if (!isMountedRef.current) return; // ✅ Skip if unmounted
             try {
               await api.post(`/listings/${id}/assign`, { recipientId });
-              Toast.show({ type: "success", text1: "Recipient assigned! 🎉" });
-              fetchListing();
+              if (isMountedRef.current) {
+                Toast.show({
+                  type: "success",
+                  text1: "Recipient assigned! 🎉",
+                });
+                fetchListing();
+              }
             } catch {
-              Toast.show({ type: "error", text1: "Failed to assign" });
+              if (isMountedRef.current) {
+                Toast.show({ type: "error", text1: "Failed to assign" });
+              }
             }
           },
         },
@@ -342,12 +406,17 @@ const ListingDetailsScreen = () => {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
+          if (!isMountedRef.current) return; // ✅ Skip if unmounted
           try {
             await listingsAPI.delete(id);
-            Toast.show({ type: "success", text1: "Listing deleted" });
-            navigation.navigate("Main", { screen: "Listings" });
+            if (isMountedRef.current) {
+              Toast.show({ type: "success", text1: "Listing deleted" });
+              navigation.navigate("Main", { screen: "Listings" });
+            }
           } catch {
-            Toast.show({ type: "error", text1: "Failed to delete" });
+            if (isMountedRef.current) {
+              Toast.show({ type: "error", text1: "Failed to delete" });
+            }
           }
         },
       },
@@ -371,32 +440,64 @@ const ListingDetailsScreen = () => {
       navigation.navigate("Login");
       return;
     }
+
+    // Prevent AI matching for already assigned listings
+    if (listing?.status === "assigned" || listing?.assignedTo) {
+      Toast.show({
+        type: "error",
+        text1: "Already Assigned",
+        text2: "This listing has already been assigned to someone.",
+      });
+      return;
+    }
+
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
     setLoadingAI(true);
     try {
       const res = await api.get(`/listings/${id}/match-suggestions`);
-      setAiMatches(res.data.matches || res.data.data || []);
-      setShowAISuggestionsModal(true);
+      if (isMountedRef.current) {
+        setAiMatches(res.data.matches || res.data.data || []);
+        setShowAISuggestionsModal(true);
+      }
     } catch (err) {
-      Toast.show({ type: "error", text1: "Failed to load suggestions" });
+      if (isMountedRef.current) {
+        Toast.show({ type: "error", text1: "Failed to load suggestions" });
+      }
     } finally {
-      setLoadingAI(false);
+      if (isMountedRef.current) setLoadingAI(false);
     }
   };
 
   const handleAssignFromAI = async (recipientId, recipientName) => {
-    try {
-      await api.post(`/listings/${id}/assign`, { recipientId });
-      Toast.show({
-        type: "success",
-        text1: `✅ Assigned to ${recipientName}!`,
-      });
-      setShowAISuggestionsModal(false);
-      fetchListing();
-    } catch (err) {
+    // Double-check listing is not already assigned
+    if (listing?.status === "assigned" || listing?.assignedTo) {
       Toast.show({
         type: "error",
-        text1: err.response?.data?.message || "Failed to assign",
+        text1: "Assignment Failed",
+        text2: "This listing is already assigned to someone.",
       });
+      if (isMountedRef.current) setShowAISuggestionsModal(false); // ✅ Check mount
+      return;
+    }
+
+    if (!isMountedRef.current) return; // ✅ Skip if unmounted
+    try {
+      await api.post(`/listings/${id}/assign`, { recipientId });
+      if (isMountedRef.current) {
+        Toast.show({
+          type: "success",
+          text1: `✅ Assigned to ${recipientName}!`,
+        });
+        setShowAISuggestionsModal(false);
+        fetchListing();
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        Toast.show({
+          type: "error",
+          text1: err.response?.data?.message || "Failed to assign",
+        });
+      }
     }
   };
 
@@ -458,7 +559,9 @@ const ListingDetailsScreen = () => {
 
       {/* ── Scrollable Body ────────────── */}
       <Animated.ScrollView
-        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        style={{
+          opacity: fadeAnim,
+        }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -552,59 +655,120 @@ const ListingDetailsScreen = () => {
           )}
         </View>
 
-        {/* Interested Recipients — Donor only */}
-        {isDonor && listing.interestedUsers?.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              👥 Interested Recipients ({listing.interestedUsers.length})
-            </Text>
-            {listing.interestedUsers.map((interest) => (
-              <RecipientCard
-                key={interest.user._id}
-                interest={interest}
-                onAssign={handleAssign}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* QR Code — Donor with assigned recipient */}
+        {/* Interested Recipients — Donor only & listing still available */}
         {isDonor &&
-          ["pending", "assigned"].includes(listing.status) &&
-          listing.assignedTo && (
-            <View style={styles.qrSection}>
-              <Text style={styles.qrTitle}>📱 Pickup QR Code</Text>
-              <Text style={styles.qrSubtitle}>
-                Share this with{" "}
-                <Text style={styles.qrNameHighlight}>{assignedName}</Text> to
-                complete the handoff.
+          listing.status === "available" &&
+          listing.interestedUsers?.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                👥 Interested Recipients ({listing.interestedUsers.length})
               </Text>
-              {/* Replace with real QR when expo-qrcode or react-native-qrcode-svg is installed */}
-              <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrPlaceholderSymbol}>▦</Text>
-                <Text style={styles.qrPlaceholderLabel}>QR Code</Text>
-              </View>
+              <Text style={styles.sectionSubtext}>
+                Choose who gets this item
+              </Text>
+              {listing.interestedUsers.map((interest) => (
+                <RecipientCard
+                  key={interest.user._id}
+                  interest={interest}
+                  onAssign={handleAssign}
+                />
+              ))}
             </View>
           )}
 
-        {/* Scan QR — Recipient */}
-        {isRecipient && ["pending", "assigned"].includes(listing.status) && (
-          <View style={styles.qrSection}>
-            <Text style={styles.qrTitle}>📷 Ready for Pickup!</Text>
-            <Text style={styles.qrSubtitle}>
-              Meet the donor and scan their QR code to confirm handoff.
+        {/* Already Assigned Info — Donor only when assigned */}
+        {isDonor && listing.status !== "available" && listing.assignedTo && (
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: "#dbeafe", borderRadius: 12, padding: 12 },
+            ]}
+          >
+            <Text style={styles.sectionTitle}>✅ Item Assigned</Text>
+            <Text style={styles.sectionSubtext}>
+              Assigned to:{" "}
+              <Text style={{ fontWeight: "600" }}>
+                {listing.assignedTo?.firstName} {listing.assignedTo?.lastName}
+              </Text>
             </Text>
-            <TouchableOpacity
-              style={styles.scanBtn}
-              onPress={() =>
-                navigation.navigate("QRScanner", { listingId: id })
-              }
-              activeOpacity={0.85}
-            >
-              <Text style={styles.scanBtnText}>📱 Open QR Scanner</Text>
-            </TouchableOpacity>
+            <Text style={styles.recipientMessage}>
+              Waiting for them to scan the QR code to confirm pickup.
+            </Text>
           </View>
         )}
+
+        {/* Propose Schedule Button — Donor can suggest pickup times */}
+        {isDonor && listing.status !== "available" && listing.assignedTo && (
+          <TouchableOpacity
+            style={styles.scheduleBtn}
+            onPress={() =>
+              navigation.navigate("ScheduleProposal", { listingId: id })
+            }
+            activeOpacity={0.85}
+          >
+            <Text style={styles.scheduleBtnText}>
+              📅 Propose Pickup Schedule
+            </Text>
+            <Text style={styles.scheduleBtnSubtext}>
+              Suggest a date and time for collection
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Show QR Code — Recipient displays it for donor to scan */}
+        {isRecipient &&
+          ["pending", "assigned", "accepted"].includes(listing.status) &&
+          listing.assignedTo && (
+            <View style={styles.qrSection}>
+              <Text style={styles.qrTitle}>📱 Show QR Code to Donor</Text>
+              <Text style={styles.qrSubtitle}>
+                Display this QR code when the donor arrives. They will scan it
+                to confirm pickup.
+              </Text>
+              {/* QR code with listing ID */}
+              <View style={styles.qrCodeContainer}>
+                {qrCodeUri ? (
+                  <Image
+                    source={{ uri: qrCodeUri }}
+                    style={{ width: 200, height: 200, borderRadius: 12 }}
+                  />
+                ) : (
+                  <View style={styles.qrPlaceholder}>
+                    <ActivityIndicator size="large" color="#166534" />
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.qrInstruction, { marginTop: 12 }]}>
+                💡 Keep your screen bright and visible until the donor scans
+              </Text>
+            </View>
+          )}
+
+        {/* Scan QR — Donor scans recipient's code to confirm pickup */}
+        {isDonor &&
+          ["pending", "assigned", "accepted"].includes(listing.status) &&
+          listing.assignedTo && (
+            <View style={styles.qrSection}>
+              <Text style={styles.qrTitle}>📷 Scan Recipient's QR Code</Text>
+              <Text style={styles.qrSubtitle}>
+                When you meet{" "}
+                <Text style={styles.qrNameHighlight}>{assignedName}</Text>, ask
+                them to show you their QR code and scan it.
+              </Text>
+              <TouchableOpacity
+                style={styles.scanBtn}
+                onPress={() =>
+                  navigation.navigate("QRScanner", { listingId: id })
+                }
+                activeOpacity={0.85}
+              >
+                <Text style={styles.scanBtnText}>📱 Open QR Scanner</Text>
+              </TouchableOpacity>
+              <Text style={[styles.qrInstruction, { marginTop: 12 }]}>
+                💡 This confirms the handoff is complete
+              </Text>
+            </View>
+          )}
 
         {/* Queue — available to others when pending */}
         {isQueueEligible && (
@@ -633,13 +797,26 @@ const ListingDetailsScreen = () => {
         {isDonor ? (
           <View style={styles.actionRow}>
             <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnAI]}
+              style={[
+                styles.actionBtn,
+                styles.actionBtnAI,
+                (loadingAI ||
+                  listing?.status === "assigned" ||
+                  listing?.assignedTo) &&
+                  styles.btnDisabled,
+              ]}
               onPress={handleGetAISuggestions}
-              disabled={loadingAI}
+              disabled={
+                loadingAI ||
+                listing?.status === "assigned" ||
+                listing?.assignedTo
+              }
               activeOpacity={0.85}
             >
               {loadingAI ? (
                 <ActivityIndicator color="#fff" />
+              ) : listing?.assignedTo ? (
+                <Text style={styles.actionBtnText}>✅ Assigned</Text>
               ) : (
                 <Text style={styles.actionBtnText}>🧠 AI Match</Text>
               )}
@@ -727,21 +904,21 @@ const ListingDetailsScreen = () => {
             </View>
             <ScrollView style={styles.matchesList}>
               {aiMatches.map((match, i) => (
-                <View key={i} style={styles.matchCard}>
+                <View key={match.recipient?._id || i} style={styles.matchCard}>
                   <View>
                     <Text style={styles.matchName}>
-                      {match.firstName} {match.lastName}
+                      {match.recipient?.firstName} {match.recipient?.lastName}
                     </Text>
                     <Text style={styles.matchScore}>
-                      ⭐ {(match.match_score || 0).toFixed(0)}%
+                      ⭐ {(match.score || 0).toFixed(0)}%
                     </Text>
                   </View>
                   <TouchableOpacity
                     style={styles.assignModalBtn}
                     onPress={() =>
                       handleAssignFromAI(
-                        match._id,
-                        `${match.firstName} ${match.lastName}`,
+                        match.recipient?._id,
+                        `${match.recipient?.firstName} ${match.recipient?.lastName}`,
                       )
                     }
                   >
@@ -912,6 +1089,11 @@ const styles = StyleSheet.create({
     color: "#f1f5f9",
     marginBottom: 14,
   },
+  sectionSubtext: {
+    fontSize: 13,
+    color: "#94a3b8",
+    marginBottom: 12,
+  },
 
   // Recipient cards
   recipientCard: {
@@ -977,6 +1159,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scanBtnText: { color: "#166534", fontWeight: "700", fontSize: 15 },
+  scheduleBtn: {
+    backgroundColor: "#fbbf24",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginTop: 16,
+    alignItems: "center",
+  },
+  scheduleBtnText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  scheduleBtnSubtext: {
+    color: "#374151",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  qrCodeContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 12,
+  },
+  qrInstruction: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
 
   // Queue
   positionBadge: {

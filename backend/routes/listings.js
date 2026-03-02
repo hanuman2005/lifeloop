@@ -21,6 +21,7 @@ const {
 } = require("../controllers/listingController");
 const queueController = require("../controllers/queueController");
 const { proposeSchedule } = require("../controllers/scheduleController");
+const { generateQRCode } = require("../utils/qrGenerator");
 
 const router = express.Router();
 
@@ -39,6 +40,9 @@ const listingValidation = [
     .isLength({ min: 10, max: 500 })
     .withMessage("Description must be between 10 and 500 characters"),
   body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .trim()
     .isIn([
       "produce",
       "canned-goods",
@@ -46,16 +50,25 @@ const listingValidation = [
       "bakery",
       "household-items",
       "clothing",
+      "electronics",
+      "furniture",
+      "books",
       "other",
     ])
     .withMessage("Invalid category"),
   body("quantity")
     .notEmpty()
     .withMessage("Quantity is required")
-    .isNumeric()
-    .withMessage("Quantity must be a number")
-    .isFloat({ min: 0.1 })
-    .withMessage("Quantity must be greater than 0"),
+    .trim()
+    .matches(/^\d+(\.\d+)?$/)
+    .withMessage("Quantity must be a valid number")
+    .custom((value) => {
+      const num = parseFloat(value);
+      if (isNaN(num) || num <= 0) {
+        throw new Error("Quantity must be greater than 0");
+      }
+      return true;
+    }),
   body("unit")
     .optional()
     .isIn(["items", "kg", "lbs", "bags", "boxes", "servings"])
@@ -302,78 +315,6 @@ router.put("/:id/complete", auth, completeListing);
 // Check-in listing
 router.post("/:id/check-in", auth, checkIn);
 
-// Auto-assign top match
-router.post("/:id/assign-top-match", auth, async (req, res) => {
-  try {
-    const listingId = req.params.id;
-    const Listing = require("../models/Listing");
-    const listing = await Listing.findById(listingId);
-
-    if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Listing not found" });
-    }
-
-    // Check if user is the donor
-    if (listing.donor.toString() !== req.user._id.toString()) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
-    }
-
-    // Get top match from AI matching system
-    const aiMatching = require("../utils/aiMatching");
-    const topMatch = await aiMatching.findTopMatch(listingId);
-
-    if (!topMatch) {
-      return res.json({
-        success: true,
-        topMatch: null,
-        message: "No matches found",
-      });
-    }
-
-    // Assign to top match
-    listing.assignedTo = topMatch._id;
-    listing.status = "assigned";
-    listing.assignedAt = new Date();
-    listing.assignmentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    await listing.save();
-
-    // Send notification to recipient
-    const Notification = require("../models/Notification");
-    await Notification.create({
-      recipient: topMatch._id,
-      type: "assignment",
-      title: "New Item Matched!",
-      message: `${listing.donor.firstName || "Someone"} matched you with: ${listing.title}`,
-      data: {
-        listingId: listing._id,
-        donorId: listing.donor._id,
-      },
-    });
-
-    res.json({
-      success: true,
-      topMatch: {
-        _id: topMatch._id,
-        fullName: `${topMatch.firstName} ${topMatch.lastName}`,
-        email: topMatch.email,
-        trustScore: topMatch.trustScore || 0,
-      },
-      message: "Top match assigned successfully",
-    });
-  } catch (error) {
-    console.error("Error in auto-assign:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to auto-assign",
-      error: error.message,
-    });
-  }
-});
-
 // Accept assignment (receiver accepts AI-matched item)
 router.put("/:id/assignment/accept", auth, async (req, res) => {
   try {
@@ -533,5 +474,86 @@ router.delete("/:id/queue/leave", auth, queueController.leaveQueue);
 router.get("/:id/queue/status", auth, queueController.getQueueStatus);
 router.post("/:id/queue/cancel", auth, queueController.cancelAssignment);
 router.post("/:id/schedule", auth, proposeScheduleValidation, proposeSchedule);
+
+// ✅ QR Code endpoint - generates QR code for listing handoff
+router.get("/:id/qrcode", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const listing = await require("../models/Listing").findById(id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    // Check if listing is assigned
+    if (!listing.assignedTo) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Listing must be assigned to a recipient before generating QR code",
+      });
+    }
+
+    // Check if transaction already exists
+    const Transaction = require("../models/Transaction");
+    let transaction = await Transaction.findOne({
+      listing: id,
+      recipient: listing.assignedTo,
+      status: "pending",
+    });
+
+    if (!transaction) {
+      // Create transaction record
+      transaction = new Transaction({
+        listing: id,
+        donor: listing.donor,
+        recipient: listing.assignedTo,
+        status: "pending",
+        pickupLocation:
+          listing.pickupLocation || listing.location || "Not specified",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // valid 24 hrs
+      });
+
+      // Calculate impact
+      transaction.calculateImpact({
+        quantity: listing.quantity,
+        estimatedWeight: listing.estimatedWeight || 1,
+      });
+
+      await transaction.save();
+    }
+
+    // Generate QR code with transaction ID (not listing ID)
+    const { generateQRCode } = require("../utils/qrGenerator");
+    const qrResult = await generateQRCode(
+      transaction._id, // Use transaction ID instead of listing ID
+      id,
+      listing.assignedTo,
+    );
+
+    // Update transaction with QR data
+    transaction.qrCode = qrResult.qrCode;
+    transaction.qrCodeHash = qrResult.qrCodeHash;
+    transaction.qrCodeImage = qrResult.qrCodeImage;
+    await transaction.save();
+
+    res.json({
+      success: true,
+      qrCodeImage: qrResult.qrCodeImage,
+      listingId: id,
+      transactionId: transaction._id,
+    });
+  } catch (error) {
+    console.error("QR code generation error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate QR code",
+      error: error.message,
+    });
+  }
+});
 
 module.exports = router;

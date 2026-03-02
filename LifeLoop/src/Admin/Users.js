@@ -106,18 +106,25 @@ const Users = () => {
           reason: actionReason,
           days: parseInt(actionDays),
         });
+        Alert.alert("Success", "User suspended successfully");
       } else if (actionModal.type === "warn") {
         await adminAPI.warnUser(selectedUser._id, {
           reason: actionReason,
           type: "policy_violation",
         });
+        Alert.alert("Success", "User warned successfully");
       } else if (actionModal.type === "unsuspend") {
         await adminAPI.unsuspendUser(selectedUser._id);
+        Alert.alert("Success", "User unsuspended successfully");
       }
       closeModal();
       fetchUsers(pagination.page);
     } catch (err) {
-      setError(err.response?.data?.message || "Action failed");
+      const errMsg =
+        err.response?.data?.message || err.message || "Action failed";
+      setError(errMsg);
+      Alert.alert("Error", errMsg);
+      console.error("Action error:", err);
     } finally {
       setActionLoading(false);
     }

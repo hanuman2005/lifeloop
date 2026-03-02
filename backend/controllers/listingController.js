@@ -6,7 +6,6 @@ const User = require("../models/User");
 const cloudinary = require("../config/cloudinary");
 const notificationHelper = require("../utils/notificationHelper");
 const emailService = require("../services/emailService");
-const contentModeration = require("../services/contentModerationService");
 
 // ✅ Create listing with REAL-TIME NOTIFICATIONS and CONTENT MODERATION
 const createListing = async (req, res) => {
@@ -31,33 +30,31 @@ const createListing = async (req, res) => {
       expiryDate,
       additionalNotes,
       urgency,
+      imageUrls,
     } = req.body;
 
-    // 🛡️ Content Moderation Check
-    const moderationResult = contentModeration.moderateContent(
-      title,
-      description,
-    );
+    // Handle both file uploads and Cloudinary URLs
+    let images = [];
 
-    if (moderationResult.autoRejected) {
-      return res.status(400).json({
-        success: false,
-        message: "Content rejected due to policy violations",
-        moderationIssues: moderationResult.issues,
-        moderationScore: moderationResult.score,
-      });
+    // If imageUrls are provided (from Cloudinary)
+    if (imageUrls) {
+      if (typeof imageUrls === "string") {
+        images = [imageUrls];
+      } else if (Array.isArray(imageUrls)) {
+        images = imageUrls;
+      }
     }
 
-    let images = [];
-    if (req.files && req.files.length > 0) {
+    // Fallback to file uploads if imageUrls not provided
+    if (images.length === 0 && req.files && req.files.length > 0) {
       images = req.files.map((file) => file.path);
     }
 
     const defaultCoordinates = [0, 0];
 
     const listing = new Listing({
-      title: moderationResult.cleanedTitle || title,
-      description: moderationResult.cleanedDescription || description,
+      title,
+      description,
       category,
       quantity: parseFloat(quantity),
       unit: unit || "items",
@@ -72,10 +69,6 @@ const createListing = async (req, res) => {
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
       additionalNotes,
       urgency: urgency || 1,
-      // Store moderation data
-      moderationScore: moderationResult.score,
-      moderationFlags: moderationResult.issues,
-      status: moderationResult.requiresReview ? "pending_review" : "available",
     });
 
     await listing.save();
@@ -482,6 +475,14 @@ const assignListing = async (req, res) => {
       });
     }
 
+    // Prevent reassignment if already assigned
+    if (listing.assignedTo) {
+      return res.status(400).json({
+        success: false,
+        message: "This listing is already assigned. Cannot reassign.",
+      });
+    }
+
     // Validate recipient exists
     const recipient = await User.findById(recipientId);
     if (!recipient) {
@@ -527,7 +528,7 @@ const assignListing = async (req, res) => {
     // Update listing assignment
     // ==========================================
     listing.assignedTo = recipientId;
-    listing.status = "pending"; // 🔥 correct enum value
+    listing.status = "assigned"; // ✅ Set to assigned when recipient is notified
     listing.assignedAt = new Date();
     listing.assignmentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await listing.save();

@@ -28,7 +28,7 @@ const AdminLog = mongoose.model(
     details: mongoose.Schema.Types.Mixed,
     ipAddress: String,
     createdAt: { type: Date, default: Date.now },
-  })
+  }),
 );
 
 // Helper to log admin actions
@@ -38,7 +38,7 @@ const logAdminAction = async (
   targetType,
   targetId,
   details,
-  ip
+  ip,
 ) => {
   try {
     await AdminLog.create({
@@ -298,6 +298,7 @@ const suspendUser = async (req, res) => {
     user.isSuspended = true;
     user.suspendedUntil = suspendedUntil;
     user.suspensionReason = reason;
+    user.isActive = false; // ✅ Mark as inactive when suspended
     await user.save();
 
     // Log action
@@ -307,7 +308,7 @@ const suspendUser = async (req, res) => {
       "user",
       id,
       { reason, days },
-      req.ip
+      req.ip,
     );
 
     // Create notification
@@ -332,6 +333,7 @@ const suspendUser = async (req, res) => {
       user: {
         _id: user._id,
         isSuspended: user.isSuspended,
+        isActive: user.isActive,
         suspendedUntil: user.suspendedUntil,
       },
     });
@@ -359,6 +361,7 @@ const unsuspendUser = async (req, res) => {
     user.isSuspended = false;
     user.suspendedUntil = null;
     user.suspensionReason = null;
+    user.isActive = true; // ✅ Ensure user is marked as active
     await user.save();
 
     // Log action
@@ -368,7 +371,7 @@ const unsuspendUser = async (req, res) => {
       "user",
       id,
       {},
-      req.ip
+      req.ip,
     );
 
     // Notify user
@@ -383,6 +386,12 @@ const unsuspendUser = async (req, res) => {
     res.json({
       success: true,
       message: "User unsuspended successfully",
+      user: {
+        _id: user._id,
+        isSuspended: user.isSuspended,
+        isActive: user.isActive,
+        suspendedUntil: user.suspendedUntil,
+      },
     });
   } catch (error) {
     console.error("Unsuspend user error:", error);
@@ -427,7 +436,7 @@ const warnUser = async (req, res) => {
       "user",
       id,
       { reason, type },
-      req.ip
+      req.ip,
     );
 
     // Notify user
@@ -482,7 +491,7 @@ const updateUserRole = async (req, res) => {
       "user",
       id,
       { oldRole, newRole: userType },
-      req.ip
+      req.ip,
     );
 
     res.json({
@@ -539,7 +548,7 @@ const bulkUserAction = async (req, res) => {
       "user",
       null,
       { userIds, reason },
-      req.ip
+      req.ip,
     );
 
     res.json({
@@ -581,7 +590,7 @@ const getPendingVerifications = async (req, res) => {
 
     const users = await User.find(query)
       .select(
-        "firstName lastName email avatar verificationStatus trustScore createdAt"
+        "firstName lastName email avatar verificationStatus trustScore createdAt",
       )
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -663,7 +672,7 @@ const approveVerification = async (req, res) => {
       "verification",
       id,
       { notes },
-      req.ip
+      req.ip,
     );
 
     // Notify user
@@ -714,7 +723,7 @@ const rejectVerification = async (req, res) => {
       "verification",
       id,
       { reason },
-      req.ip
+      req.ip,
     );
 
     // Notify user
@@ -847,7 +856,7 @@ const removeFlaggedContent = async (req, res) => {
       "content",
       id,
       { reason, contentType },
-      req.ip
+      req.ip,
     );
 
     res.json({
@@ -901,7 +910,7 @@ const restoreFlaggedContent = async (req, res) => {
       "content",
       id,
       { notes, contentType },
-      req.ip
+      req.ip,
     );
 
     res.json({
@@ -958,7 +967,7 @@ const getAllReports = async (req, res) => {
       reports,
       statusCounts: statusCounts.reduce(
         (acc, s) => ({ ...acc, [s._id]: s.count }),
-        {}
+        {},
       ),
       pagination: {
         page: parseInt(page),
@@ -1110,7 +1119,7 @@ const moderateListing = async (req, res) => {
       "content",
       id,
       { notes, previousStatus: listing.status },
-      req.ip
+      req.ip,
     );
 
     // Notify user

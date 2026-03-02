@@ -228,15 +228,20 @@ const findBestMatches = async (listingId, limit = 5) => {
       }).limit(20);
     }
 
-    // Combine interested + nearby users (unique)
-    const allPotentialRecipients = [
+    // Combine interested + nearby users (unique by MongoDB _id)
+    const seenIds = new Set();
+    const allPotentialRecipients = [];
+
+    [
       ...nearbyUsers,
       ...(await User.find({ _id: { $in: interestedUserIds } })),
-    ].filter(
-      (user, index, self) =>
-        index ===
-        self.findIndex((u) => u._id.toString() === user._id.toString()),
-    );
+    ].forEach((user) => {
+      const userId = user._id.toString();
+      if (!seenIds.has(userId)) {
+        seenIds.add(userId);
+        allPotentialRecipients.push(user);
+      }
+    });
 
     // Calculate scores for all
     const matchPromises = allPotentialRecipients.map((recipient) =>
@@ -299,15 +304,20 @@ const findTopMatch = async (listingId) => {
       }).limit(20);
     }
 
-    // Combine interested + nearby users (unique)
-    const allPotentialRecipients = [
+    // Combine interested + nearby users (unique by MongoDB _id)
+    const seenIds = new Set();
+    const allPotentialRecipients = [];
+
+    [
       ...nearbyUsers,
       ...(await User.find({ _id: { $in: interestedUserIds } })),
-    ].filter(
-      (user, index, self) =>
-        index ===
-        self.findIndex((u) => u._id.toString() === user._id.toString()),
-    );
+    ].forEach((user) => {
+      const userId = user._id.toString();
+      if (!seenIds.has(userId)) {
+        seenIds.add(userId);
+        allPotentialRecipients.push(user);
+      }
+    });
 
     if (allPotentialRecipients.length === 0) {
       console.log("No potential recipients found for:", listingId);

@@ -13,12 +13,13 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NearbyCentersSection from "../components/NearbyCenters";
 import { uploadPrimaryImage } from "../utils/imageUpload";
+import configAPI from "../services/configAPI";
 import Constants from "expo-constants";
 
 const { width: SW } = Dimensions.get("window");
@@ -689,8 +690,10 @@ const CO2ImpactCard = ({ carbonSaved, carbonPenalty }) => {
 const WasteAnalyzer = () => {
   const navigation = useNavigation();
 
-  const [step, setStep] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [step, setStep] = useState(2); // Start at image upload (skip category selection)
+  // Category is auto-detected by CLIP Vision Model - no manual selection needed
+  const [wasteCategories, setWasteCategories] = useState(WASTE_CATEGORIES);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [images, setImages] = useState([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeProgress, setAnalyzeProgress] = useState("");
@@ -703,22 +706,36 @@ const WasteAnalyzer = () => {
     carbonSaved: 0,
   });
 
+  // Load waste categories from API on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categories = await configAPI.getWasteCategories();
+        setWasteCategories(categories || WASTE_CATEGORIES); // Fallback to constant if API fails
+      } catch (error) {
+        console.error("Failed to load waste categories:", error);
+        setWasteCategories(WASTE_CATEGORIES); // Fallback to constant
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ Reset to fresh state every time the screen gains focus
-  useFocusEffect(
-    React.useCallback(() => {
-      setStep(1);
-      setSelectedCategory(null);
-      setImages([]);
-      setAnalyzing(false);
-      setAnalyzeProgress("");
-      setResult(null);
-      setShowConfetti(false);
-      setShowCenters(false);
-    }, []),
-  );
+  // ✅ Only reset on initial mount to avoid clearing analysis results on refocus
+  useEffect(() => {
+    setStep(2); // Start directly at image upload (skip category selection)
+    setImages([]);
+    setAnalyzing(false);
+    setAnalyzeProgress("");
+    setResult(null);
+    setShowConfetti(false);
+    setShowCenters(false);
+  }, []); // Empty dependency array = only run once on mount
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -752,35 +769,45 @@ const WasteAnalyzer = () => {
 
   const imageToBase64 = async (uri) => {
     try {
+      console.log(
+        "🔄 Converting image to base64:",
+        uri.substring(0, 50) + "...",
+      );
       const response = await fetch(uri);
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
       const blob = await response.blob();
+      console.log("📦 Blob size:", blob.size, "bytes");
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(",")[1]);
-        reader.onerror = (err) =>
-          reject(new Error(`FileReader error: ${err.message}`));
+        reader.onloadend = () => {
+          const result = reader.result;
+          if (result && typeof result === "string") {
+            const base64 = result.split(",")[1];
+            console.log(
+              "✅ Base64 conversion complete, length:",
+              base64.length,
+            );
+            resolve(base64);
+          } else {
+            reject(new Error("Invalid FileReader result"));
+          }
+        };
+        reader.onerror = (err) => {
+          console.error("❌ FileReader error:", err);
+          reject(
+            new Error(`FileReader error: ${err.message || "Unknown error"}`),
+          );
+        };
         reader.readAsDataURL(blob);
       });
     } catch (err) {
-      console.error("imageToBase64 error:", err);
-      throw err;
+      console.error("❌ imageToBase64 error:", err);
+      throw new Error(`Image conversion failed: ${err.message}`);
     }
   };
 
   // ─── Handlers ────────────────────────────────────────────────────────────
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    setStep(2);
-    Toast.show({ type: "success", text1: `Category: ${category.label}` });
-  };
-
-  const handleChangeCategory = () => {
-    setSelectedCategory(null);
-    setImages([]);
-    setResult(null);
-    setStep(1);
-  };
 
   const handlePickImage = async () => {
     if (images.length >= 5) {
@@ -830,199 +857,102 @@ const WasteAnalyzer = () => {
   // ─── Main Analysis ────────────────────────────────────────────────────────
   const handleAnalyze = async () => {
     console.log("🔍 handleAnalyze called");
-    // Temporarily skip image requirement for testing
-    // if (images.length === 0) {
-    //   console.log("❌ No images");
-    //   Toast.show({ type: "error", text1: "Upload at least one image" });
-    //   return;
-    // }
+
+    // Prevent multiple simultaneous analyses
+    if (analyzing) {
+      console.log("⚠️ Analysis already in progress, ignoring");
+      return;
+    }
+
+    // Check if we have images
+    if (images.length === 0) {
+      Toast.show({
+        type: "error",
+        text1: "Add an image",
+        text2: "Upload at least one image for AI analysis",
+      });
+      return;
+    }
+
+    // Reset previous results
+    setResult(null);
+    setShowConfetti(false);
+    setShowCenters(false);
     console.log("✅ Proceeding with analysis");
     setAnalyzing(true);
     setAnalyzeProgress("📸 Processing...");
 
     try {
-      console.log("🔍 Starting analysis with image count:", images.length);
+      console.log(
+        "🔍 Starting CLIP Vision analysis with image count:",
+        images.length,
+      );
+      setAnalyzeProgress("🔍 Analyzing with CLIP Vision Model...");
 
-      let analysis;
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const imageBase64 = await imageToBase64(images[0].uri);
 
-      // ✅ If user selected a category AND has an image, run MobileNet
-      //    to get the specific item name, but use selected category for waste type
-      if (selectedCategory && images.length > 0) {
-        console.log(
-          "🎯 Category selected + image available — running MobileNet for item name",
-        );
-        setAnalyzeProgress("🔍 Identifying item...");
-
-        try {
-          const token = await AsyncStorage.getItem("token");
-          const imageBase64 = await imageToBase64(images[0].uri);
-
-          const analyzeResponse = await fetch(
-            `${BACKEND_URL}/api/ai/analyze-image`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                imageBase64: imageBase64,
-                mediaType: "image/jpeg",
-              }),
+        const analyzeResponse = await fetch(
+          `${BACKEND_URL}/api/ai/analyze-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-          );
-
-          if (analyzeResponse.ok) {
-            const analyzeData = await analyzeResponse.json();
-            if (analyzeData.success && analyzeData.analysis) {
-              // Use MobileNet's item label but override category with user's choice
-              analysis = {
-                ...analyzeData.analysis,
-                material: selectedCategory.id,
-                category: selectedCategory.id,
-                reasoning: `AI identified as ${analyzeData.analysis.label}, user categorized as ${selectedCategory.label}`,
-                isRecyclable: true,
-                donationPossible:
-                  selectedCategory.id === "Electronic" ||
-                  selectedCategory.id === "Textile",
-              };
-              console.log(
-                `✅ MobileNet: "${analysis.label}" + user category: ${selectedCategory.label}`,
-              );
-            }
-          }
-        } catch (aiErr) {
-          console.warn(
-            "⚠️ MobileNet failed, using category-only fallback:",
-            aiErr.message,
-          );
-        }
-
-        // If MobileNet failed, fall back to generic label
-        if (!analysis) {
-          analysis = {
-            label: `${selectedCategory.label} Item`,
-            material: selectedCategory.id,
-            confidence: 95,
-            reasoning: `User identified this as ${selectedCategory.label}`,
-            isRecyclable: true,
-            urgency: "medium",
-            donationPossible:
-              selectedCategory.id === "Electronic" ||
-              selectedCategory.id === "Textile",
-          };
-        }
-      } else if (selectedCategory) {
-        // Category selected but no image — use generic label
-        console.log(
-          "🎯 Using user-selected category (no image):",
-          selectedCategory.label,
+            body: JSON.stringify({
+              imageBase64: imageBase64,
+              mediaType: "image/jpeg",
+              // CLIP Vision Model will auto-classify and return material/category
+            }),
+          },
         );
-        analysis = {
-          label: `${selectedCategory.label} Item`,
-          material: selectedCategory.id,
-          confidence: 95,
-          reasoning: `User identified this as ${selectedCategory.label}`,
+
+        if (!analyzeResponse.ok) {
+          throw new Error(
+            `Analysis failed: ${analyzeResponse.status} ${analyzeResponse.statusText}`,
+          );
+        }
+
+        const analyzeData = await analyzeResponse.json();
+        if (analyzeData.success && analyzeData.analysis) {
+          var analysis = analyzeData.analysis;
+          console.log("✅ CLIP Vision Analysis:", analysis);
+        } else {
+          throw new Error("Invalid response from AI analysis API");
+        }
+      } catch (aiErr) {
+        console.error("❌ CLIP Vision analysis error:", aiErr.message);
+        // Fallback to mock if API fails
+        Toast.show({
+          type: "warning",
+          text1: "Using default analysis",
+          text2: "AI temporarily unavailable",
+        });
+        var analysis = {
+          label: "Unknown Item",
+          material: "Plastic",
+          confidence: 60,
+          reasoning: "AI temporarily unavailable, using default",
           isRecyclable: true,
           urgency: "medium",
-          donationPossible:
-            selectedCategory.id === "Electronic" ||
-            selectedCategory.id === "Textile",
+          donationPossible: false,
         };
-      } else if (images.length > 0) {
-        // ✅ Use MobileNet for image analysis
-        console.log("🤖 Calling AI image analysis...");
-        setAnalyzeProgress("🔍 Analyzing image...");
-
-        try {
-          const token = await AsyncStorage.getItem("token");
-
-          // Convert image to base64 using the helper
-          const imageBase64 = await imageToBase64(images[0].uri);
-
-          const analyzeResponse = await fetch(
-            `${BACKEND_URL}/api/ai/analyze-image`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                imageBase64: imageBase64,
-                mediaType: "image/jpeg",
-              }),
-            },
-          );
-
-          if (!analyzeResponse.ok) {
-            throw new Error(
-              `Analysis failed: ${analyzeResponse.status} ${analyzeResponse.statusText}`,
-            );
-          }
-
-          const analyzeData = await analyzeResponse.json();
-          if (analyzeData.success && analyzeData.analysis) {
-            analysis = analyzeData.analysis;
-            console.log("✅ AI Analysis:", analysis);
-          } else {
-            throw new Error("Invalid response from AI analysis API");
-          }
-        } catch (aiErr) {
-          console.error("❌ AI analysis error:", aiErr.message);
-          // Fallback to mock if API fails
-          Toast.show({
-            type: "warning",
-            text1: "Using default analysis",
-            text2: "AI temporarily unavailable",
-          });
-          analysis = {
-            label: "Unknown Item",
-            material: "Plastic",
-            confidence: 60,
-            reasoning: "AI temporarily unavailable, using default",
-            isRecyclable: true,
-            urgency: "medium",
-            donationPossible: false,
-          };
-        }
-      } else {
-        // No category selected and no images
-        console.log("⚠️ No category selected and no images");
-        Toast.show({
-          type: "error",
-          text1: "Select category or upload image",
-          text2: "Please choose a category or add an image for analysis",
-        });
-        setAnalyzing(false);
-        return;
       }
 
-      // ✅ Since we prioritize user selection, use selected category directly
-      const materialToId = {
-        Plastic: "Plastic",
-        Glass: "Glass",
-        Metal: "Metal",
-        "Paper/Cardboard": "Paper",
-        "Organic Waste": "Organic",
-        "E-Waste": "Electronic",
-        "Cloth/Textile": "Textile",
-        Other: selectedCategory?.id || "Plastic",
-      };
+      // ✅ Determine waste category from Gemini API response
+      const materialId = analysis.material || "Plastic";
+      const detectedCategory = wasteCategories.find(
+        (c) => c.id === materialId,
+      ) ||
+        wasteCategories[0] || { id: "Other", label: "Other", icon: "📦" };
 
-      // ✅ Use user-selected category as primary, AI as fallback
-      const detectedId = selectedCategory?.id || "Plastic";
-      const detectedCategory =
-        WASTE_CATEGORIES.find((c) => c.id === detectedId) ||
-        WASTE_CATEGORIES[0];
-
-      setSelectedCategory(detectedCategory);
-
-      const categoryAdvice = CATEGORY_ADVICE[detectedCategory.id];
-
-      if (!categoryAdvice) {
-        throw new Error(`Category advice not found for ${detectedCategory.id}`);
-      }
+      const categoryAdvice = CATEGORY_ADVICE[detectedCategory?.id] ||
+        CATEGORY_ADVICE["Other"] || {
+          baseProbabilities: { recyclable: 0.5, reusable: 0.4, donation: 0.3 },
+          donationPossible: false,
+        };
 
       const probabilities = computeProbabilities(
         categoryAdvice.baseProbabilities,
@@ -1075,9 +1005,8 @@ const WasteAnalyzer = () => {
         try {
           const token = await AsyncStorage.getItem("token");
           if (token) {
-            const API =
-              process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000";
-            await fetch(`${API}/api/eco/award`, {
+            const API = BACKEND_URL;
+            await fetch(`${API}/eco/award`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -1087,220 +1016,163 @@ const WasteAnalyzer = () => {
                 action: "scan",
                 description: `Scanned: ${analysis.label}`,
                 itemLabel: analysis.label,
-                category:
-                  detectedCategory?.label || selectedCategory?.label || "Other",
+                category: detectedCategory?.label || "Other",
                 metadata: { confidence: analysis.confidence },
               }),
             });
           }
-        } catch (_) {
-          /* silent — don't break main flow */
+        } catch (ecoErr) {
+          console.warn(
+            "⚠️ Eco points award failed (non-critical):",
+            ecoErr?.message || "Unknown error",
+          );
+          // Don't break main flow
         }
       })();
 
-      // ── Save to DB in background (non-blocking) ────────────────────────
-      let reuseIdeas = [];
-      let upcycleIdeas = [];
-
-      try {
-        const { wasteAPI, aiAPI } = await import("../services/api");
-        const token = await AsyncStorage.getItem("token");
-
-        // Upload primary image to Cloudinary (optional - skip for now due to 401 auth)
-        let imageUrl = null;
-        // Image upload skipped - Cloudinary preset needs configuration
-        console.log(
-          "⏭️ Image storage skipped (analysis proceeds without image URL)",
-        );
-
-        // Generate reuse ideas using AI
-        // Generate reuse and upcycle ideas using correct endpoint
-
-        // Reuse ideas from AI
+      // ── Generate ideas IN BACKGROUND (non-blocking fire-and-forget) ────
+      (async () => {
         try {
-          setAnalyzeProgress("Generating reuse ideas...");
-          const endpoint = BACKEND_URL.includes("/api")
-            ? `${BACKEND_URL}/ai/upcycle`
-            : `${BACKEND_URL}/api/ai/upcycle`;
-          console.log("📤 Calling endpoint:", endpoint, {
-            token: token ? "present" : "missing",
-          });
+          const { wasteAPI } = await import("../services/api");
+          const token = await AsyncStorage.getItem("token");
+          let reuseIdeas = [];
+          let upcycleIdeas = [];
 
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          // 🔄 Fetch reuse ideas (non-blocking)
+          try {
+            console.log("🔄 Generating reuse ideas in background...");
+            const reuseEndpoint = BACKEND_URL.includes("/api")
+              ? `${BACKEND_URL}/upcycle`
+              : `${BACKEND_URL}/api/ai/upcycle`;
 
-          const reuseResponse = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              prompt: `You are a practical reuse expert. Give me 4 PRACTICAL ways to reuse: "${analysis.label}" (category: ${detectedCategory.label}). Reuse means finding new uses AS-IS with minimal modification. Respond ONLY with JSON array: ["idea 1", "idea 2", "idea 3", "idea 4"]`,
-              material: detectedCategory.id,
-              item: analysis.label,
-            }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
+            const reuseResponse = await fetch(reuseEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                prompt: `You are a practical reuse expert. Give me 4 PRACTICAL ways to reuse: "${analysis.label}" (category: ${detectedCategory.label}). Reuse means finding new uses AS-IS with minimal modification. Respond ONLY with JSON array: ["idea 1", "idea 2", "idea 3", "idea 4"]`,
+                material: detectedCategory.id,
+                item: analysis.label,
+              }),
+            });
 
-          console.log(
-            "📥 Reuse response status:",
-            reuseResponse.status,
-            reuseResponse.statusText,
-          );
-
-          if (!reuseResponse.ok) {
-            const errorText = await reuseResponse.text();
-            console.error(
-              "❌ Reuse API error:",
-              reuseResponse.status,
-              errorText.substring(0, 200),
-            );
-          } else {
-            const reuseData = await reuseResponse.json();
-            if (reuseData.success && reuseData.ideas) {
-              reuseIdeas = reuseData.ideas;
-              console.log("✅ Reuse ideas from AI:", reuseIdeas);
+            if (reuseResponse.ok) {
+              const reuseData = await reuseResponse.json();
+              reuseIdeas = reuseData.success ? reuseData.ideas || [] : [];
+              console.log("✅ Reuse ideas loaded:", reuseIdeas.length);
             } else {
-              console.warn("⚠️ Empty reuse ideas:", reuseData);
-              reuseIdeas = [];
+              console.warn("⚠️ Reuse ideas failed (non-critical)");
             }
+          } catch (reuseErr) {
+            console.warn("⚠️ Reuse generation error (continuing):", reuseErr?.message);
           }
-        } catch (reuseErr) {
-          console.error("❌ Reuse ideas error:", reuseErr.message);
-          // Continue with fallback ideas
-        }
 
-        // Upcycle ideas from AI
-        try {
-          setAnalyzeProgress("Generating upcycle ideas...");
-          const endpoint = BACKEND_URL.includes("/api")
-            ? `${BACKEND_URL}/ai/upcycle`
-            : `${BACKEND_URL}/api/ai/upcycle`;
-          console.log("📤 Calling endpoint:", endpoint, {
-            token: token ? "present" : "missing",
-          });
+          // 🔄 Fetch upcycle ideas (non-blocking)
+          try {
+            console.log("🔄 Generating upcycle ideas in background...");
+            const upcycleEndpoint = BACKEND_URL.includes("/api")
+              ? `${BACKEND_URL}/ai/upcycle`
+              : `${BACKEND_URL}/api/ai/upcycle`;
 
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            const upcycleResponse = await fetch(upcycleEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                prompt: `You are a creative upcycling expert. Give me 3 CREATIVE transformation ideas for "${analysis.label}" (category: ${detectedCategory.label}). Upcycling transforms items into something NEW and MORE VALUABLE. Respond ONLY with JSON array: [{"title": "Name", "description": "Brief desc", "difficulty": "Easy", "timeMin": 30}]`,
+                material: detectedCategory.id,
+                item: analysis.label,
+              }),
+            });
 
-          const upcycleResponse = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              prompt: `You are a creative upcycling expert. Give me 3 CREATIVE transformation ideas for "${analysis.label}" (category: ${detectedCategory.label}). Upcycling transforms items into something NEW and MORE VALUABLE. Respond ONLY with JSON array: [{"title": "Name", "description": "Brief desc", "difficulty": "Easy", "timeMin": 30}]`,
-              material: detectedCategory.id,
-              item: analysis.label,
-            }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-
-          console.log(
-            "📥 Upcycle response status:",
-            upcycleResponse.status,
-            upcycleResponse.statusText,
-          );
-
-          if (!upcycleResponse.ok) {
-            const errorText = await upcycleResponse.text();
-            console.error(
-              "❌ Upcycle API error:",
-              upcycleResponse.status,
-              errorText.substring(0, 200),
-            );
-          } else {
-            const upcycleData = await upcycleResponse.json();
-            if (upcycleData.success && upcycleData.ideas) {
-              upcycleIdeas = upcycleData.ideas;
-              console.log("✅ Upcycle ideas from AI:", upcycleIdeas);
+            if (upcycleResponse.ok) {
+              const upcycleData = await upcycleResponse.json();
+              upcycleIdeas = upcycleData.success ? upcycleData.ideas || [] : [];
+              console.log("✅ Upcycle ideas loaded:", upcycleIdeas.length);
             } else {
-              console.warn("⚠️ Empty upcycle ideas:", upcycleData);
-              upcycleIdeas = [];
+              console.warn("⚠️ Upcycle ideas failed (non-critical)");
             }
+          } catch (upcycleErr) {
+            console.warn("⚠️ Upcycle generation error (continuing):", upcycleErr?.message);
           }
-        } catch (upcycleErr) {
-          console.error("❌ Upcycle ideas error:", upcycleErr.message);
-          upcycleIdeas = [];
+
+          // 📝 Update result with ideas once loaded
+          if (reuseIdeas.length > 0 || upcycleIdeas.length > 0) {
+            setResult((prev) => ({
+              ...prev,
+              reuseIdeas,
+              upcycleIdeas,
+            }));
+            console.log("💡 Result updated with ideas");
+          }
+
+          // 💾 Save to DB with ideas (non-blocking)
+          try {
+            const materialToBackend = {
+              Plastic: "Plastic",
+              Glass: "Glass",
+              Metal: "Metal",
+              Paper: "Paper/Cardboard",
+              Organic: "Organic Waste",
+              Electronic: "E-Waste",
+              Textile: "Cloth/Textile",
+              Other: "Other",
+            };
+
+            const stringifyIdeas = (ideas) =>
+              (ideas || []).map((i) =>
+                typeof i === "string" ? i : i.title || JSON.stringify(i),
+              );
+
+            const analysisToSave = {
+              tfLabel: analysis.label,
+              material:
+                materialToBackend[detectedCategory.id] || detectedCategory.id,
+              category: detectedCategory.label,
+              imageUrl: null,
+              confidence: analysis.confidence,
+              reasoning: analysis.reasoning,
+              condition: analysis.condition || "unknown",
+              urgency: analysis.urgency,
+              isRecyclable: analysis.isRecyclable,
+              donationPossible:
+                analysis.donationPossible ?? categoryAdvice.donationPossible,
+              probabilities: probabilities,
+              bestAction: bestAction.key,
+              bestActionLabel: bestAction.label,
+              hazardIfThrown: categoryAdvice.hazardIfThrown,
+              recyclingGuidance: categoryAdvice.recyclingGuidance,
+              reuseIdeas: stringifyIdeas(reuseIdeas),
+              upcycleIdeas: stringifyIdeas(upcycleIdeas),
+              impact: categoryAdvice.impact,
+              education: categoryAdvice.education,
+              totalImages: images.length,
+              deviceType: "mobile",
+              userSelectedCategory: false,
+            };
+
+            await wasteAPI.saveAnalysis(analysisToSave);
+            console.log("✅ Analysis + ideas saved to DB");
+          } catch (saveErr) {
+            console.warn("⚠️ DB save failed (non-critical):", saveErr?.message);
+          }
+        } catch (backgroundErr) {
+          console.error("❌ Background idea generation error:", backgroundErr?.message);
+          // Silently continue - results already displayed
         }
-
-        const materialToBackend = {
-          Plastic: "Plastic",
-          Glass: "Glass",
-          Metal: "Metal",
-          Paper: "Paper/Cardboard",
-          Organic: "Organic Waste",
-          Electronic: "E-Waste",
-          Textile: "Cloth/Textile",
-          Other: "Other",
-        };
-
-        const analysisToSave = {
-          // Item Details
-          tfLabel: analysis.label,
-          material:
-            materialToBackend[detectedCategory.id] || detectedCategory.id,
-          category: detectedCategory.label,
-          // Image URL from Cloudinary
-          imageUrl: imageUrl,
-          // AI Confidence & Reasoning
-          confidence: analysis.confidence,
-          reasoning: analysis.reasoning,
-          // Condition Assessment
-          condition: analysis.condition || "unknown",
-          urgency: analysis.urgency,
-          isRecyclable: analysis.isRecyclable,
-          donationPossible:
-            analysis.donationPossible ?? categoryAdvice.donationPossible,
-          // Action Probabilities
-          probabilities: probabilities,
-          bestAction: bestAction.key,
-          bestActionLabel: bestAction.label,
-          // Hazard & Impact
-          hazardIfThrown: categoryAdvice.hazardIfThrown,
-          // Impact & Guidance
-          recyclingGuidance: categoryAdvice.recyclingGuidance,
-          reuseIdeas: reuseIdeas,
-          upcycleIdeas: upcycleIdeas,
-          impact: categoryAdvice.impact,
-          education: categoryAdvice.education,
-          // Metadata
-          totalImages: images.length,
-          deviceType: "mobile",
-          userSelectedCategory: false,
-        };
-
-        // Stringify idea objects for Mongoose (schema expects [String])
-        const stringifyIdeas = (ideas) =>
-          (ideas || []).map((i) =>
-            typeof i === "string" ? i : i.title || JSON.stringify(i),
-          );
-
-        const analysisToSaveFinal = {
-          ...analysisToSave,
-          reuseIdeas: stringifyIdeas(reuseIdeas),
-          upcycleIdeas: stringifyIdeas(upcycleIdeas),
-        };
-
-        const saveResponse = await wasteAPI.saveAnalysis(analysisToSaveFinal);
-        console.log(
-          "✅ Analysis saved to DB:",
-          saveResponse?.data?._id || "ok",
-        );
-      } catch (saveErr) {
-        console.warn(
-          "⚠️ Save to DB failed (continuing anyway):",
-          saveErr.message,
-        );
-      }
+      })(); // Fire and forget
     } catch (err) {
       console.error("❌ Analysis error:", err);
       console.error("Error stack:", err.stack);
       console.error("Error message:", err.message);
+
+      // Clear analyzing state
+      setAnalyzing(false);
+      setAnalyzeProgress("");
 
       try {
         Toast.show({
@@ -1312,15 +1184,14 @@ const WasteAnalyzer = () => {
         console.error("Toast error:", toastErr);
       }
     } finally {
-      console.log("🏁 Cleaning up analyze state...");
+      // Ensure analyzing state is cleared
       setAnalyzing(false);
       setAnalyzeProgress("");
     }
   };
 
   const handleReset = () => {
-    setStep(1);
-    setSelectedCategory(null);
+    setStep(2); // Back to image upload step (skip category selection)
     setImages([]);
     setResult(null);
     setShowCenters(false);
@@ -1358,7 +1229,7 @@ const WasteAnalyzer = () => {
                 </Text>
                 <View style={s.geminiBadge}>
                   <Text style={s.geminiBadgeText}>
-                    ✦ Powered by MobileNet AI
+                    ✦ Powered by CLIP Vision Model
                   </Text>
                 </View>
               </View>
@@ -1375,67 +1246,14 @@ const WasteAnalyzer = () => {
           <StepIndicator currentStep={step} />
 
           {/* ════════════════════════════════════════════════
-              STEP 1 — Category Selection
-          ════════════════════════════════════════════════ */}
-          {step === 1 && (
-            <View style={s.stepContainer}>
-              <Text style={s.stepTitle}>What type of waste is this?</Text>
-              <Text style={s.stepSub}>
-                Select category for accurate AI guidance
-              </Text>
-              <View style={s.catGrid}>
-                {WASTE_CATEGORIES.map((cat, idx) => (
-                  <CategoryCard
-                    key={cat.id}
-                    category={cat}
-                    onSelect={() => handleCategorySelect(cat)}
-                    delay={idx * 50}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* ════════════════════════════════════════════════
-              STEP 2 — Image Upload
+              STEP 2 — Image Upload (No category selection needed)
           ════════════════════════════════════════════════ */}
           {step === 2 && (
             <View style={s.stepContainer}>
-              {/* Selected category badge */}
-              <View style={s.selectedCatWrap}>
-                <View
-                  style={[
-                    s.selectedCatBadge,
-                    {
-                      backgroundColor: selectedCategory.bg,
-                      borderColor: selectedCategory.border,
-                    },
-                  ]}
-                >
-                  <Text style={s.selectedCatIcon}>{selectedCategory.icon}</Text>
-                  <View>
-                    <Text style={s.selectedCatLabelSmall}>Category</Text>
-                    <Text
-                      style={[
-                        s.selectedCatLabel,
-                        { color: selectedCategory.color },
-                      ]}
-                    >
-                      {selectedCategory.label}
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={s.changeBtn}
-                  onPress={handleChangeCategory}
-                >
-                  <Text style={s.changeBtnText}>✏️ Change</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={s.stepTitle}>Upload your images</Text>
+              <Text style={s.stepTitle}>Upload images</Text>
               <Text style={s.stepSub}>
-                AI will analyze & recommend the best action
+                CLIP Vision Model will auto-detect waste type & recommend
+                actions
               </Text>
 
               {images.length > 0 && (
@@ -1522,14 +1340,25 @@ const WasteAnalyzer = () => {
                 style={[
                   s.resultCatBadge,
                   {
-                    backgroundColor: selectedCategory.bg,
-                    borderColor: selectedCategory.border,
+                    backgroundColor:
+                      wasteCategories.find((c) => c.id === result.material)
+                        ?.bg || "#f1f5f9",
+                    borderColor:
+                      wasteCategories.find((c) => c.id === result.material)
+                        ?.border || "#cbd5e1",
                   },
                 ]}
               >
-                <Text>{selectedCategory.icon}</Text>
+                <Text>
+                  {wasteCategories.find((c) => c.id === result.material)?.icon}
+                </Text>
                 <Text
-                  style={{ color: selectedCategory.color, fontWeight: "700" }}
+                  style={{
+                    color:
+                      wasteCategories.find((c) => c.id === result.material)
+                        ?.color || "#64748b",
+                    fontWeight: "700",
+                  }}
                 >
                   {result.material}
                 </Text>

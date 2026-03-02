@@ -34,7 +34,7 @@ const AdminDashboardScreen = () => {
 
   useEffect(() => {
     if (user && user.userType !== "admin") {
-      navigation.replace("Dashboard");
+      navigation.replace("Main");
     }
   }, [user, navigation]);
 

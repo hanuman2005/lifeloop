@@ -18,7 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
-import { usersAPI } from "../services/api";
+import { usersAPI, impactAPI } from "../services/api";
 import api from "../services/api";
 import Toast from "react-native-toast-message";
 import ContactModal from "../components/ContactModal";
@@ -26,7 +26,10 @@ import ThemeToggle from "../components/ThemeToggle";
 
 // ─── Constants ───
 const getTabs = (userType) => {
-  const baseTabs = [{ id: "badges", icon: "🏆", label: "Badges" }];
+  const baseTabs = [
+    { id: "exchanges", icon: "🤝", label: "Exchanges" },
+    { id: "badges", icon: "🏆", label: "Badges" },
+  ];
 
   if (userType === "donor") {
     return [
@@ -111,18 +114,18 @@ const Avatar = ({ user, avatarPreview, size = 90 }) => {
 
 const avatarStyles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "#166534",
+    backgroundColor: "#E0F7F6",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#4ade80",
+    borderColor: "#2A9D8F",
   },
   image: {
     width: "100%",
     height: "100%",
   },
   initials: {
-    color: "#fff",
+    color: "#2A9D8F",
     fontWeight: "800",
   },
 });
@@ -226,7 +229,7 @@ const EditModal = ({
         <Text style={styles.modalTitle}>Edit Profile</Text>
         <TouchableOpacity onPress={onSave} disabled={saving}>
           {saving ? (
-            <ActivityIndicator color="#4ade80" />
+            <ActivityIndicator color="#2A9D8F" />
           ) : (
             <Text style={styles.modalSave}>Save</Text>
           )}
@@ -354,6 +357,7 @@ const Profile = () => {
   const [impactLoading, setImpactLoading] = useState(true);
   const [personalImpact, setPersonalImpact] = useState(null);
   const [communityImpact, setCommunityImpact] = useState(null);
+  const [transactionHistory, setTransactionHistory] = useState([]);
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
@@ -373,8 +377,8 @@ const Profile = () => {
     const fetchImpact = async () => {
       try {
         setImpactLoading(true);
-        const personalRes = await api.get("/api/impact/personal");
-        const communityRes = await api.get("/api/impact/community");
+        const personalRes = await impactAPI.getPersonalImpact();
+        const communityRes = await impactAPI.getCommunityImpact();
         setPersonalImpact(personalRes.data);
         setCommunityImpact(communityRes.data);
       } catch (err) {
@@ -442,6 +446,12 @@ const Profile = () => {
           (listing) => listing.recipient === user._id,
         );
         setHistory(received);
+      } else if (tab === "exchanges") {
+        // Fetch completed transactions (exchanges)
+        const res = await api.get("/qr/my-transactions", {
+          params: { status: "completed" },
+        });
+        setTransactionHistory(res.data.transactions || []);
       }
     } catch (e) {
       console.log("Tab load error:", e.message);
@@ -656,7 +666,7 @@ const Profile = () => {
         {/* ── Tab Content ── */}
         <View style={styles.tabContent}>
           {tabLoading ? (
-            <ActivityIndicator color="#4ade80" style={{ marginTop: 40 }} />
+            <ActivityIndicator color="#2A9D8F" style={{ marginTop: 40 }} />
           ) : (
             <>
               {/* History Grid */}
@@ -690,6 +700,45 @@ const Profile = () => {
                 </View>
               )}
 
+              {/* Exchanges / Transaction History */}
+              {activeTab === "exchanges" &&
+                (transactionHistory.length === 0 ? (
+                  <View style={styles.emptyTab}>
+                    <Text style={styles.emptyTabIcon}>🤝</Text>
+                    <Text style={styles.emptyTabText}>No exchanges yet</Text>
+                    <Text style={styles.emptyTabSub}>
+                      Complete donations and pickups to see your exchange
+                      history
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.transactionList}>
+                    {transactionHistory.map((tx, i) => (
+                      <View key={i} style={styles.transactionCard}>
+                        <View style={styles.transactionHeader}>
+                          <Text style={styles.transactionTitle}>
+                            {tx.listing?.title || "Item"}
+                          </Text>
+                          <Text style={styles.transactionStatus}>
+                            ✓ Completed
+                          </Text>
+                        </View>
+                        <View style={styles.transactionMeta}>
+                          <Text style={styles.transactionMeta_Text}>
+                            {tx.donor._id === user._id ? "with " : "from "}
+                            {tx.donor._id === user._id
+                              ? tx.recipient?.firstName
+                              : tx.donor?.firstName}
+                          </Text>
+                          <Text style={styles.transactionDate}>
+                            {new Date(tx.completedAt).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+
               {/* Ratings List */}
               {activeTab === "ratings" &&
                 (ratings.length === 0 ? (
@@ -709,6 +758,48 @@ const Profile = () => {
                 ))}
             </>
           )}
+        </View>
+
+        {/* ── Quick Menu Links ── */}
+        <View style={styles.menuSection}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("Schedules")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuIcon}>📅</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuTitle}>Upcoming Pickups</Text>
+              <Text style={styles.menuDesc}>View your scheduled pickups</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("CommunityStats")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuIcon}>🏆</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuTitle}>Community Stats</Text>
+              <Text style={styles.menuDesc}>Leaderboards & rankings</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setActiveTab("badges")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.menuIcon}>🎖️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.menuTitle}>Achievements</Text>
+              <Text style={styles.menuDesc}>Your badges & progress</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Contact & Logout ── */}
@@ -763,7 +854,7 @@ const Profile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FAFAFA",
   },
 
   // Top Bar
@@ -774,23 +865,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: "#E0E0E0",
   },
   topBarName: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   editProfileBtn: {
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#2A9D8F",
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
   },
   editProfileBtnText: {
-    color: "#f1f5f9",
+    color: "#2A9D8F",
     fontWeight: "600",
     fontSize: 13,
   },
@@ -819,14 +910,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#4ade80",
+    backgroundColor: "#2A9D8F",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#0f172a",
+    borderColor: "#FFF",
   },
   avatarEditBadgeText: {
-    color: "#0f172a",
+    color: "#FFF",
     fontWeight: "800",
     fontSize: 14,
     lineHeight: 16,
@@ -846,49 +937,49 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   statLabel: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: "#999",
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 28,
-    backgroundColor: "#334155",
+    backgroundColor: "#DDD",
   },
 
   // Profile Info
   profileName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     marginBottom: 2,
   },
   profileEmail: {
     fontSize: 13,
-    color: "#64748b",
+    color: "#666",
     marginBottom: 6,
   },
   profileBio: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: "#999",
     lineHeight: 19,
     marginBottom: 10,
   },
   userTypeBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(74,222,128,0.15)",
+    backgroundColor: "#E0F7F6",
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: "#4ade80",
+    borderColor: "#2A9D8F",
     marginBottom: 14,
   },
   userTypeBadgeText: {
-    color: "#4ade80",
+    color: "#2A9D8F",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -896,11 +987,13 @@ const styles = StyleSheet.create({
   // Impact Mini Row
   impactRow: {
     flexDirection: "row",
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
   },
   impactItem: {
     flex: 1,
@@ -910,11 +1003,11 @@ const styles = StyleSheet.create({
   impactValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   impactLabel: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#999",
   },
 
   // Impact Buttons
@@ -927,26 +1020,27 @@ const styles = StyleSheet.create({
   },
   impactButton: {
     flex: 1,
-    backgroundColor: "#166534",
+    backgroundColor: "#2A9D8F",
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#22c55e",
+    borderColor: "#2A9D8F",
   },
   impactButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#4ade80",
+    color: "#FFF",
   },
 
   // Tab Bar
   tabBar: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#1e293b",
+    borderTopColor: "#E0E0E0",
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#FFF",
   },
   tab: {
     flex: 1,
@@ -956,20 +1050,21 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   tabActive: {
-    borderBottomColor: "#4ade80",
+    borderBottomColor: "#2A9D8F",
   },
   tabIcon: {
     fontSize: 20,
-    color: "#64748b",
+    color: "#999",
   },
   tabIconActive: {
-    color: "#4ade80",
+    color: "#2A9D8F",
   },
 
   // Tab Content
   tabContent: {
     minHeight: 300,
     padding: 2,
+    backgroundColor: "#FAFAFA",
   },
 
   // History Grid (3-column like Instagram)
@@ -984,9 +1079,11 @@ const styles = StyleSheet.create({
   },
   historyCardImage: {
     flex: 1,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#DDD",
   },
   historyCardEmoji: {
     fontSize: 32,
@@ -996,37 +1093,37 @@ const styles = StyleSheet.create({
     bottom: 1,
     left: 1,
     right: 1,
-    backgroundColor: "rgba(15,23,42,0.85)",
+    backgroundColor: "rgba(255,255,255,0.95)",
     padding: 5,
   },
   historyCardTitle: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     marginBottom: 2,
   },
   historyStatus: {
     alignSelf: "flex-start",
     borderRadius: 4,
     paddingHorizontal: 4,
-    paddingVertical: 1,
-    backgroundColor: "#334155",
+    paddingVertical: 2,
+    backgroundColor: "#F0F0F0",
     marginBottom: 2,
   },
   historyStatusCompleted: {
-    backgroundColor: "rgba(74,222,128,0.3)",
+    backgroundColor: "#E0F7F6",
   },
   historyStatusPending: {
-    backgroundColor: "rgba(251,191,36,0.3)",
+    backgroundColor: "#FFF3E0",
   },
   historyStatusText: {
     fontSize: 8,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#333",
   },
   historyCardDate: {
     fontSize: 9,
-    color: "#94a3b8",
+    color: "#999",
   },
 
   // Badges Grid
@@ -1038,17 +1135,17 @@ const styles = StyleSheet.create({
   },
   badgeCard: {
     width: "30%",
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 14,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#4ade80",
+    borderColor: "#2A9D8F",
     position: "relative",
     overflow: "hidden",
   },
   badgeCardLocked: {
-    borderColor: "#334155",
+    borderColor: "#DDD",
     opacity: 0.5,
   },
   badgeIcon: {
@@ -1058,16 +1155,16 @@ const styles = StyleSheet.create({
   badgeName: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     textAlign: "center",
     marginBottom: 2,
   },
   badgeNameLocked: {
-    color: "#64748b",
+    color: "#999",
   },
   badgeDesc: {
     fontSize: 9,
-    color: "#64748b",
+    color: "#999",
     textAlign: "center",
   },
   badgeLockOverlay: {
@@ -1085,13 +1182,72 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ratingCard: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderRadius: 14,
     padding: 16,
     borderLeftWidth: 3,
-    borderLeftColor: "#4ade80",
+    borderLeftColor: "#2A9D8F",
     marginBottom: 12,
+    borderWidth: 1,
+    borderTopWidth: 1,
+    borderTopColor: "#DDD",
+    borderRightColor: "#DDD",
+    borderBottomColor: "#DDD",
   },
+
+  // Exchanges / Transactions
+  transactionList: {
+    padding: 12,
+    gap: 12,
+  },
+  transactionCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#2A9D8F",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderTopWidth: 1,
+    borderTopColor: "#DDD",
+    borderRightColor: "#DDD",
+    borderBottomColor: "#DDD",
+  },
+  transactionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  transactionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1B1B1B",
+    flex: 1,
+  },
+  transactionStatus: {
+    fontSize: 12,
+    color: "#2A9D8F",
+    fontWeight: "600",
+    backgroundColor: "#E0F7F6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  transactionMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  transactionMeta_Text: {
+    fontSize: 14,
+    color: "#666",
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: "#999",
+  },
+
   ratingHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1102,30 +1258,30 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#166534",
+    backgroundColor: "#2A9D8F",
     alignItems: "center",
     justifyContent: "center",
   },
   ratingAvatarText: {
-    color: "#fff",
+    color: "#FFF",
     fontWeight: "700",
     fontSize: 15,
   },
   ratingName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   ratingDate: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#999",
   },
   ratingStars: {
     fontSize: 13,
   },
   ratingComment: {
     fontSize: 13,
-    color: "#94a3b8",
+    color: "#666",
     fontStyle: "italic",
     lineHeight: 19,
   },
@@ -1143,12 +1299,12 @@ const styles = StyleSheet.create({
   emptyTabText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     marginBottom: 6,
   },
   emptyTabSub: {
     fontSize: 13,
-    color: "#64748b",
+    color: "#999",
     textAlign: "center",
     lineHeight: 19,
   },
@@ -1156,7 +1312,7 @@ const styles = StyleSheet.create({
   // Edit Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FAFAFA",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1164,20 +1320,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#FFF",
   },
   modalCancel: {
-    color: "#94a3b8",
+    color: "#999",
     fontSize: 15,
     fontWeight: "600",
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   modalSave: {
-    color: "#4ade80",
+    color: "#2A9D8F",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -1190,20 +1347,20 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#94a3b8",
+    color: "#666",
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   modalInput: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: "#f1f5f9",
+    color: "#1B1B1B",
   },
   modalInputMulti: {
     minHeight: 100,
@@ -1215,59 +1372,59 @@ const styles = StyleSheet.create({
   },
   typeChip: {
     flex: 1,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
   },
   typeChipActive: {
-    borderColor: "#4ade80",
-    backgroundColor: "rgba(74,222,128,0.1)",
+    borderColor: "#2A9D8F",
+    backgroundColor: "#E0F7F6",
   },
   typeChipText: {
-    color: "#64748b",
+    color: "#666",
     fontSize: 12,
     fontWeight: "600",
   },
   typeChipTextActive: {
-    color: "#4ade80",
+    color: "#2A9D8F",
   },
 
   // Receipt Modal
   receiptBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.8)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
   receiptCard: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFF",
     borderRadius: 20,
     padding: 24,
     width: "100%",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
   },
   receiptTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#4ade80",
+    color: "#2A9D8F",
     textAlign: "center",
     marginBottom: 6,
   },
   receiptItem: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     textAlign: "center",
     marginBottom: 16,
   },
   receiptDivider: {
     height: 1,
-    backgroundColor: "#334155",
+    backgroundColor: "#DDD",
     marginBottom: 16,
   },
   receiptRow: {
@@ -1275,14 +1432,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#0f172a",
+    borderBottomColor: "#F0F0F0",
   },
   receiptLabel: {
-    color: "#94a3b8",
+    color: "#999",
     fontSize: 14,
   },
   receiptValue: {
-    color: "#f1f5f9",
+    color: "#1B1B1B",
     fontSize: 14,
     fontWeight: "600",
   },
@@ -1293,25 +1450,66 @@ const styles = StyleSheet.create({
   },
   receiptBtn: {
     flex: 1,
-    backgroundColor: "#4ade80",
+    backgroundColor: "#2A9D8F",
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: "center",
   },
   receiptBtnText: {
-    color: "#0f172a",
+    color: "#FFF",
     fontWeight: "700",
     fontSize: 14,
   },
   receiptBtnOutline: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#DDD",
   },
   receiptBtnOutlineText: {
-    color: "#94a3b8",
+    color: "#666",
     fontWeight: "600",
     fontSize: 14,
+  },
+
+  // Menu Section
+  menuSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    backgroundColor: "#FFF",
+  },
+  menuItem: {
+    flexDirection: "row",
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    marginBottom: 10,
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  menuIcon: {
+    fontSize: 24,
+  },
+  menuTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1B1B1B",
+  },
+  menuDesc: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+  menuArrow: {
+    fontSize: 20,
+    color: "#2A9D8F",
+    fontWeight: "bold",
   },
 
   // Logout
@@ -1319,19 +1517,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 24,
     borderTopWidth: 1,
-    borderTopColor: "#1e293b",
+    borderTopColor: "#E0E0E0",
+    backgroundColor: "#FFF",
   },
   logoutBtn: {
-    backgroundColor: "#dc2626",
+    backgroundColor: "#EF4444",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    shadowColor: "#dc2626",
+    shadowColor: "#EF4444",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
@@ -1339,7 +1538,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   logoutBtnText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 16,
     fontWeight: "700",
   },

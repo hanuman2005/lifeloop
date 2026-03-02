@@ -143,7 +143,25 @@ export default function PickupScheduleScreen() {
     try {
       setSubmitting(true);
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch(`${API}/api/pickup/request`, {
+
+      // Validate all required fields
+      if (
+        !selectedItems.length ||
+        !address.street ||
+        !address.city ||
+        !address.pincode ||
+        !selectedDate ||
+        !selectedSlot
+      ) {
+        Alert.alert(
+          "Missing Information",
+          "Please complete all required fields",
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      const res = await fetch(`${API}/pickup/request`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,10 +172,18 @@ export default function PickupScheduleScreen() {
           address,
           scheduledDate: selectedDate,
           scheduledSlot: selectedSlot,
-          centerId: preselectedCenter?.id,
+          centerId: preselectedCenter?._id || null, // ✅ Use _id instead of id
           notes,
         }),
       });
+
+      if (!res.ok) {
+        const error = await res.text();
+        console.error("API Error:", error);
+        Alert.alert("Error", `Server error: ${res.status}`);
+        return;
+      }
+
       const json = await res.json();
       if (json.success) {
         setSuccessData(json);
@@ -166,7 +192,8 @@ export default function PickupScheduleScreen() {
         Alert.alert("Error", json.error || "Failed to schedule pickup");
       }
     } catch (err) {
-      Alert.alert("Error", "Network error. Please try again.");
+      console.error("Submit error:", err);
+      Alert.alert("Error", err.message || "Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }

@@ -41,13 +41,21 @@ const chatSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for sorting by recent messages
 chatSchema.index({ "lastMessage.timestamp": -1 });
 
 // ✅ UNIQUE index on participants (ONE chat per user pair)
+// Sort participants to ensure consistent ordering for unique index
+chatSchema.pre("save", function (next) {
+  if (this.participants && this.participants.length > 1) {
+    this.participants.sort((a, b) => a.toString().localeCompare(b.toString()));
+  }
+  next();
+});
+
 chatSchema.index({ participants: 1 }, { unique: true });
 
 module.exports = mongoose.model("Chat", chatSchema);

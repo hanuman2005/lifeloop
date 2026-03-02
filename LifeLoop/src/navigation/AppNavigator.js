@@ -12,9 +12,14 @@ import LoginScreen from "../screens/Login";
 import RegisterScreen from "../screens/Register";
 import ForgotPasswordScreen from "../screens/ForgotPassword";
 import ResetPasswordScreen from "../screens/ResetPassword";
+import GuestScreen from "../screens/GuestScreen";
+
+// ─── Role-Based Dashboards ────────────────────────────────────
+import DonorDashboard from "../screens/DonorDashboard";
+import RecipientDashboard from "../screens/RecipientDashboard";
 
 // ─── Protected Screens ────────────────────────────────────────
-import HomeScreen from "../screens/Home";
+
 import ListingsScreen from "../screens/Listings";
 import ListingDetailsScreen from "../screens/ListingDetails";
 import CreateListingScreen from "../screens/CreateListing";
@@ -47,9 +52,27 @@ import UpcycleScreen from "../screens/UpcycleScreen";
 import EcoPointsScreen from "../screens/EcoPointsScreen";
 import NearbyMapScreen from "../screens/NearbyMapScreen";
 import PickupScheduleScreen from "../screens/PickupScheduleScreen";
+import ScheduleProposalScreen from "../screens/ScheduleProposal";
+import { useNotifications } from "../context/NotificationContext";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// ─────────────────────────────────────────────────────────────
+// Helper: Get Dashboard Component Based on User Role
+// ─────────────────────────────────────────────────────────────
+function getRoleBasedDashboard(userRole) {
+  switch (userRole?.toLowerCase()) {
+    case "donor":
+      return DonorDashboard;
+    case "recipient":
+      return RecipientDashboard;
+    case "admin":
+      return AdminDashboardScreen;
+    default:
+      return DonorDashboard; // Default to DonorDashboard
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Raised centre FAB for the AI Scan tab
@@ -72,6 +95,10 @@ function AITabButton({ onPress }) {
 // Bottom Tabs  →  Home | Listings | [🤖 FAB] | Chat | Profile
 // ─────────────────────────────────────────────────────────────
 function MainTabs() {
+  const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+  const DashboardComponent = getRoleBasedDashboard(user?.role);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -85,7 +112,7 @@ function MainTabs() {
       {/* LEFT */}
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={DashboardComponent}
         options={{
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 21, color }}>🏠</Text>
@@ -123,6 +150,8 @@ function MainTabs() {
             <Text style={{ fontSize: 21, color }}>🔔</Text>
           ),
           tabBarLabel: "Notifications",
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: "#ef4444", color: "#fff" },
         }}
       />
       <Tab.Screen
@@ -197,7 +226,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen
               name="Home"
-              component={HomeScreen}
+              component={GuestScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -236,6 +265,10 @@ export default function AppNavigator() {
               component={ListingDetailsScreen}
             />
             <Stack.Screen name="Schedules" component={SchedulesScreen} />
+            <Stack.Screen
+              name="ScheduleProposal"
+              component={ScheduleProposalScreen}
+            />
 
             {/* ── From Schedules screen ── */}
             <Stack.Screen

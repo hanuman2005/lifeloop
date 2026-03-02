@@ -107,7 +107,7 @@ const RateUserScreen = ({ route, navigation }) => {
 
         // Navigate back to Dashboard or impact screen
         setTimeout(() => {
-          navigation.navigate("Dashboard");
+          navigation.navigate("Main");
         }, 800);
       }
     } catch (error) {

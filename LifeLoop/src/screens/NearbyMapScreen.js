@@ -107,7 +107,7 @@ export default function NearbyMapScreen() {
   const loadPrices = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch(`${API}/api/map/prices`, {
+      const res = await fetch(`${API}/map/prices`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -384,79 +384,80 @@ export default function NearbyMapScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0a0f1e" },
+  safe: { flex: 1, backgroundColor: "#FAFAFA" }, // Light background
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0a0f1e",
+    backgroundColor: "#FAFAFA",
   },
-  loadingText: { color: "#7f8c8d", marginTop: 12, fontSize: 14 },
+  loadingText: { color: "#999", marginTop: 12, fontSize: 14 },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: "#2A9D8F", // Teal header
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#1a2744",
+    backgroundColor: "#E8F5F3", // Light teal
     alignItems: "center",
     justifyContent: "center",
   },
-  backArrow: { color: "#fff", fontSize: 18 },
+  backArrow: { color: "#2A9D8F", fontSize: 18 }, // Teal arrow
   headerText: { marginLeft: 12 },
-  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  headerSub: { color: "#7f8c8d", fontSize: 12, marginTop: 1 },
+  headerTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700" }, // White text
+  headerSub: { color: "#E8F5F3", fontSize: 12, marginTop: 1 }, // Light teal
 
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 10,
-    backgroundColor: "#0d1b2e",
+    backgroundColor: "#FFFFFF", // White background
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#1a2744",
+    borderColor: "#DDD", // Light border
   },
-  searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, color: "#fff", fontSize: 14 },
-  searchClear: { color: "#7f8c8d", fontSize: 16, paddingLeft: 8 },
+  searchIcon: { fontSize: 16, marginRight: 8, color: "#2A9D8F" }, // Teal icon
+  searchInput: { flex: 1, color: "#333", fontSize: 14 }, // Dark text
+  searchClear: { color: "#999", fontSize: 16, paddingLeft: 8 },
 
   suggestionBanner: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: "#1e3a2f",
+    backgroundColor: "#E8F5F3", // Light teal background
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#27ae60",
+    borderColor: "#2A9D8F", // Teal border
   },
-  suggestionText: { color: "#7f8c8d", fontSize: 13 },
-  suggestionBold: { color: "#27ae60", fontWeight: "700" },
+  suggestionText: { color: "#666", fontSize: 13 },
+  suggestionBold: { color: "#2A9D8F", fontWeight: "700" }, // Teal text
 
   filterScroll: { maxHeight: 48, marginBottom: 8 },
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0d1b2e",
+    backgroundColor: "#F5F5F5", // Light gray
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#1a2744",
+    borderColor: "#DDD",
     gap: 4,
   },
-  filterChipActive: { backgroundColor: "#27ae60", borderColor: "#27ae60" },
+  filterChipActive: { backgroundColor: "#2A9D8F", borderColor: "#2A9D8F" }, // Teal active
   filterIcon: { fontSize: 14 },
-  filterLabel: { color: "#7f8c8d", fontSize: 13, fontWeight: "600" },
-  filterLabelActive: { color: "#fff" },
+  filterLabel: { color: "#666", fontSize: 13, fontWeight: "600" },
+  filterLabelActive: { color: "#FFFFFF" }, // White text on teal
 
   scroll: { flex: 1 },
   locationInfo: {
@@ -467,17 +468,18 @@ const s = StyleSheet.create({
     gap: 6,
   },
   locationIcon: { fontSize: 14 },
-  locationText: { color: "#7f8c8d", fontSize: 12 },
+  locationText: { color: "#999", fontSize: 12 },
 
   centerCard: {
     marginHorizontal: 16,
     marginBottom: 10,
-    backgroundColor: "#0d1b2e",
+    backgroundColor: "#FFFFFF", // White card
     borderRadius: 16,
     padding: 14,
     borderWidth: 1.5,
+    borderColor: "#E0E0E0", // Light border
   },
-  centerCardSelected: { borderWidth: 2 },
+  centerCardSelected: { borderColor: "#2A9D8F", borderWidth: 2 }, // Teal border when selected
   centerHeader: { flexDirection: "row", gap: 12, marginBottom: 10 },
   typeIcon: {
     width: 44,
@@ -485,6 +487,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F5F5F5", // Light gray background
   },
   typeIconText: { fontSize: 22 },
   centerInfo: { flex: 1 },
@@ -494,25 +497,25 @@ const s = StyleSheet.create({
     gap: 6,
     flexWrap: "wrap",
   },
-  centerName: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  centerName: { color: "#333", fontSize: 15, fontWeight: "700" }, // Dark text
   verifiedBadge: {
-    color: "#27ae60",
+    color: "#2A9D8F",
     fontSize: 11,
-    backgroundColor: "#1e3a2f",
+    backgroundColor: "#E8F5F3", // Light teal
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  centerType: { color: "#7f8c8d", fontSize: 12, marginTop: 2 },
-  centerAddress: { color: "#566573", fontSize: 12, marginTop: 1 },
+  centerType: { color: "#999", fontSize: 12, marginTop: 2 },
+  centerAddress: { color: "#666", fontSize: 12, marginTop: 1 },
   distanceBadge: {
-    backgroundColor: "#1a2744",
+    backgroundColor: "#E8F5F3", // Light teal
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
     alignSelf: "flex-start",
   },
-  distanceText: { color: "#27ae60", fontSize: 12, fontWeight: "700" },
+  distanceText: { color: "#2A9D8F", fontSize: 12, fontWeight: "700" }, // Teal
 
   acceptsRow: {
     flexDirection: "row",
@@ -521,18 +524,20 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   acceptChip: {
-    backgroundColor: "#1a2744",
+    backgroundColor: "#F5F5F5", // Light gray
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: "#DDD",
   },
   acceptChipHighlight: {
-    backgroundColor: "#1e3a2f",
+    backgroundColor: "#E8F5F3", // Light teal
     borderWidth: 1,
-    borderColor: "#27ae60",
+    borderColor: "#2A9D8F", // Teal border
   },
-  acceptText: { color: "#7f8c8d", fontSize: 11 },
-  acceptTextHighlight: { color: "#27ae60", fontWeight: "600" },
+  acceptText: { color: "#666", fontSize: 11 },
+  acceptTextHighlight: { color: "#2A9D8F", fontWeight: "600" }, // Teal
 
   hoursRow: {
     flexDirection: "row",
@@ -541,7 +546,7 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   hoursIcon: { fontSize: 13 },
-  hoursText: { color: "#7f8c8d", fontSize: 12 },
+  hoursText: { color: "#666", fontSize: 12 },
 
   pricesRow: {
     flexDirection: "row",
@@ -550,14 +555,14 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   priceChip: {
-    backgroundColor: "#f59e0b22",
+    backgroundColor: "#FFF9E6", // Light yellow
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: "#f59e0b44",
+    borderColor: "#FFE5B4",
   },
-  priceText: { color: "#f59e0b", fontSize: 11, fontWeight: "600" },
+  priceText: { color: "#FF9800", fontSize: 11, fontWeight: "600" },
 
   actions: {
     flexDirection: "row",
@@ -565,51 +570,55 @@ const s = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#1a2744",
+    borderTopColor: "#E0E0E0",
   },
   actionBtn: {
     flex: 1,
     paddingVertical: 9,
     borderRadius: 10,
     alignItems: "center",
+    backgroundColor: "#2A9D8F", // Teal button
   },
-  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  actionBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 13 }, // White text
   actionBtnOutline: {
     flex: 1,
     paddingVertical: 9,
     borderRadius: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#1a2744",
+    borderColor: "#DDD",
+    backgroundColor: "#F5F5F5",
   },
-  actionBtnOutlineText: { fontWeight: "700", fontSize: 13 },
+  actionBtnOutlineText: { fontWeight: "700", fontSize: 13, color: "#333" }, // Dark text
 
   emptyBox: { alignItems: "center", paddingVertical: 60 },
   emptyIcon: { fontSize: 52, marginBottom: 12 },
   emptyTitle: {
-    color: "#fff",
+    color: "#333",
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 6,
   },
-  emptySubtext: { color: "#7f8c8d", fontSize: 13 },
+  emptySubtext: { color: "#999", fontSize: 13 },
 
   pricesSection: {
     margin: 16,
-    backgroundColor: "#0d1b2e",
+    backgroundColor: "#FFFFFF", // White card
     borderRadius: 16,
     padding: 16,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
   pricesSectionTitle: {
-    color: "#fff",
+    color: "#333",
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 4,
   },
-  pricesSectionSub: { color: "#7f8c8d", fontSize: 12, marginBottom: 14 },
+  pricesSectionSub: { color: "#999", fontSize: 12, marginBottom: 14 },
   priceCategory: { marginBottom: 14 },
   priceCategoryName: {
-    color: "#27ae60",
+    color: "#2A9D8F",
     fontSize: 14,
     fontWeight: "700",
     marginBottom: 8,
@@ -619,10 +628,10 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 4,
   },
-  priceItemName: { color: "#cdd9e5", fontSize: 13 },
-  priceItemPrice: { color: "#f59e0b", fontSize: 13, fontWeight: "600" },
+  priceItemName: { color: "#333", fontSize: 13 }, // Dark text
+  priceItemPrice: { color: "#FF9800", fontSize: 13, fontWeight: "600" },
   pricesNote: {
-    color: "#566573",
+    color: "#999",
     fontSize: 11,
     marginTop: 8,
     fontStyle: "italic",

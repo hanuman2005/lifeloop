@@ -14,28 +14,36 @@ import api from "../services/api";
 import Toast from "react-native-toast-message";
 
 const QRScanner = () => {
-  const [scanning,       setScanning]       = useState(false);
-  const [loading,        setLoading]        = useState(false);
-  const [success,        setSuccess]        = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
   const [checkInHistory, setCheckInHistory] = useState([]);
-  const [permission,     requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] = useCameraPermissions();
 
-  const navigation  = useNavigation();
-  const scannedRef  = useRef(false); // prevent double scan
+  const navigation = useNavigation();
+  const scannedRef = useRef(false); // prevent double scan
   const successAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim    = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   // Animate success message in
   useEffect(() => {
     if (success) {
-      Animated.spring(successAnim, { toValue: 1, useNativeDriver: true, friction: 6 }).start();
+      Animated.spring(successAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 6,
+      }).start();
       const t = setTimeout(() => {
         setSuccess(null);
-        navigation.navigate("Dashboard");
+        navigation.navigate("Main");
       }, 3000);
       return () => clearTimeout(t);
     } else {
@@ -47,7 +55,10 @@ const QRScanner = () => {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        Toast.show({ type: "error", text1: "Camera permission is required to scan QR codes" });
+        Toast.show({
+          type: "error",
+          text1: "Camera permission is required to scan QR codes",
+        });
         return;
       }
     }
@@ -66,16 +77,22 @@ const QRScanner = () => {
 
       const txn = response.data.transaction;
       const item = {
-        id:    txn?._id,
+        id: txn?._id,
         title: txn?.listing?.title || "Pickup",
-        time:  new Date(),
+        time: new Date(),
       };
 
       setSuccess(item);
       setCheckInHistory((prev) => [item, ...prev.slice(0, 4)]);
-      Toast.show({ type: "success", text1: "✅ Pickup verified successfully! 🎉" });
+      Toast.show({
+        type: "success",
+        text1: "✅ Pickup verified successfully! 🎉",
+      });
     } catch (err) {
-      Toast.show({ type: "error", text1: err.response?.data?.message || "Verification failed" });
+      Toast.show({
+        type: "error",
+        text1: err.response?.data?.message || "Verification failed",
+      });
       scannedRef.current = false;
     } finally {
       setLoading(false);
@@ -94,7 +111,8 @@ const QRScanner = () => {
               <Text style={styles.promptEmoji}>📱</Text>
               <Text style={styles.promptTitle}>Ready to Verify Pickup?</Text>
               <Text style={styles.promptSubtitle}>
-                Ask the donor to show their QR code, then tap the button below to scan.
+                Ask the donor to show their QR code, then tap the button below
+                to scan.
               </Text>
             </View>
 
@@ -108,8 +126,9 @@ const QRScanner = () => {
 
             <View style={styles.tipBox}>
               <Text style={styles.tipText}>
-                💡 <Text style={{ fontWeight: "700" }}>Tip:</Text> The donor generates a QR
-                code from their listing. Just scan it to complete the pickup instantly!
+                💡 <Text style={{ fontWeight: "700" }}>Tip:</Text> The donor
+                generates a QR code from their listing. Just scan it to complete
+                the pickup instantly!
               </Text>
             </View>
           </>
@@ -139,7 +158,13 @@ const QRScanner = () => {
                 <Text style={styles.cancelBtnText}>❌ Cancel</Text>
               </TouchableOpacity>
             )}
-            {loading && <ActivityIndicator size="large" color="#4ade80" style={{ marginTop: 16 }} />}
+            {loading && (
+              <ActivityIndicator
+                size="large"
+                color="#4ade80"
+                style={{ marginTop: 16 }}
+              />
+            )}
           </View>
         )}
 
@@ -154,14 +179,19 @@ const QRScanner = () => {
             <Text style={styles.successEmoji}>✅</Text>
             <Text style={styles.successTitle}>Pickup Verified!</Text>
             <Text style={styles.successItem}>{success.title}</Text>
-            <Text style={styles.successSub}>Transaction completed successfully!</Text>
+            <Text style={styles.successSub}>
+              Transaction completed successfully!
+            </Text>
 
             <TouchableOpacity
               style={styles.dashboardBtn}
-              onPress={() => { setSuccess(null); navigation.navigate("Dashboard"); }}
+              onPress={() => {
+                setSuccess(null);
+                navigation.navigate("Main");
+              }}
               activeOpacity={0.85}
             >
-              <Text style={styles.dashboardBtnText}>📊 Go to Dashboard</Text>
+              <Text style={styles.dashboardBtnText}>🏠 Go to Home</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -175,7 +205,9 @@ const QRScanner = () => {
             <View key={`${item.id}-${index}`} style={styles.historyItem}>
               <View>
                 <Text style={styles.historyItemTitle}>{item.title}</Text>
-                <Text style={styles.historyItemId}>ID: {item.id?.slice(-8)}</Text>
+                <Text style={styles.historyItemId}>
+                  ID: {item.id?.slice(-8)}
+                </Text>
               </View>
               <Text style={styles.historyVerified}>✓ Verified</Text>
             </View>
@@ -191,47 +223,87 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#131c2e",
-    borderRadius:    20,
-    padding:         20,
-    borderWidth:     1,
-    borderColor:     "#1e2d45",
-    marginBottom:    16,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+    marginBottom: 16,
   },
-  title: { color: "#f1f5f9", fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 20 },
+  title: {
+    color: "#f1f5f9",
+    fontSize: 22,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 20,
+  },
 
   // Prompt
-  prompt: { backgroundColor: "#1e2d45", borderRadius: 14, padding: 20, alignItems: "center", marginBottom: 16 },
-  promptEmoji:    { fontSize: 48, marginBottom: 12 },
-  promptTitle:    { color: "#f1f5f9", fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  promptSubtitle: { color: "#94a3b8", fontSize: 13, textAlign: "center", lineHeight: 20 },
+  prompt: {
+    backgroundColor: "#1e2d45",
+    borderRadius: 14,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  promptEmoji: { fontSize: 48, marginBottom: 12 },
+  promptTitle: {
+    color: "#f1f5f9",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  promptSubtitle: {
+    color: "#94a3b8",
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
+  },
 
   // Start button
   startBtn: {
     backgroundColor: "#667eea",
-    borderRadius:    14,
+    borderRadius: 14,
     paddingVertical: 15,
-    alignItems:      "center",
-    marginBottom:    14,
+    alignItems: "center",
+    marginBottom: 14,
   },
   startBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 
   // Tip
-  tipBox: { backgroundColor: "rgba(251,191,36,0.1)", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: "#fbbf24" },
+  tipBox: {
+    backgroundColor: "rgba(251,191,36,0.1)",
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#fbbf24",
+  },
   tipText: { color: "#fbbf24", fontSize: 13, lineHeight: 20 },
 
   // Camera
   cameraContainer: { borderRadius: 14, overflow: "hidden" },
-  camera:          { height: 380, borderRadius: 14 },
+  camera: { height: 380, borderRadius: 14 },
   cameraOverlay: {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: "center", justifyContent: "center",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   scanFrame: {
-    width: 200, height: 200,
-    borderWidth: 3, borderColor: "#4ade80",
+    width: 200,
+    height: 200,
+    borderWidth: 3,
+    borderColor: "#4ade80",
     borderRadius: 16,
   },
-  scanHint:  { color: "#94a3b8", fontSize: 13, textAlign: "center", marginTop: 12 },
+  scanHint: {
+    color: "#94a3b8",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 12,
+  },
   cancelBtn: {
     backgroundColor: "#ef4444",
     borderRadius: 12,
@@ -244,32 +316,48 @@ const styles = StyleSheet.create({
   // Success
   successCard: { alignItems: "center", padding: 20 },
   successEmoji: { fontSize: 56, marginBottom: 12 },
-  successTitle: { color: "#f1f5f9", fontSize: 22, fontWeight: "700", marginBottom: 8 },
-  successItem:  { color: "#94a3b8", fontSize: 15, marginBottom: 8 },
-  successSub:   { color: "#64748b", fontSize: 13, marginBottom: 20 },
+  successTitle: {
+    color: "#f1f5f9",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  successItem: { color: "#94a3b8", fontSize: 15, marginBottom: 8 },
+  successSub: { color: "#64748b", fontSize: 13, marginBottom: 20 },
   dashboardBtn: {
     backgroundColor: "#4ade80",
-    borderRadius:    12,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
   dashboardBtnText: { color: "#0a0f1e", fontWeight: "700", fontSize: 14 },
 
   // History
-  historyContainer: { backgroundColor: "#131c2e", borderRadius: 20, padding: 18, borderWidth: 1, borderColor: "#1e2d45" },
-  historyTitle:     { color: "#f1f5f9", fontSize: 16, fontWeight: "700", marginBottom: 14 },
+  historyContainer: {
+    backgroundColor: "#131c2e",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#1e2d45",
+  },
+  historyTitle: {
+    color: "#f1f5f9",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 14,
+  },
   historyItem: {
-    flexDirection:   "row",
-    justifyContent:  "space-between",
-    alignItems:      "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: "#1e2d45",
-    borderRadius:    10,
-    padding:         12,
-    marginBottom:    8,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
   },
   historyItemTitle: { color: "#f1f5f9", fontWeight: "600", fontSize: 13 },
-  historyItemId:    { color: "#64748b", fontSize: 11, marginTop: 2 },
-  historyVerified:  { color: "#4ade80", fontWeight: "700", fontSize: 13 },
+  historyItemId: { color: "#64748b", fontSize: 11, marginTop: 2 },
+  historyVerified: { color: "#4ade80", fontWeight: "700", fontSize: 13 },
 });
 
 export default QRScanner;

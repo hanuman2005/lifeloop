@@ -87,6 +87,7 @@ const register = async (req, res, next) => {
         email: user.email,
         phoneNumber: user.phoneNumber,
         userType: user.userType,
+        role: user.userType, // Add role alias for frontend dashboard routing
         address: user.address,
         avatar: user.avatar,
       },
@@ -146,6 +147,7 @@ const login = async (req, res, next) => {
         email: user.email,
         phoneNumber: user.phoneNumber,
         userType: user.userType,
+        role: user.userType, // Add role alias for frontend dashboard routing
         address: user.address,
         avatar: user.avatar,
         bio: user.bio,
@@ -186,6 +188,7 @@ const getMe = async (req, res, next) => {
         email: user.email,
         phoneNumber: user.phoneNumber,
         userType: user.userType,
+        role: user.userType, // Add role alias for frontend dashboard routing
         address: user.address,
         avatar: user.avatar,
         bio: user.bio,

@@ -84,8 +84,8 @@ export default function EcoPointsScreen() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [pointsRes, diaryRes] = await Promise.all([
-        fetch(`${API}/api/eco/points`, { headers }),
-        fetch(`${API}/api/eco/diary`, { headers }),
+        fetch(`${API}/eco/points`, { headers }),
+        fetch(`${API}/eco/diary`, { headers }),
       ]);
 
       const pointsJson = await pointsRes.json();
@@ -112,7 +112,7 @@ export default function EcoPointsScreen() {
     if (leaderboard) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${API}/api/eco/leaderboard`, {
+      const res = await fetch(`${API}/eco/leaderboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();

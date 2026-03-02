@@ -72,6 +72,7 @@ export const listingsAPI = {
   assign: (id, data) => api.post(`/listings/${id}/assign`, data),
   complete: (id) => api.put(`/listings/${id}/complete`),
   getUserListings: (params) => api.get("/listings/user", { params }),
+  getAssignedToMe: () => api.get("/listings/user/assigned-to-me"),
   getNearby: (lat, lng, radius) =>
     api.get("/listings/nearby", { params: { lat, lng, radius } }),
   search: (params) => api.get("/listings/search", { params }),
