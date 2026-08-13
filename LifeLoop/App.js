@@ -10,10 +10,8 @@ import Toast from "react-native-toast-message";
 import { AuthProvider } from "./src/context/AuthContext";
 import { SocketProvider } from "./src/context/SocketContext";
 import { NotificationProvider } from "./src/context/NotificationContext";
-import { ChatBotProvider } from "./src/context/ChatBotContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import AppNavigator from "./src/navigation/AppNavigator";
-import ChatBot from "./src/components/ChatBot";
 
 export default function App() {
   return (
@@ -23,10 +21,8 @@ export default function App() {
           <AuthProvider>
             <SocketProvider>
               <NotificationProvider>
-                <ChatBotProvider>
                   <StatusBar style="light" />
                   <AppNavigator />
-                  <ChatBot />
 
                   <Text
                     style={{
@@ -46,7 +42,6 @@ export default function App() {
                   </Text>
 
                   <Toast />
-                </ChatBotProvider>
               </NotificationProvider>
             </SocketProvider>
           </AuthProvider>

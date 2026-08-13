@@ -7,8 +7,6 @@ const {
   getWasteCategories,
   getMotivationQuotes,
   getAllConfig,
-  getIdeas,
-  getTaskStatus,
 } = require("../controllers/configController");
 
 // GET all config at once (recommended)
@@ -19,9 +17,5 @@ router.get("/categories", getCategories);
 router.get("/units", getUnits);
 router.get("/waste-categories", getWasteCategories);
 router.get("/motivation-quotes", getMotivationQuotes);
-router.get("/ideas", getIdeas);
-
-// GET task status (for Celery async scraping)
-router.get("/task-status/:taskId", getTaskStatus);
 
 module.exports = router;

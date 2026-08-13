@@ -30,7 +30,6 @@ import AnalysisHistoryScreen from "../screens/AiAnalysisHistory";
 import AnalysisDetailScreen from "../screens/AnalysisDetail";
 import MyPickupsScreen from "../screens/MyPickups";
 import RouteOptimizerScreen from "../screens/RouteOptimizer";
-import DigitalTwinScreen from "../screens/DigitalTwin";
 import ChatScreen from "../screens/Chat";
 import QRScannerScreen from "../components/QRScanner";
 import PersonalImpactScreen from "../components/PersonalImpact";
@@ -44,7 +43,6 @@ import InterestedUsersScreen from "../screens/InterestedUsers";
 import QRDisplayScreen from "../screens/QRDisplay";
 import RateUserScreen from "../screens/RateUser";
 import AcceptAssignmentScreen from "../screens/AcceptAssignment";
-import VerifyAccountScreen from "../screens/VerifyAccount";
 import ReuseGuideScreen from "../screens/ReuseGuide";
 import UpcycleScreen from "../screens/UpcycleScreen";
 
@@ -299,7 +297,6 @@ export default function AppNavigator() {
               name="RouteOptimizer"
               component={RouteOptimizerScreen}
             />
-            <Stack.Screen name="DigitalTwin" component={DigitalTwinScreen} />
             <Stack.Screen
               name="PersonalImpact"
               component={PersonalImpactScreen}
@@ -317,10 +314,6 @@ export default function AppNavigator() {
             <Stack.Screen
               name="ResetPassword"
               component={ResetPasswordScreen}
-            />
-            <Stack.Screen
-              name="VerifyAccount"
-              component={VerifyAccountScreen}
             />
             <Stack.Screen name="ReuseGuide" component={ReuseGuideScreen} />
             <Stack.Screen name="UpCycleModal" component={UpcycleScreen} />
