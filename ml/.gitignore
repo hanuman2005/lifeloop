@@ -1,9 +1,18 @@
 # Photographs and trained weights are large and do not belong in git.
+# data/metadata.csv is deliberately NOT ignored: it is small, it is the part of the
+# dataset that cannot be recreated by re-shooting, and it is what the thesis describes.
 data/raw/
 data/manifest.csv
 data/splits/
+data/smoke_raw/
+data/smoke_metadata.csv
 artifacts/*.pt
 artifacts/*.onnx
 artifacts/*.tflite
+
+# Export bundles are regenerated from a checkpoint by scripts/export.py. The
+# patterns above match only direct children of artifacts/, so the graph inside a
+# bundle needs its own rule.
+artifacts/*_bundle/
 __pycache__/
 *.pyc

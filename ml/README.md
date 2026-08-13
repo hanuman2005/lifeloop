@@ -48,7 +48,28 @@ download the checkpoint; ~2 minutes per epoch there versus ~40 on CPU.
 
 Photographs go in `data/raw/<Class>/`, metadata in `data/metadata.csv`. Rules,
 ambiguous-case table, and per-class targets are in
-[LABELLING-POLICY.md](./LABELLING-POLICY.md).
+[LABELLING-POLICY.md](./LABELLING-POLICY.md); where the photographs come from, who
+takes them, and in what order is in [COLLECTION-PLAN.md](./COLLECTION-PLAN.md).
+
+```bash
+cp data/metadata.template.csv data/metadata.csv     # once
+
+# import a session's photographs: renames, groups, and records them
+python scripts/new_batch.py --class Plastic --collector HM --inbox ~/phone/today \
+    --group-size 3 --condition crushed --background road --lighting sun --area street
+
+# audit against the policy — run after every import
+python scripts/check_dataset.py
+```
+
+`new_batch.py` generates `Plastic_HM_0042.jpg`-style names, allocates the `object_id`
+shared by shots of one physical object, and writes the metadata row. Doing that by hand
+is where the `object_id` gets forgotten, and a forgotten `object_id` is invisible until
+it has already inflated the test score.
+
+`check_dataset.py` catches mislabelled folders, orphan metadata, cross-class
+`object_id`s, duplicate images, out-of-vocabulary metadata, thin classes, missing
+variation, and split leakage. Run it with `--strict` before training.
 
 ### 2. Prepare
 
@@ -62,6 +83,12 @@ counts, and **refuses to emit a split that leaks**.
 The split is stratified by class and disjoint by `object_id`. Every photograph of one
 physical object is confined to a single split. Without that, near-duplicates straddle
 train and test, and the reported accuracy silently overstates reality.
+
+Images ingested from public datasets go to **train only**. They are studio photographs
+of single items on plain backgrounds, so a test set containing them measures a
+different problem from the one the app solves — and validation is where the confidence
+the app shows users gets calibrated. `--allow-public-holdout` lifts the restriction and
+says so in the output.
 
 ### 3. Train
 
@@ -112,7 +139,42 @@ the phase 0 removal of the silent fallback: never present a guess as a result.
 Calibration is fitted on **validation** and applied to test. Fitting it on test would be
 tuning against the held-out set.
 
-### 5. Serve
+### 5. Export
+
+```bash
+python scripts/export.py --checkpoint waste_mobilenet_v3_small.pt
+```
+
+Writes `artifacts/<name>_bundle/` — the ONNX graph plus `labels.json`,
+`preprocess.json`, `thresholds.json`, and a copy of the model card.
+
+All four sidecars are load-bearing. Without the label order the output vector maps to
+the wrong classes; without the preprocessing spec the inputs are wrong in a way that
+degrades accuracy without erroring; without the thresholds a consumer shows raw
+overconfident scores.
+
+**Parity is verified, not assumed.** The script runs the exported graph and the trained
+model over real test images and fails if they disagree. An export that quietly diverges
+is worse than none: the thesis would report one model's accuracy while production
+serves another. Expect a max logit difference around 1e-5 for float32.
+
+`--quantize` additionally emits an int8 graph, and is **off by default for good
+reason.** Dynamic quantization targets Linear-heavy architectures; on this CNN it drops
+prediction agreement to 0.56 and runs at 33 ms against float32's 1.6 ms, because there
+are no fused int8 convolution kernels for the graph. When it fails parity the script
+deletes the file rather than leaving something servable in the bundle. For on-device
+size, static quantization with a calibration set from the real training data is the
+correct route.
+
+TFLite conversion for true on-device inference is a later step needing a separate
+toolchain. ONNX is the target here because it can be verified on this machine, and an
+export that cannot be checked defeats the purpose.
+
+Note: `onnxscript` has no Python 3.13 wheel, so the script asks torch for the
+TorchScript exporter explicitly. Fully sufficient for a static CNN, and the parity
+check proves the result regardless.
+
+### 6. Serve
 
 ```bash
 uvicorn serve.app:app --host 127.0.0.1 --port 8000
@@ -146,10 +208,13 @@ A mismatch between training and serving preprocessing is the most common cause o
 
 ```bash
 python scripts/make_smoke_data.py
-python scripts/prepare_dataset.py --raw-dir data/smoke_raw
+python scripts/prepare_dataset.py --raw-dir data/smoke_raw --metadata data/smoke_metadata.csv
 python scripts/train.py --phase-a-epochs 2 --phase-b-epochs 3 --batch-size 16
 python scripts/evaluate.py
 ```
+
+The smoke set writes its own `data/smoke_metadata.csv` and never touches
+`data/metadata.csv`, which holds the team's hand-recorded rows.
 
 Exercises every stage on synthetic shapes. It proves the machinery, not the model —
 the scores are meaningless and must never appear in the thesis.
@@ -165,10 +230,14 @@ wasteml/
   model.py       backbone construction, checkpoint I/O
   metrics.py     macro-F1, confusion matrix, calibration, abstention
 scripts/
+  new_batch.py         import a session's photographs: naming, grouping, metadata
+  check_dataset.py     audit data/raw against the labelling policy
+  ingest_public.py     map a downloaded public dataset into our classes
   make_smoke_data.py   synthetic dataset for pipeline testing
   prepare_dataset.py   manifest + group-aware split
   train.py             two-phase transfer learning
   evaluate.py          test metrics, calibration, model card
+  export.py            ONNX bundle with a verified parity check
 serve/
   app.py         FastAPI inference service
 data/            photographs and splits (gitignored)
