@@ -7,6 +7,7 @@
 // classifier behind it differs.
 
 const crypto = require("crypto");
+const geminiFallback = require("../services/geminiFallback");
 
 // Must stay in sync with ml/wasteml/config.py CLASSES, with WASTE_CATEGORIES in
 // controllers/configController.js, and with CATEGORY_ADVICE in
@@ -157,6 +158,7 @@ const toAnalysis = (result) => {
     label: `${material} item`,
     material,
     confidence,
+    engine: "model",
     reasoning: rules.reasoning,
     isRecyclable: rules.isRecyclable,
     urgency: rules.urgency,
@@ -232,43 +234,93 @@ exports.analyzeImage = async (req, res) => {
 
     return res.json({ success: true, analysis, cached: false });
   } catch (error) {
-    // No model loaded yet — the service is running but has no checkpoint.
-    if (error.status === 503) {
-      return res.status(503).json({
-        success: false,
-        message: "The waste classifier is not available yet",
-      });
+    const reason = classifyFailure(error);
+
+    // Fall back to Gemini only when our own model could not be consulted at all.
+    // A low-confidence answer from our model is a real answer and is returned as-is;
+    // masking it here would corrupt the phase 1 accuracy evaluation.
+    if (reason.retryable && geminiFallback.isConfigured()) {
+      console.warn(`⚠️ ${reason.log} — falling back to Gemini`);
+
+      try {
+        const fallback = await geminiFallback.classify(imageBase64);
+
+        if (fallback?.noItem) {
+          console.log(`🚫 Scan ${hash.slice(0, 12)} → no item in frame [gemini]`);
+          return res.json({
+            success: false,
+            noItem: true,
+            engine: "gemini",
+            message: "No waste item detected. Point the camera at a single item.",
+          });
+        }
+
+        if (fallback) {
+          const analysis = { ...fallback, engine: "gemini" };
+          cacheSet(hash, analysis);
+          console.log(
+            `🔍 Scan ${hash.slice(0, 12)} → ${analysis.material} (${analysis.confidence}%) [gemini]`,
+          );
+          return res.json({ success: true, analysis, cached: false, fallback: true });
+        }
+
+        console.error("❌ Gemini fallback returned an unparseable response");
+      } catch (fallbackError) {
+        console.error("❌ Gemini fallback failed:", fallbackError.message);
+      }
     }
 
-    if (error.name === "AbortError") {
-      console.error("❌ Model service timed out");
-      return res.status(504).json({
-        success: false,
-        message: "Classification timed out. Please try again.",
-      });
-    }
-
-    // ECONNREFUSED: the Python service is not running at all.
-    const offline =
-      error.cause?.code === "ECONNREFUSED" || error.message?.includes("fetch failed");
-
-    if (offline) {
+    if (reason.status === 503 && !geminiFallback.isConfigured()) {
       console.error(
-        `❌ Model service unreachable at ${MODEL_SERVICE_URL}. Start it with:\n` +
-          "   cd ml && uvicorn serve.app:app --host 127.0.0.1 --port 8000",
+        `❌ ${reason.log}, and no GEMINI_API_KEY is set for fallback.\n` +
+          "   Start the model service:  cd ml && uvicorn serve.app:app --host 127.0.0.1 --port 8000\n" +
+          "   Or set GEMINI_API_KEY in backend/.env to use the temporary fallback.",
       );
-      return res.status(503).json({
-        success: false,
-        message: "The waste classifier is offline",
-      });
     }
 
-    console.error("❌ Classification failed:", error.message);
-    return res.status(502).json({
-      success: false,
-      message: "Image classification failed",
-    });
+    return res.status(reason.status).json({ success: false, message: reason.message });
   }
 };
 
-exports._internal = { toAnalysis, MATERIALS, MATERIAL_RULES };
+// Distinguishes "our model could not be reached" (fall back) from "our model gave a
+// bad answer" (do not fall back — that is a result worth surfacing).
+const classifyFailure = (error) => {
+  if (error.status === 503) {
+    return {
+      status: 503,
+      retryable: true,
+      log: "Model service has no checkpoint loaded",
+      message: "The waste classifier is not available yet",
+    };
+  }
+
+  if (error.name === "AbortError") {
+    return {
+      status: 504,
+      retryable: true,
+      log: "Model service timed out",
+      message: "Classification timed out. Please try again.",
+    };
+  }
+
+  const offline =
+    error.cause?.code === "ECONNREFUSED" || error.message?.includes("fetch failed");
+
+  if (offline) {
+    return {
+      status: 503,
+      retryable: true,
+      log: `Model service unreachable at ${MODEL_SERVICE_URL}`,
+      message: "The waste classifier is offline",
+    };
+  }
+
+  return {
+    status: 502,
+    retryable: false,
+    log: `Classification failed: ${error.message}`,
+    message: "Image classification failed",
+  };
+};
+
+exports._internal = { toAnalysis, classifyFailure, MATERIALS, MATERIAL_RULES };
