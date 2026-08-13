@@ -179,34 +179,6 @@ const confirmSchedule = async (req, res) => {
       console.error("⚠️ Notification error:", notifError);
     }
 
-    // 📱 Send SMS to both users (if Twilio configured)
-    try {
-      const smsService = require("../services/smsService");
-      const donor = schedule.donor;
-      const recipient = schedule.recipient;
-      const listingTitle = schedule.listing.title || "Your listing";
-      const pickupDateTime = schedule.proposedDateTime.toLocaleString();
-
-      // SMS to donor
-      if (donor.phoneNumber) {
-        await smsService.sendSMS(
-          donor.phoneNumber,
-          `Hi ${donor.firstName}! Your pickup with ${recipient.firstName} is confirmed for ${pickupDateTime}. Get ready! 📦`,
-        );
-      }
-
-      // SMS to recipient
-      if (recipient.phoneNumber) {
-        await smsService.sendSMS(
-          recipient.phoneNumber,
-          `Hi ${recipient.firstName}! Your pickup with ${donor.firstName} is confirmed for ${pickupDateTime}. See you then! 🎉`,
-        );
-      }
-    } catch (smsError) {
-      console.error("⚠️ SMS error (non-blocking):", smsError);
-      // SMS is optional, don't block the response
-    }
-
     res.json({
       success: true,
       message: "Schedule confirmed successfully",

@@ -95,3 +95,17 @@ dump.rdb
 .DS_Store
 .env.local.php
 .envrc
+
+# ML working data and trained weights
+ml/data/raw/
+ml/data/smoke_raw/
+ml/data/manifest.csv
+ml/data/metadata.csv
+ml/data/splits/
+ml/artifacts/*.pt
+ml/artifacts/*.onnx
+ml/artifacts/*.tflite
+
+# Local dev server logs
+*.log
+!package-lock.json

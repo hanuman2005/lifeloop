@@ -27,12 +27,10 @@ const aiMatchingRoutes = require("./routes/aiMatching");
 const scheduleRoutes = require("./routes/schedules");
 const reportRoutes = require("./routes/reports");
 const wasteAnalysisRoutes = require("./routes/wasteAnalysis");
-const chatbotRoutes = require("./routes/chatbot");
 const routeOptimizationRoutes = require("./routes/routeOptimization");
 const queueRoutes = require("./routes/queue");
 const adminRoutes = require("./routes/admin");
 const centersRoutes = require("./routes/centers");
-const verificationOTPRoutes = require("./routes/verificationOTP");
 const ecoRoutes = require("./routes/ecoRoutes");
 const mapRoutes = require("./routes/mapRoutes");
 const pickupRoutes = require("./routes/pickupRoutes");
@@ -152,12 +150,10 @@ app.get("/", (req, res) => {
       schedules: "/api/schedules",
       reports: "/api/reports",
       wasteAnalysis: "/api/waste-analysis",
-      chatbot: "/api/chatbot",
       routes: "/api/routes",
       queue: "/api/queue",
       admin: "/api/admin",
       centers: "/api/centers",
-      verify: "/api/verify",
       eco: "/api/eco",
       map: "/api/map",
       pickup: "/api/pickup",
@@ -179,15 +175,12 @@ app.use("/api", aiMatchingRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/waste-analysis", wasteAnalysisRoutes);
-app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/routes", routeOptimizationRoutes);
 app.use("/api/health", require("./routes/health"));
 app.use("/api/ai", require("./routes/ai"));
 app.use("/api/queue", queueRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/centers", centersRoutes);
-app.use("/api/sms", require("./routes/sms"));
-app.use("/api/verify", verificationOTPRoutes);
 app.use("/api/eco", ecoRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/pickup", pickupRoutes);

@@ -1,0 +1,9 @@
+# Photographs and trained weights are large and do not belong in git.
+data/raw/
+data/manifest.csv
+data/splits/
+artifacts/*.pt
+artifacts/*.onnx
+artifacts/*.tflite
+__pycache__/
+*.pyc

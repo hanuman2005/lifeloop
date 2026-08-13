@@ -4,7 +4,6 @@ const Schedule = require("../models/Schedule");
 const Listing = require("../models/Listing");
 const User = require("../models/User");
 const notificationHelper = require("./notificationHelper");
-const smsService = require("../services/smsService");
 
 /**
  * Initialize schedule automation cron jobs
@@ -49,16 +48,6 @@ const sendUpcomingReminders = async (io) => {
         // Send app notification
         await notificationHelper.sendScheduleReminder(schedule, io);
 
-        // Send SMS reminders if enabled
-        try {
-          await sendSMSReminders(schedule);
-        } catch (smsError) {
-          console.warn(
-            `⚠️ SMS reminder failed for schedule ${schedule._id}:`,
-            smsError.message,
-          );
-        }
-
         console.log(`✅ Reminder sent for schedule ${schedule._id}`);
       } catch (error) {
         console.error(
@@ -72,61 +61,6 @@ const sendUpcomingReminders = async (io) => {
   } catch (error) {
     console.error("sendUpcomingReminders error:", error);
     throw error;
-  }
-};
-
-/**
- * Send SMS reminders if users have SMS enabled
- */
-const sendSMSReminders = async (schedule) => {
-  // Get donor and recipient with their SMS preferences
-  const donor = await User.findById(schedule.donor).select(
-    "phone phoneVerified smsPreferences",
-  );
-  const recipient = await User.findById(schedule.recipient).select(
-    "phone phoneVerified smsPreferences",
-  );
-
-  // Calculate hours until pickup
-  const hoursUntil = Math.round(
-    (new Date(schedule.scheduledDate) - new Date()) / (1000 * 60 * 60),
-  );
-
-  const scheduleInfo = {
-    listingTitle: schedule.listing?.title || "Donation Item",
-    pickupLocation: schedule.pickupLocation || "See app for details",
-    scheduledDate: schedule.scheduledDate,
-  };
-
-  const promises = [];
-
-  // Send SMS to donor if enabled
-  if (
-    donor?.phone &&
-    donor?.phoneVerified &&
-    donor?.smsPreferences?.enabled &&
-    donor?.smsPreferences?.pickupReminders
-  ) {
-    promises.push(
-      smsService.sendPickupReminder(scheduleInfo, donor.phone, hoursUntil),
-    );
-  }
-
-  // Send SMS to recipient if enabled
-  if (
-    recipient?.phone &&
-    recipient?.phoneVerified &&
-    recipient?.smsPreferences?.enabled &&
-    recipient?.smsPreferences?.pickupReminders
-  ) {
-    promises.push(
-      smsService.sendPickupReminder(scheduleInfo, recipient.phone, hoursUntil),
-    );
-  }
-
-  if (promises.length > 0) {
-    await Promise.allSettled(promises);
-    console.log(`📱 SMS reminders sent for schedule ${schedule._id}`);
   }
 };
 

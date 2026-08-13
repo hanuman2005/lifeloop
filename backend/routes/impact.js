@@ -10,7 +10,6 @@ const {
   getImpactHeatmap,
   getImpactTimeline,
   generateShareCard,
-  getDigitalTwinData,
 } = require("../controllers/impactController");
 
 /**
@@ -47,7 +46,5 @@ router.get("/timeline", auth, getImpactTimeline);
  * @access  Private
  */
 router.get("/share-card", auth, generateShareCard);
-
-router.get("/digital-twin", auth, getDigitalTwinData);
 
 module.exports = router;

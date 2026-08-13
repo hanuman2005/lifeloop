@@ -131,7 +131,6 @@ export const impactAPI = {
   getImpactHeatmap: (params) => api.get("/impact/heatmap", { params }),
   getImpactTimeline: (params) => api.get("/impact/timeline", { params }),
   generateShareCard: () => api.get("/impact/share-card"),
-  getDigitalTwin: (params) => api.get("/impact/digital-twin", { params }),
 };
 
 export const uploadAPI = {

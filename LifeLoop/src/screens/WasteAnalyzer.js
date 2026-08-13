@@ -883,63 +883,54 @@ const WasteAnalyzer = () => {
     setAnalyzeProgress("📸 Processing...");
 
     try {
-      console.log(
-        "🔍 Starting CLIP Vision analysis with image count:",
-        images.length,
-      );
-      setAnalyzeProgress("🔍 Analyzing with CLIP Vision Model...");
+      console.log("🔍 Starting analysis with image count:", images.length);
+      setAnalyzeProgress("🔍 Analyzing image...");
 
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const imageBase64 = await imageToBase64(images[0].uri);
+      const token = await AsyncStorage.getItem("token");
+      const imageBase64 = await imageToBase64(images[0].uri);
 
-        const analyzeResponse = await fetch(
-          `${BACKEND_URL}/api/ai/analyze-image`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              imageBase64: imageBase64,
-              mediaType: "image/jpeg",
-              // CLIP Vision Model will auto-classify and return material/category
-            }),
-          },
+      const analyzeResponse = await fetch(`${BACKEND_URL}/api/ai/analyze-image`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          imageBase64,
+          mediaType: "image/jpeg",
+        }),
+      });
+
+      // A failed classification must surface as a failure. Never substitute a
+      // placeholder result — the user would act on it believing it was real.
+      const analyzeData = await analyzeResponse.json().catch(() => null);
+
+      if (!analyzeResponse.ok) {
+        throw new Error(
+          analyzeData?.message ||
+            `Analysis failed (${analyzeResponse.status}). Please try again.`,
         );
-
-        if (!analyzeResponse.ok) {
-          throw new Error(
-            `Analysis failed: ${analyzeResponse.status} ${analyzeResponse.statusText}`,
-          );
-        }
-
-        const analyzeData = await analyzeResponse.json();
-        if (analyzeData.success && analyzeData.analysis) {
-          var analysis = analyzeData.analysis;
-          console.log("✅ CLIP Vision Analysis:", analysis);
-        } else {
-          throw new Error("Invalid response from AI analysis API");
-        }
-      } catch (aiErr) {
-        console.error("❌ CLIP Vision analysis error:", aiErr.message);
-        // Fallback to mock if API fails
-        Toast.show({
-          type: "warning",
-          text1: "Using default analysis",
-          text2: "AI temporarily unavailable",
-        });
-        var analysis = {
-          label: "Unknown Item",
-          material: "Plastic",
-          confidence: 60,
-          reasoning: "AI temporarily unavailable, using default",
-          isRecyclable: true,
-          urgency: "medium",
-          donationPossible: false,
-        };
       }
+
+      // The model found no discardable item. Ask for a better photo rather than
+      // showing a material it never predicted.
+      if (analyzeData?.noItem) {
+        setAnalyzing(false);
+        setAnalyzeProgress("");
+        Toast.show({
+          type: "error",
+          text1: "No item detected",
+          text2: "Point the camera at a single item, filling the frame.",
+        });
+        return;
+      }
+
+      if (!analyzeData?.success || !analyzeData?.analysis) {
+        throw new Error("Classification service returned no result");
+      }
+
+      const analysis = analyzeData.analysis;
+      console.log("✅ Analysis:", analysis);
 
       // ✅ Determine waste category from Gemini API response
       const materialId = analysis.material || "Plastic";
@@ -977,7 +968,11 @@ const WasteAnalyzer = () => {
         urgency: analysis.urgency,
         donationPossible:
           analysis.donationPossible ?? categoryAdvice.donationPossible,
-        aiConfirmed: true,
+        // Only claim the AI confirmed this when it actually cleared its threshold.
+        aiConfirmed: !analysis.uncertain,
+        uncertain: Boolean(analysis.uncertain),
+        topK: analysis.topK || [],
+        modelVersion: analysis.modelVersion,
         probabilities,
         bestAction,
         ...categoryAdvice,
@@ -989,7 +984,8 @@ const WasteAnalyzer = () => {
       console.log("📊 Setting result and step...");
       setResult(analysisResult);
       setStep(3);
-      setShowConfetti(true);
+      // No celebration for a result the model isn't confident in.
+      setShowConfetti(!analysis.uncertain);
       setShowCenters(false);
       setUserStats((prev) => ({
         totalAnalyses: prev.totalAnalyses + 1,
@@ -998,15 +994,24 @@ const WasteAnalyzer = () => {
         carbonSaved:
           prev.carbonSaved + (categoryAdvice.impact?.carbonSaved || 0),
       }));
-      Toast.show({ type: "success", text1: "✅ Analysis complete!" });
+      // The model's confidence fell below its calibrated threshold for this class.
+      // Say so plainly instead of dressing a weak guess up as a finished answer.
+      if (analysis.uncertain) {
+        Toast.show({
+          type: "info",
+          text1: `Not sure — best guess: ${detectedCategory.label}`,
+          text2: "Check the material below and change it if it looks wrong.",
+        });
+      } else {
+        Toast.show({ type: "success", text1: "✅ Analysis complete!" });
+      }
 
       // ── Award Eco Points for scan (non-blocking) ──────────────────────
       (async () => {
         try {
           const token = await AsyncStorage.getItem("token");
           if (token) {
-            const API = BACKEND_URL;
-            await fetch(`${API}/eco/award`, {
+            const awardRes = await fetch(`${BACKEND_URL}/api/eco/award`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -1020,6 +1025,14 @@ const WasteAnalyzer = () => {
                 metadata: { confidence: analysis.confidence },
               }),
             });
+
+            if (!awardRes.ok) {
+              console.warn(
+                `⚠️ Eco points award rejected: ${awardRes.status} ${awardRes.statusText}`,
+              );
+            } else {
+              console.log("🌱 Eco points awarded for scan");
+            }
           }
         } catch (ecoErr) {
           console.warn(
