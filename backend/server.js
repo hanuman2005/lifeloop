@@ -6,6 +6,10 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
 const socketIO = require("socket.io");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 
 // Load env variables
 dotenv.config();
@@ -48,29 +52,67 @@ const { setIO: setQueueIO } = require("./utils/queueCronJob");
 const app = express();
 const server = http.createServer(app);
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+// ============================================
+// Security Middleware
+// ============================================
+
+// Sets the standard defensive response headers (HSTS, no-sniff, frame-deny, and so
+// on). crossOriginResourcePolicy is relaxed because Cloudinary-hosted images are
+// loaded cross-origin by the mobile client.
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+
+app.use(compression());
+
+// Behind a reverse proxy (Render, Railway, nginx) the client IP arrives in
+// X-Forwarded-For. Without this the rate limiter keys every request to the proxy's
+// address and throttles all users as one.
+if (IS_PRODUCTION) {
+  app.set("trust proxy", 1);
+}
+
 // ============================================
 // CORS Configuration
 // ============================================
 
+// Comma-separated list, so deployment targets are configured rather than hardcoded.
+// The previous hardcoded LAN address broke whenever the network changed.
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://localhost:3002",
-  "http://172.250.36.214:8081",
-  "http://172.250.36.214:19000",
+  ...configuredOrigins,
   process.env.CLIENT_URL,
+  // Local web development only; never trusted in production.
+  ...(IS_PRODUCTION
+    ? []
+    : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]),
 ].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // React Native and curl send no Origin header. CORS is a browser mechanism, so
+    // there is nothing to enforce here — the request is still gated by auth.
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("⚠️ CORS blocked origin:", origin);
-      callback(null, true); // Allow all origins in development
-    }
+
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // Previously this branch called callback(null, true), which allowed every
+    // origin in every environment and made the allowlist decorative.
+    console.warn(`⚠️ CORS rejected origin: ${origin}`);
+
+    // Tagged 403 so the error handler reports a client error. A bare Error here
+    // surfaces as 500, which blames the server for the caller's mistake.
+    const error = new Error("Origin not allowed");
+    error.statusCode = 403;
+    return callback(error);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -84,15 +126,13 @@ app.options("*", cors(corsOptions));
 // Middleware
 // ============================================
 
-// Body parser middleware
+// 10mb accommodates base64-encoded scan images.
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Simple logging middleware for development
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+// morgan was already a dependency but unused. "combined" is the parseable format
+// production log collectors expect; "dev" stays readable in a terminal.
+app.use(morgan(IS_PRODUCTION ? "combined" : "dev"));
 
 // ============================================
 // Socket.IO Setup
@@ -161,8 +201,39 @@ app.get("/", (req, res) => {
   });
 });
 
+// ============================================
+// Rate Limiting
+// ============================================
+
+// A blanket ceiling on the whole API. Cheap protection against a script hammering
+// any endpoint. /health is exempt so uptime probes are never throttled.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PRODUCTION ? 300 : 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === "/health" || req.path.startsWith("/api/health"),
+  message: { success: false, message: "Too many requests. Please try again later." },
+});
+
+// Credential endpoints get a much tighter budget: the general ceiling is far too
+// generous to slow down password guessing.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PRODUCTION ? 20 : 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // only failed attempts count toward the limit
+  message: {
+    success: false,
+    message: "Too many login attempts. Please try again in 15 minutes.",
+  },
+});
+
+app.use("/api", apiLimiter);
+
 // API Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/users", userRoutes);
@@ -190,16 +261,20 @@ app.use("/api/config", configRoutes);
 // Error Handling
 // ============================================
 
-// Error handling middleware
-app.use(errorHandler);
+// Order matters: the 404 catch-all must run before the error handler. Express
+// resolves error middleware by position, so a handler registered ahead of the
+// catch-all is skipped for anything the catch-all itself passes along.
 
-// 404 handler
+// 404 handler — no route matched
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.path}`,
   });
 });
+
+// Error handler must be last. It reports stack traces only outside production.
+app.use(errorHandler);
 
 // ============================================
 // Start Server
