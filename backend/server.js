@@ -40,6 +40,7 @@ const mapRoutes = require("./routes/mapRoutes");
 const pickupRoutes = require("./routes/pickupRoutes");
 const configRoutes = require("./routes/config");
 const binRoutes = require("./routes/bins");
+const collectorRoutes = require("./routes/collector");
 
 // Import socket handler
 const socketHandler = require("./socket/socketHandler");
@@ -199,6 +200,7 @@ app.get("/", (req, res) => {
       map: "/api/map",
       pickup: "/api/pickup",
       bins: "/api/bins",
+      collector: "/api/collector",
     },
   });
 });
@@ -259,6 +261,7 @@ app.use("/api/map", mapRoutes);
 app.use("/api/pickup", pickupRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api/bins", binRoutes);
+app.use("/api/collector", collectorRoutes);
 
 // ============================================
 // Error Handling

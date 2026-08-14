@@ -31,7 +31,10 @@ const userSchema = new mongoose.Schema(
     },
     userType: {
       type: String,
-      enum: ["donor", "recipient", "both", "admin"],
+      // "collector" is M4: waste collectors and kabadiwalas, who receive tasks and
+      // accrue a verifiable work record. Appended rather than inserted so existing
+      // documents keep their meaning.
+      enum: ["donor", "recipient", "both", "admin", "collector"],
       default: "both",
     },
     isActive: {
