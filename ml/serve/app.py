@@ -69,6 +69,8 @@ def load_model() -> None:
 
     state["model"] = model
     state["blob"] = blob
+    # Authoritative: this is what the output indices mean for THIS checkpoint.
+    state["classes"] = blob["classes"]
     state["transform"] = data.build_transforms(train=False)
 
     thresholds_path = ckpt_path.with_name(f"{ckpt_path.stem}_thresholds.json")
@@ -80,7 +82,11 @@ def load_model() -> None:
     else:
         print("⚠️  no thresholds file — using uncalibrated confidence and the default cutoff")
 
-    print(f"✅ {ckpt_path.name} loaded · {blob['backbone']} · {len(config.CLASSES)} classes")
+    print(f"✅ {ckpt_path.name} loaded · {blob['backbone']} · {len(state['classes'])} classes")
+    print(f"   {', '.join(state['classes'])}")
+    dormant = [c for c in config.CLASSES if c not in state["classes"]]
+    if dormant:
+        print(f"⚠️  this model cannot predict: {', '.join(dormant)}")
 
 
 @app.get("/health")
@@ -89,7 +95,10 @@ def health():
         "status": "ok" if state["model"] else "no_model",
         "checkpoint": CHECKPOINT,
         "backbone": state["blob"]["backbone"] if state["blob"] else None,
-        "classes": config.CLASSES,
+        "classes": state.get("classes") or config.CLASSES,
+        "untrained_classes": [
+            c for c in config.CLASSES if c not in (state.get("classes") or config.CLASSES)
+        ],
         "calibrated": bool(state["thresholds"]),
     }
 
@@ -117,7 +126,7 @@ def classify(request: ClassifyRequest):
         probs = F.softmax(logits / state["temperature"], dim=1)[0]
 
     confidence, index = probs.max(0)
-    predicted = config.CLASSES[int(index)]
+    predicted = state["classes"][int(index)]
     confidence = float(confidence)
 
     # NotWaste is a real class, so "the user photographed a wall" is a positive
@@ -130,7 +139,7 @@ def classify(request: ClassifyRequest):
     ranked = sorted(
         (
             {"material": c, "probability": round(float(p), 4)}
-            for c, p in zip(config.CLASSES, probs)
+            for c, p in zip(state["classes"], probs)
             if c != config.NOT_WASTE_CLASS
         ),
         key=lambda entry: entry["probability"],

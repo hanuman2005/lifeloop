@@ -66,8 +66,11 @@ Enforced at collection; violations are removed during preparation.
 - Focused. Blurry photographs are deleted, not labelled.
 - **Maximum 3 shots of one physical object**, and each must differ in background,
   lighting, or angle — not merely a nudge.
-- Original photographs only. No downloaded images, screenshots, or forwarded pictures
-  (recompression artifacts do not match camera output).
+- Original photographs only for anything the thesis measures. No screenshots or
+  forwarded pictures (recompression artifacts do not match camera output). Images from
+  public datasets are permitted in the **training** split, tagged with their source,
+  and never in validation or test — see [COLLECTION-PLAN.md](./COLLECTION-PLAN.md).
+  `prepare_dataset.py` enforces this.
 - No faces, people, house numbers, name boards, or vehicle number plates.
 
 ### Required variation
@@ -101,7 +104,9 @@ Class_Initials_Number.jpg        e.g.  Plastic_HM_0042.jpg
 ```
 
 One folder per class under `data/raw/`. Each collector uses their own initials so
-numbering cannot collide.
+numbering cannot collide. `scripts/new_batch.py` generates both the filename and the
+`object_id`; `scripts/check_dataset.py` enforces the pattern and the vocabularies
+below.
 
 `data/metadata.csv` — one row per photograph:
 
@@ -145,3 +150,8 @@ what the metadata declares.
 **Total ≈ 2,050.** Below 150 in any class, that class cannot be evaluated meaningfully
 and `prepare_dataset.py` will warn. Hazardous is the class most at risk — track it
 separately and chase it early.
+
+These numbers also live in `TARGET_COUNTS` in `wasteml/config.py`, so
+`check_dataset.py` can report progress against them. The split between photographs the
+team shoots and photographs drawn from public datasets is in
+[COLLECTION-PLAN.md](./COLLECTION-PLAN.md).

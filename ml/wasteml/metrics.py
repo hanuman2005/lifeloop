@@ -13,10 +13,11 @@ import torch.nn.functional as F
 from . import config
 
 
-def macro_f1(targets, preds) -> float:
+def macro_f1(targets, preds, classes: list = None) -> float:
     """Unweighted mean of per-class F1. Classes with no support are skipped."""
+    n_classes = len(classes) if classes else config.NUM_CLASSES
     scores = []
-    for idx in range(config.NUM_CLASSES):
+    for idx in range(n_classes):
         tp = sum(1 for t, p in zip(targets, preds) if t == idx and p == idx)
         fp = sum(1 for t, p in zip(targets, preds) if t != idx and p == idx)
         fn = sum(1 for t, p in zip(targets, preds) if t == idx and p != idx)
@@ -42,12 +43,15 @@ def collect_logits(model, loader, device):
     return torch.cat(logits), torch.cat(targets)
 
 
-def per_class_report(model, loader, device) -> dict:
+def per_class_report(model, loader, device, classes: list = None) -> dict:
+    """Per-class precision/recall/F1 over the model's own class list."""
+    classes = list(classes) if classes else list(config.CLASSES)
+
     logits, targets = collect_logits(model, loader, device)
     preds = logits.argmax(1)
 
     report = {}
-    for idx, name in enumerate(config.CLASSES):
+    for idx, name in enumerate(classes):
         tp = int(((preds == idx) & (targets == idx)).sum())
         fp = int(((preds == idx) & (targets != idx)).sum())
         fn = int(((preds != idx) & (targets == idx)).sum())
@@ -65,11 +69,12 @@ def per_class_report(model, loader, device) -> dict:
     return report
 
 
-def confusion_matrix(logits, targets) -> list:
+def confusion_matrix(logits, targets, classes: list = None) -> list:
     """Rows are true classes, columns predicted. The most informative single artifact
     in the evaluation — it names which pairs the model actually confuses."""
+    n_classes = len(classes) if classes else config.NUM_CLASSES
     preds = logits.argmax(1)
-    matrix = np.zeros((config.NUM_CLASSES, config.NUM_CLASSES), dtype=int)
+    matrix = np.zeros((n_classes, n_classes), dtype=int)
     for t, p in zip(targets.tolist(), preds.tolist()):
         matrix[t][p] += 1
     return matrix.tolist()

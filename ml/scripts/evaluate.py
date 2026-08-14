@@ -24,15 +24,15 @@ from wasteml.console import enable_utf8  # noqa: E402
 enable_utf8()
 
 
-def print_confusion(matrix) -> None:
-    width = max(len(c) for c in config.CLASSES) + 1
-    header = " " * width + "".join(f"{c[:4]:>6}" for c in config.CLASSES)
+def print_confusion(matrix, classes) -> None:
+    width = max(len(c) for c in classes) + 1
+    header = " " * width + "".join(f"{c[:4]:>6}" for c in classes)
     print(header)
-    for name, row in zip(config.CLASSES, matrix):
+    for name, row in zip(classes, matrix):
         print(f"{name:<{width}}" + "".join(f"{v:>6}" for v in row))
 
 
-def pick_thresholds(probs, targets, floor: float) -> dict:
+def pick_thresholds(probs, targets, floor: float, classes) -> dict:
     """Per-class cutoff: the lowest threshold at which that class's predictions are
     at least 80% correct, falling back to the global floor.
 
@@ -43,7 +43,7 @@ def pick_thresholds(probs, targets, floor: float) -> dict:
     correct = preds.eq(targets)
 
     thresholds = {}
-    for idx, name in enumerate(config.CLASSES):
+    for idx, name in enumerate(classes):
         chosen = floor
         for candidate in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9]:
             mask = (preds == idx) & (confidences >= candidate)
@@ -58,7 +58,7 @@ def pick_thresholds(probs, targets, floor: float) -> dict:
     return thresholds
 
 
-def write_model_card(path: Path, checkpoint_name, blob, results, thresholds) -> None:
+def write_model_card(path: Path, checkpoint_name, blob, results, thresholds, classes) -> None:
     """The model card is what makes this engineering rather than a script.
 
     The failure-modes section matters most: stating where your own model breaks is the
@@ -72,14 +72,14 @@ def write_model_card(path: Path, checkpoint_name, blob, results, thresholds) -> 
     for i, row in enumerate(results["confusion_matrix"]):
         for j, count in enumerate(row):
             if i != j and count > 0:
-                confusions.append((count, config.CLASSES[i], config.CLASSES[j]))
+                confusions.append((count, classes[i], classes[j]))
     confusions.sort(reverse=True)
 
     lines = [
         f"# Model Card — {checkpoint_name}",
         "",
         f"- **Backbone:** {blob['backbone']} (ImageNet-pretrained, fine-tuned)",
-        f"- **Classes:** {', '.join(config.CLASSES)}",
+        f"- **Classes:** {', '.join(classes)}",
         f"- **Input:** {config.IMAGE_SIZE}x{config.IMAGE_SIZE} RGB, ImageNet normalisation",
         "",
         "## Test results",
@@ -154,10 +154,18 @@ def main() -> int:
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, blob = model_lib.load_checkpoint(ckpt_path, device)
+    classes = blob["classes"]
     print(f"📦 {ckpt_path.name} · backbone {blob['backbone']} · device {device}")
+    print(f"🏷️  {len(classes)} classes: {', '.join(classes)}")
 
-    val_loader = data.make_loader(val_csv, train=False)
-    test_loader = data.make_loader(test_csv, train=False)
+    dormant = [c for c in config.CLASSES if c not in classes]
+    if dormant:
+        print(f"    not covered by this model: {', '.join(dormant)}")
+
+    # The loaders must use the checkpoint's class list, or the target indices will
+    # not line up with the outputs the network produces.
+    val_loader = data.make_loader(val_csv, train=False, classes=classes)
+    test_loader = data.make_loader(test_csv, train=False, classes=classes)
 
     # Fit temperature on validation, then apply it to test. Never the other way round.
     val_logits, val_targets = metrics.collect_logits(model, val_loader, device)
@@ -170,7 +178,7 @@ def main() -> int:
 
     preds = test_logits.argmax(1)
     accuracy = float(preds.eq(test_targets).float().mean())
-    f1 = metrics.macro_f1(test_targets.tolist(), preds.tolist())
+    f1 = metrics.macro_f1(test_targets.tolist(), preds.tolist(), classes)
 
     results = {
         "checkpoint": ckpt_path.name,
@@ -181,12 +189,13 @@ def main() -> int:
         "temperature": round(temperature, 4),
         "ece_before": round(metrics.expected_calibration_error(probs_before, test_targets), 4),
         "ece_after": round(metrics.expected_calibration_error(probs_after, test_targets), 4),
-        "per_class": metrics.per_class_report(model, test_loader, device),
-        "confusion_matrix": metrics.confusion_matrix(test_logits, test_targets),
+        "classes": classes,
+        "per_class": metrics.per_class_report(model, test_loader, device, classes),
+        "confusion_matrix": metrics.confusion_matrix(test_logits, test_targets, classes),
         "abstention_curve": metrics.abstention_curve(probs_after, test_targets),
     }
 
-    thresholds = pick_thresholds(probs_after, test_targets, args.threshold_floor)
+    thresholds = pick_thresholds(probs_after, test_targets, args.threshold_floor, classes)
 
     print(f"\n🎯 accuracy {results['accuracy']:.3f} · macro-F1 {results['macro_f1']:.3f}")
     print(f"   ECE {results['ece_before']:.4f} → {results['ece_after']:.4f} after calibration")
@@ -194,7 +203,7 @@ def main() -> int:
     for name, row in results["per_class"].items():
         print(f"  {name:<12} P {row['precision']:.3f}  R {row['recall']:.3f}  F1 {row['f1']:.3f}  n={row['support']}")
     print("\nConfusion (rows = true, cols = predicted):")
-    print_confusion(results["confusion_matrix"])
+    print_confusion(results["confusion_matrix"], classes)
 
     stem = ckpt_path.stem
     config.ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -203,7 +212,7 @@ def main() -> int:
     (config.ARTIFACTS_DIR / f"{stem}_thresholds.json").write_text(
         json.dumps({"temperature": temperature, "per_class": thresholds}, indent=2), encoding="utf-8"
     )
-    write_model_card(config.ARTIFACTS_DIR / f"{stem}_MODEL_CARD.md", ckpt_path.name, blob, results, thresholds)
+    write_model_card(config.ARTIFACTS_DIR / f"{stem}_MODEL_CARD.md", ckpt_path.name, blob, results, thresholds, classes)
 
     print(f"\n💾 {stem}_metrics.json · {stem}_thresholds.json · {stem}_MODEL_CARD.md")
 

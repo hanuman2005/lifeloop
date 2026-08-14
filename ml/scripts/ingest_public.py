@@ -83,10 +83,54 @@ MAPPINGS = {
         "Cardboard": "Paper",
         "Food waste": "Organic",
         "Battery": "Hazardous",
+        "Blister pack": "Hazardous",  # pharmaceutical residue overrides the foil-plastic
+        "Squeezable tube": "Plastic",
+        "Plastic glooves": "Plastic",  # TACO's spelling
+        "Pop tab": "Metal",
+        "Shoe": "Textile",  # the policy groups footwear with wearables
         "Cigarette": None,  # too small to classify from a phone photo
+        "Cup": None,  # paper and plastic cups share the category; the label is unknowable
+        "Rope & strings": None,  # nylon or jute, indistinguishable in a crop
         "Unlabeled litter": None,
     },
+    # Open Images V7 — not a waste dataset at all. It is the only free source for the
+    # two classes no waste dataset covers: consumer electronics, and photographs of
+    # things that are not rubbish. Its objects are in use rather than discarded, so a
+    # keyboard here is a working keyboard on a desk. The material label stays honest —
+    # a keyboard is Electronic whether or not it has been thrown away — but the
+    # "discarded" look is missing, which is why these stay out of the held-out sets.
+    # See crop_openimages.py.
+    "openimages": {
+        "Computer keyboard": "Electronic",
+        "Computer mouse": "Electronic",
+        "Mobile phone": "Electronic",
+        "Laptop": "Electronic",
+        "Printer": "Electronic",
+        "Television": "Electronic",
+        "Remote control": "Electronic",
+        "Headphones": "Electronic",
+        "Camera": "Electronic",
+        # NotWaste is not a material: it is everyday things that are not discardable
+        # items, so the model can decline instead of calling a wall Plastic.
+        "Houseplant": "NotWaste",
+        "Tree": "NotWaste",
+        "Chair": "NotWaste",
+        "Door": "NotWaste",
+        "Table": "NotWaste",
+        "Book": "NotWaste",
+        # Deliberately absent: "Light bulb". LED is Electronic and CFL is Hazardous,
+        # and Open Images does not distinguish them, so the label is unknowable.
+    },
 }
+
+
+# prepare_dataset.py keeps these sources out of validation and test by name. If the
+# two lists drift apart, a public dataset silently becomes eligible for the held-out
+# set and the reported score stops describing real photographs.
+assert set(MAPPINGS) == config.PUBLIC_SOURCES, (
+    f"MAPPINGS {sorted(MAPPINGS)} disagrees with "
+    f"config.PUBLIC_SOURCES {sorted(config.PUBLIC_SOURCES)}"
+)
 
 
 def main() -> int:
@@ -96,6 +140,15 @@ def main() -> int:
     parser.add_argument("--dest", type=Path, default=config.RAW_DIR)
     parser.add_argument("--limit-per-class", type=int, default=None,
                         help="cap per class, to stop one public set from dominating")
+    parser.add_argument("--limit", action="append", metavar="Class=N", default=[],
+                        help="per-class cap, repeatable: --limit Plastic=100 --limit Glass=40. "
+                             "Overrides --limit-per-class for that class. The budget in "
+                             "COLLECTION-PLAN.md differs by class, so one number cannot express it")
+    parser.add_argument("--only", action="append", metavar="FOLDER", default=[],
+                        help="read only these folders of the download, repeatable. "
+                             "Needed when several of them feed one class: --limit "
+                             "Textile=60 alone would take all 60 from `clothes` and "
+                             "none from `shoes`, because folders are read in order")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -103,14 +156,35 @@ def main() -> int:
         print(f"❌ {args.path} does not exist")
         return 1
 
+    limits = {}
+    for item in args.limit:
+        class_name, _, value = item.partition("=")
+        if class_name not in config.CLASSES or not value.isdigit():
+            print(f"❌ --limit {item!r} must be Class=N, e.g. Plastic=100")
+            return 1
+        limits[class_name] = int(value)
+
+    def cap_for(class_name: str):
+        return limits.get(class_name, args.limit_per_class)
+
     mapping = MAPPINGS[args.source]
     copied = Counter()
+    already = Counter()
     skipped = Counter()
     unmapped = []
     metadata_rows = []
 
+    only = set(args.only)
+    if only:
+        unknown = only - set(mapping)
+        if unknown:
+            print(f"❌ --only names folder(s) with no mapping: {sorted(unknown)}")
+            return 1
+
     for folder in sorted(p for p in args.path.rglob("*") if p.is_dir()):
         key = folder.name
+        if only and key not in only:
+            continue
         if key not in mapping:
             images = [f for f in folder.iterdir()
                       if f.is_file() and f.suffix.lower() in config.IMAGE_EXTENSIONS]
@@ -132,12 +206,25 @@ def main() -> int:
         for image in sorted(folder.iterdir()):
             if not image.is_file() or image.suffix.lower() not in config.IMAGE_EXTENSIONS:
                 continue
-            if args.limit_per_class and copied[target_class] >= args.limit_per_class:
+            cap = cap_for(target_class)
+            # `is not None`, not truthiness: --limit Glass=0 means "take none from this
+            # source", which is how one source is confined to the classes it is good at.
+            if cap is not None and copied[target_class] >= cap:
                 break
 
             # Prefix with the source so provenance survives in the filename, and so a
             # public file can never collide with a locally collected one.
             new_name = f"{args.source}_{key.replace(' ', '-')}_{image.name}"
+
+            # Re-running with a larger cap is the normal way to top a class up, so an
+            # image already here counts towards the cap and is not copied again. Without
+            # this, the second run rewrites every file and appends a duplicate
+            # provenance row for each.
+            if (dest_dir / new_name).exists():
+                copied[target_class] += 1
+                already[target_class] += 1
+                continue
+
             if not args.dry_run:
                 shutil.copy2(image, dest_dir / new_name)
 
@@ -156,6 +243,10 @@ def main() -> int:
         if copied[cls]:
             print(f"  {cls:<12} {copied[cls]:>6}")
     print(f"  {'TOTAL':<12} {sum(copied.values()):>6}")
+
+    if already:
+        print(f"\n{sum(already.values())} already present from an earlier run "
+              "(counted towards the cap, not copied again)")
 
     if skipped:
         print("\ndeliberately skipped (no honest mapping):")

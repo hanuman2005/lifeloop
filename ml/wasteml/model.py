@@ -21,7 +21,11 @@ BACKBONES = {
 DEFAULT_BACKBONE = "mobilenet_v3_small"
 
 
-def build_model(backbone: str = DEFAULT_BACKBONE, pretrained: bool = True) -> nn.Module:
+def build_model(
+    backbone: str = DEFAULT_BACKBONE,
+    pretrained: bool = True,
+    num_classes: int = None,
+) -> nn.Module:
     """Load an ImageNet-pretrained backbone and replace its head with ours.
 
     Pretraining is not optional at this data scale. A network trained from scratch on
@@ -31,15 +35,21 @@ def build_model(backbone: str = DEFAULT_BACKBONE, pretrained: bool = True) -> nn
     if backbone not in BACKBONES:
         raise ValueError(f"Unknown backbone {backbone!r}. Choose from {sorted(BACKBONES)}")
 
+    # Defaults to every configured class, but a model trained on a subset sizes its
+    # head to that subset — an output slot for a class with no training images is
+    # one the network can emit having never seen an example.
+    if num_classes is None:
+        num_classes = config.NUM_CLASSES
+
     factory, weights = BACKBONES[backbone]
     model = factory(weights=weights if pretrained else None)
 
     # Each torchvision family names its classifier differently.
     if backbone.startswith("mobilenet") or backbone.startswith("efficientnet"):
         in_features = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(in_features, config.NUM_CLASSES)
+        model.classifier[-1] = nn.Linear(in_features, num_classes)
     else:  # resnet
-        model.fc = nn.Linear(model.fc.in_features, config.NUM_CLASSES)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
 
     return model
 
@@ -58,18 +68,22 @@ def set_backbone_trainable(model: nn.Module, backbone: str, trainable: bool) -> 
         param.requires_grad = True
 
 
-def save_checkpoint(path: Path, model: nn.Module, backbone: str, metrics: dict) -> None:
+def save_checkpoint(
+    path: Path, model: nn.Module, backbone: str, metrics: dict, classes: list = None
+) -> None:
     """A checkpoint carries everything needed to reproduce inference.
 
     Weights alone are not a deliverable: without the class order and the preprocessing
     spec they cannot be served correctly.
     """
+    classes = list(classes) if classes else list(config.CLASSES)
+
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
             "state_dict": model.state_dict(),
             "backbone": backbone,
-            "classes": config.CLASSES,
+            "classes": classes,
             "preprocess": config.preprocess_spec(),
             "metrics": metrics,
         },
@@ -81,7 +95,7 @@ def save_checkpoint(path: Path, model: nn.Module, backbone: str, metrics: dict) 
         json.dumps(
             {
                 "backbone": backbone,
-                "classes": config.CLASSES,
+                "classes": classes,
                 "preprocess": config.preprocess_spec(),
                 "metrics": metrics,
             },
@@ -94,20 +108,27 @@ def save_checkpoint(path: Path, model: nn.Module, backbone: str, metrics: dict) 
 def load_checkpoint(path: Path, device: str = "cpu"):
     """Load a checkpoint and rebuild the matching architecture.
 
-    Refuses to load if the checkpoint's class list disagrees with the current config —
-    a silent mismatch would map every prediction to the wrong label.
+    The checkpoint's own class list is authoritative — it defines what the output
+    indices mean. A model may legitimately cover a subset of the configured classes,
+    for instance one trained before Wood or Electronic had any images.
+
+    What is never acceptable is a checkpoint naming a class the current config does
+    not know: that means the two disagree about what the labels mean, and every
+    prediction would be silently mislabelled.
     """
     blob = torch.load(path, map_location=device, weights_only=False)
 
-    if blob["classes"] != config.CLASSES:
+    unknown = [c for c in blob["classes"] if c not in config.CLASSES]
+    if unknown:
         raise ValueError(
-            "Checkpoint class list does not match config.CLASSES.\n"
+            f"Checkpoint refers to classes absent from config.CLASSES: {unknown}\n"
             f"  checkpoint: {blob['classes']}\n"
-            f"  config:     {config.CLASSES}\n"
-            "Retrain, or restore the original class order."
+            f"  config:     {config.CLASSES}"
         )
 
-    model = build_model(blob["backbone"], pretrained=False)
+    model = build_model(
+        blob["backbone"], pretrained=False, num_classes=len(blob["classes"])
+    )
     model.load_state_dict(blob["state_dict"])
     model.to(device).eval()
     return model, blob

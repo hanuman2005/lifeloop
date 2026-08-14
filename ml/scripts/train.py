@@ -31,7 +31,7 @@ from wasteml.console import enable_utf8  # noqa: E402
 enable_utf8()
 
 
-def run_epoch(model, loader, criterion, optimizer, device):
+def run_epoch(model, loader, criterion, optimizer, device, classes=None):
     """One pass. Training when an optimizer is given, evaluation otherwise."""
     training = optimizer is not None
     model.train(training)
@@ -57,10 +57,10 @@ def run_epoch(model, loader, criterion, optimizer, device):
 
     n = max(1, len(all_targets))
     accuracy = sum(p == t for p, t in zip(all_preds, all_targets)) / n
-    return total_loss / n, accuracy, macro_f1(all_targets, all_preds)
+    return total_loss / n, accuracy, macro_f1(all_targets, all_preds, classes)
 
 
-def train_phase(name, model, epochs, lr, params, loaders, criterion, device, state):
+def train_phase(name, model, epochs, lr, params, loaders, criterion, device, state, classes=None):
     """Shared loop for both phases, tracking the best validation macro-F1."""
     optimizer = torch.optim.AdamW(params, lr=lr, weight_decay=config.WEIGHT_DECAY)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, epochs))
@@ -70,8 +70,8 @@ def train_phase(name, model, epochs, lr, params, loaders, criterion, device, sta
 
     for epoch in range(1, epochs + 1):
         started = time.time()
-        tr_loss, tr_acc, tr_f1 = run_epoch(model, train_loader, criterion, optimizer, device)
-        va_loss, va_acc, va_f1 = run_epoch(model, val_loader, criterion, None, device)
+        tr_loss, tr_acc, tr_f1 = run_epoch(model, train_loader, criterion, optimizer, device, classes)
+        va_loss, va_acc, va_f1 = run_epoch(model, val_loader, criterion, None, device, classes)
         scheduler.step()
 
         marker = ""
@@ -106,6 +106,8 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
     parser.add_argument("--phase-a-epochs", type=int, default=config.PHASE_A_EPOCHS)
     parser.add_argument("--phase-b-epochs", type=int, default=config.PHASE_B_EPOCHS)
+    parser.add_argument("--min-images", type=int, default=1,
+                        help="skip classes with fewer training images than this")
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
@@ -120,14 +122,28 @@ def main() -> int:
     if device == "cpu":
         print("    No GPU. Fine for a smoke test; use Colab's T4 for a real run.")
 
-    train_loader = data.make_loader(train_csv, train=True, batch_size=args.batch_size)
-    val_loader = data.make_loader(val_csv, train=False, batch_size=args.batch_size)
+    # Train only on classes that actually have images. An output slot for a class
+    # with no training data is one the network can emit having never seen an example
+    # — a confident "Wood" from a model that has never been shown wood.
+    classes = data.active_classes(train_csv, minimum=args.min_images)
+    if not classes:
+        print(f"❌ No class has at least {args.min_images} training images.")
+        return 1
+
+    dormant = [c for c in config.CLASSES if c not in classes]
+    print(f"🏷️  training on {len(classes)}/{config.NUM_CLASSES} classes: {', '.join(classes)}")
+    if dormant:
+        print(f"    not trained (too few images): {', '.join(dormant)}")
+        print("    The model cannot predict these. Retrain once they have data.")
+
+    train_loader = data.make_loader(train_csv, train=True, batch_size=args.batch_size, classes=classes)
+    val_loader = data.make_loader(val_csv, train=False, batch_size=args.batch_size, classes=classes)
     print(f"📊 train {len(train_loader.dataset)} · val {len(val_loader.dataset)}")
 
-    model = model_lib.build_model(args.backbone).to(device)
+    model = model_lib.build_model(args.backbone, num_classes=len(classes)).to(device)
 
-    weights = data.class_weights(train_csv).to(device)
-    print("⚖️  class weights: " + ", ".join(f"{c}={w:.2f}" for c, w in zip(config.CLASSES, weights.tolist())))
+    weights = data.class_weights(train_csv, classes=classes).to(device)
+    print("⚖️  class weights: " + ", ".join(f"{c}={w:.2f}" for c, w in zip(classes, weights.tolist())))
     criterion = nn.CrossEntropyLoss(weight=weights, label_smoothing=0.05)
 
     state = {"best_f1": 0.0, "best_epoch": 0, "patience": 0, "best_state": None, "epochs_run": 0}
@@ -135,11 +151,11 @@ def main() -> int:
 
     model_lib.set_backbone_trainable(model, args.backbone, trainable=False)
     train_phase("A (frozen backbone)", model, args.phase_a_epochs, config.PHASE_A_LR,
-                model_lib.head_parameters(model, args.backbone), loaders, criterion, device, state)
+                model_lib.head_parameters(model, args.backbone), loaders, criterion, device, state, classes)
 
     model_lib.set_backbone_trainable(model, args.backbone, trainable=True)
     train_phase("B (fine-tune)", model, args.phase_b_epochs, config.PHASE_B_LR,
-                model.parameters(), loaders, criterion, device, state)
+                model.parameters(), loaders, criterion, device, state, classes)
 
     if state["best_state"] is None:
         print("❌ No epoch completed.")
@@ -148,8 +164,8 @@ def main() -> int:
     model.load_state_dict(state["best_state"])
     model.to(device)
 
-    _, val_acc, val_f1 = run_epoch(model, val_loader, criterion, None, device)
-    report = per_class_report(model, val_loader, device)
+    _, val_acc, val_f1 = run_epoch(model, val_loader, criterion, None, device, classes)
+    report = per_class_report(model, val_loader, device, classes)
 
     print(f"\n🏁 best epoch {state['best_epoch']} · val acc {val_acc:.3f} · val macro-F1 {val_f1:.3f}")
     print("\nPer-class on validation:")
@@ -160,6 +176,7 @@ def main() -> int:
     model_lib.save_checkpoint(
         out, model, args.backbone,
         {"val_accuracy": val_acc, "val_macro_f1": val_f1, "best_epoch": state["best_epoch"], "per_class": report},
+        classes=classes,
     )
     print(f"\n💾 {out}")
     print(f"   next: python scripts/evaluate.py --checkpoint {out.name}")

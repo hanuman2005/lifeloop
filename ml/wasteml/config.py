@@ -60,6 +60,58 @@ SPLIT_SEED = 42
 # warns loudly rather than letting it pass unnoticed.
 MIN_IMAGES_PER_CLASS = 150
 
+# ── Collection targets ──────────────────────────────────────────────────────
+# The per-class goals from LABELLING-POLICY.md, kept here so scripts can report
+# progress against them instead of the numbers living only in prose. Plastic is
+# largest because it is the most common real submission; Hazardous is smallest
+# because it is the hardest to find safely, not because it matters least.
+TARGET_COUNTS = {
+    "Plastic": 350,
+    "Paper": 250,
+    "Organic": 250,
+    "Glass": 200,
+    "Metal": 200,
+    "Electronic": 200,
+    "Textile": 200,
+    "Wood": 150,
+    "Hazardous": 150,
+    "NotWaste": 100,
+}
+
+# ── Metadata vocabularies ───────────────────────────────────────────────────
+# Free-text metadata is metadata nobody can group by. These are the permitted
+# values for data/metadata.csv; check_dataset.py rejects anything else so that
+# "wet", "Wet" and "damp" cannot become three different conditions.
+CONDITIONS = ["clean", "dirty", "wet", "crushed", "torn", "faded", "rusted"]
+BACKGROUNDS = ["floor", "table", "ground", "grass", "road", "hand", "bin", "cloth"]
+LIGHTINGS = ["sun", "shade", "indoor", "evening", "flash"]
+AREAS = ["home", "hostel", "market", "street", "college", "temple"]
+
+# Conditions other than "clean". The policy asks for roughly half the dataset to
+# show damaged or soiled items, because a model trained on tidy objects fails on
+# the photographs users actually send.
+DAMAGED_CONDITIONS = [c for c in CONDITIONS if c != "clean"]
+MIN_DAMAGED_SHARE = 0.40
+
+# Policy caps shots of one physical object, so that near-duplicates cannot pad
+# a class count without adding information.
+MAX_SHOTS_PER_OBJECT = 3
+
+# Items whose class cannot be decided from the policy wait here for a ruling.
+# Never a training class — prepare_dataset.py ignores any folder outside CLASSES.
+DOUBTFUL_DIR = "Doubtful"
+
+# Class_Initials_Number, e.g. Plastic_HM_0042.jpg. new_batch.py generates it and
+# check_dataset.py enforces it, so the pattern is defined once here.
+FILENAME_PATTERN = r"^(?P<cls>[A-Za-z]+)_(?P<initials>[A-Z]{2,4})_(?P<num>\d{4,})$"
+
+# Downloaded datasets, named as ingest_public.py tags them. Images from these are
+# confined to the training split: they are studio photographs of single items, so a
+# score measured on them describes a different problem from the one the app solves.
+# See COLLECTION-PLAN.md. `local` is the team's own photographs; anything else (the
+# synthetic smoke set) is treated as local, because it is not this kind of mismatch.
+PUBLIC_SOURCES = {"trashnet", "garbage12", "taco", "openimages"}
+
 # ── Training ────────────────────────────────────────────────────────────────
 BATCH_SIZE = 32
 PHASE_A_EPOCHS = 5  # frozen backbone, train the head only
@@ -83,6 +135,23 @@ SPLITS_DIR = DATA_DIR / "splits"
 ARTIFACTS_DIR = ML_ROOT / "artifacts"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+METADATA_PATH = DATA_DIR / "metadata.csv"
+PUBLIC_METADATA_PATH = DATA_DIR / "public_metadata.jsonl"
+
+# Column order for data/metadata.csv. `filename` and `object_id` are the two that
+# the pipeline actually depends on; the rest exist so the thesis can report what
+# the dataset covers, and so a gap in coverage is visible before training.
+METADATA_COLUMNS = [
+    "filename",
+    "object_id",
+    "condition",
+    "background",
+    "lighting",
+    "collector",
+    "area",
+    "source",
+]
 
 
 def preprocess_spec() -> dict:

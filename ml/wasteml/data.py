@@ -41,18 +41,46 @@ def build_transforms(train: bool):
     )
 
 
-class WasteDataset(Dataset):
-    """Reads a split CSV produced by scripts/prepare_dataset.py."""
+def active_classes(split_csv: Path, minimum: int = 1) -> list:
+    """The classes a model should actually be trained on, in config order.
 
-    def __init__(self, split_csv: Path, train: bool):
-        self.frame = pd.read_csv(split_csv)
+    A class with no images still occupies an output slot, and the network will
+    happily emit it having never seen one — a confident "Wood" prediction from a
+    model that has never been shown wood. Training only on the classes that are
+    present removes that failure mode, and `minimum` additionally drops classes too
+    thin to learn anything from.
+
+    Order follows config.CLASSES so the class list stays predictable, and the
+    resulting list is recorded in the checkpoint rather than assumed at load time.
+    """
+    counts = pd.read_csv(split_csv)["label"].value_counts()
+    return [name for name in config.CLASSES if int(counts.get(name, 0)) >= minimum]
+
+
+class WasteDataset(Dataset):
+    """Reads a split CSV produced by scripts/prepare_dataset.py.
+
+    `classes` defines the label-to-index mapping. It defaults to the full config
+    list, but a model trained on a subset must pass its own list — otherwise the
+    indices the loss sees do not match the indices the network emits.
+    """
+
+    def __init__(self, split_csv: Path, train: bool, classes: list = None):
+        self.classes = list(classes) if classes else list(config.CLASSES)
+        self.class_to_idx = {name: i for i, name in enumerate(self.classes)}
         self.transform = build_transforms(train)
 
-        missing = set(self.frame["label"]) - set(config.CLASSES)
-        if missing:
+        frame = pd.read_csv(split_csv)
+
+        unknown = set(frame["label"]) - set(config.CLASSES)
+        if unknown:
             raise ValueError(
-                f"{split_csv.name} contains labels absent from config.CLASSES: {sorted(missing)}"
+                f"{split_csv.name} contains labels absent from config.CLASSES: {sorted(unknown)}"
             )
+
+        # Rows whose class is not being trained are dropped rather than silently
+        # mapped to some other index.
+        self.frame = frame[frame["label"].isin(self.classes)].reset_index(drop=True)
 
     def __len__(self) -> int:
         return len(self.frame)
@@ -62,11 +90,16 @@ class WasteDataset(Dataset):
         # Convert explicitly: PNGs carry an alpha channel and greyscale photos have
         # one channel, either of which would break the 3-channel normalisation.
         image = Image.open(row["path"]).convert("RGB")
-        return self.transform(image), config.CLASS_TO_IDX[row["label"]]
+        return self.transform(image), self.class_to_idx[row["label"]]
 
 
-def make_loader(split_csv: Path, train: bool, batch_size: int = config.BATCH_SIZE):
-    dataset = WasteDataset(split_csv, train=train)
+def make_loader(
+    split_csv: Path,
+    train: bool,
+    batch_size: int = config.BATCH_SIZE,
+    classes: list = None,
+):
+    dataset = WasteDataset(split_csv, train=train, classes=classes)
     return DataLoader(
         dataset,
         batch_size=batch_size,
@@ -76,19 +109,22 @@ def make_loader(split_csv: Path, train: bool, batch_size: int = config.BATCH_SIZ
     )
 
 
-def class_weights(split_csv: Path) -> torch.Tensor:
-    """Inverse-frequency weights.
+def class_weights(split_csv: Path, classes: list = None) -> torch.Tensor:
+    """Inverse-frequency weights over the trained classes.
 
     Without these the network learns to predict the majority class and reports a
-    respectable accuracy while being useless — Hazardous and Wood are the classes
-    that disappear first.
+    respectable accuracy while being useless — Hazardous is the class that
+    disappears first.
     """
+    classes = list(classes) if classes else list(config.CLASSES)
+
     frame = pd.read_csv(split_csv)
+    frame = frame[frame["label"].isin(classes)]
     counts = frame["label"].value_counts()
 
     weights = []
-    for name in config.CLASSES:
+    for name in classes:
         n = int(counts.get(name, 0))
-        weights.append(0.0 if n == 0 else len(frame) / (config.NUM_CLASSES * n))
+        weights.append(0.0 if n == 0 else len(frame) / (len(classes) * n))
 
     return torch.tensor(weights, dtype=torch.float32)

@@ -1,0 +1,76 @@
+{
+  "backbone": "mobilenet_v3_small",
+  "classes": [
+    "Plastic",
+    "Glass",
+    "Metal",
+    "Paper",
+    "Organic",
+    "Textile",
+    "Hazardous"
+  ],
+  "preprocess": {
+    "image_size": 224,
+    "norm_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "norm_std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "resize": "shortest side to image_size, then center crop",
+    "color_space": "RGB"
+  },
+  "metrics": {
+    "val_accuracy": 0.8395061728395061,
+    "val_macro_f1": 0.8400336505599663,
+    "best_epoch": 17,
+    "per_class": {
+      "Plastic": {
+        "precision": 1.0,
+        "recall": 0.65,
+        "f1": 0.7879,
+        "support": 20
+      },
+      "Glass": {
+        "precision": 0.7143,
+        "recall": 0.9091,
+        "f1": 0.8,
+        "support": 11
+      },
+      "Metal": {
+        "precision": 0.8889,
+        "recall": 0.7273,
+        "f1": 0.8,
+        "support": 11
+      },
+      "Paper": {
+        "precision": 0.8125,
+        "recall": 0.9286,
+        "f1": 0.8667,
+        "support": 14
+      },
+      "Organic": {
+        "precision": 0.9091,
+        "recall": 0.9091,
+        "f1": 0.9091,
+        "support": 11
+      },
+      "Textile": {
+        "precision": 0.9,
+        "recall": 1.0,
+        "f1": 0.9474,
+        "support": 9
+      },
+      "Hazardous": {
+        "precision": 0.625,
+        "recall": 1.0,
+        "f1": 0.7692,
+        "support": 5
+      }
+    }
+  }
+}

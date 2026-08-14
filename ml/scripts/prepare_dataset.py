@@ -13,6 +13,7 @@ enforced here rather than left to the collector's discipline.
 """
 
 import argparse
+import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -39,18 +40,38 @@ def derive_object_id(path: Path, metadata: dict) -> str:
     return f"file::{path.name}"
 
 
-def load_metadata(data_dir: Path) -> dict:
-    """Optional data/metadata.csv, keyed by filename."""
-    meta_path = data_dir / "metadata.csv"
-    if not meta_path.exists():
-        return {}
+def load_metadata(meta_path: Path, public_path: Path) -> dict:
+    """The metadata CSV, keyed by filename, folded together with public ingests.
 
-    frame = pd.read_csv(meta_path)
-    if "filename" not in frame.columns:
-        print(f"⚠️  {meta_path.name} has no 'filename' column — ignoring it")
-        return {}
+    The team's hand-recorded rows and the provenance `ingest_public.py` appends to
+    data/public_metadata.jsonl describe disjoint sets of files, so merging them here
+    is what lets one lookup answer "what is this image and where did it come from".
+    Hand-recorded rows win any collision.
+    """
+    merged = {}
 
-    return {row["filename"]: row.dropna().to_dict() for _, row in frame.iterrows()}
+    if public_path.exists():
+        with open(public_path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("filename"):
+                    merged[row["filename"]] = row
+
+    if meta_path.exists():
+        frame = pd.read_csv(meta_path)
+        if "filename" not in frame.columns:
+            print(f"⚠️  {meta_path.name} has no 'filename' column — ignoring it")
+        else:
+            for _, row in frame.iterrows():
+                merged[row["filename"]] = row.dropna().to_dict()
+
+    return merged
 
 
 def scan_raw(raw_dir: Path, metadata: dict) -> pd.DataFrame:
@@ -118,6 +139,35 @@ def grouped_split(frame: pd.DataFrame, seed: int):
     )
 
 
+def split_with_local_holdout(frame: pd.DataFrame, seed: int):
+    """Split the locally shot photographs, then add the public ones to train only.
+
+    Public datasets are shot differently from the app's real input — TrashNet in
+    particular is one item on a plain white background — so a test set containing
+    them reports a number that does not describe the deployed model. Keeping them
+    out of validation matters for the same reason: the temperature and abstention
+    thresholds are fitted there and then shown to users as a confidence.
+
+    They stay in training, where extra volume genuinely helps.
+    """
+    is_public = frame["source"].isin(config.PUBLIC_SOURCES)
+    local = frame[~is_public].reset_index(drop=True)
+    public = frame[is_public].reset_index(drop=True)
+
+    if local.empty:
+        raise SystemExit(
+            "❌ every image is from a public dataset, so there is nothing to hold out.\n"
+            "   Collect local photographs, or pass --allow-public-holdout and treat the\n"
+            "   reported score as an upper bound rather than a measurement."
+        )
+
+    train, val, test = grouped_split(local, seed)
+    if not public.empty:
+        train = pd.concat([train, public], ignore_index=True)
+        print(f"📦 {len(public)} public image(s) added to train only")
+    return train, val, test
+
+
 def report(name: str, frame: pd.DataFrame) -> None:
     counts = Counter(frame["label"])
     total = len(frame)
@@ -151,7 +201,11 @@ def verify_no_leakage(train, val, test) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw-dir", type=Path, default=config.RAW_DIR)
+    parser.add_argument("--metadata", type=Path, default=config.METADATA_PATH)
     parser.add_argument("--seed", type=int, default=config.SPLIT_SEED)
+    parser.add_argument("--allow-public-holdout", action="store_true",
+                        help="let public-dataset images into val and test; the score "
+                             "then measures performance on studio photographs")
     args = parser.parse_args()
 
     if not args.raw_dir.exists():
@@ -159,8 +213,8 @@ def main() -> int:
         print(f"   {', '.join(config.CLASSES)}")
         return 1
 
-    metadata = load_metadata(config.DATA_DIR)
-    print(f"📖 metadata rows: {len(metadata) or 'none (data/metadata.csv not found)'}")
+    metadata = load_metadata(args.metadata, config.PUBLIC_METADATA_PATH)
+    print(f"📖 metadata rows: {len(metadata) or f'none ({args.metadata} not found)'}")
 
     frame = scan_raw(args.raw_dir, metadata)
     if frame.empty:
@@ -192,7 +246,11 @@ def main() -> int:
         for cls in thin:
             print(f"     {cls:<12} {counts.get(cls, 0):>5}")
 
-    train, val, test = grouped_split(frame, args.seed)
+    if args.allow_public_holdout:
+        print("\n⚠️  --allow-public-holdout: val and test may contain public images.")
+        train, val, test = grouped_split(frame, args.seed)
+    else:
+        train, val, test = split_with_local_holdout(frame, args.seed)
 
     config.SPLITS_DIR.mkdir(parents=True, exist_ok=True)
     for name, split in [("train", train), ("val", val), ("test", test)]:

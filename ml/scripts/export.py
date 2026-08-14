@@ -49,7 +49,7 @@ INT8_MAX_PROB_DRIFT = 0.05
 INT8_MIN_AGREEMENT = 0.98
 
 
-def sample_inputs(limit: int) -> torch.Tensor:
+def sample_inputs(limit: int, classes: list = None) -> torch.Tensor:
     """Real test images if available, random noise otherwise.
 
     Random tensors exercise the graph but not the input distribution the model
@@ -62,7 +62,7 @@ def sample_inputs(limit: int) -> torch.Tensor:
         print("    scripts/prepare_dataset.py for a meaningful figure.")
         return torch.randn(limit, 3, config.IMAGE_SIZE, config.IMAGE_SIZE)
 
-    loader = data.make_loader(test_csv, train=False, batch_size=limit)
+    loader = data.make_loader(test_csv, train=False, batch_size=limit, classes=classes)
     images, _ = next(iter(loader))
     return images
 
@@ -181,7 +181,9 @@ def main() -> int:
         return 1
 
     model, blob = model_lib.load_checkpoint(ckpt_path, device="cpu")
-    print(f"📦 {ckpt_path.name} · {blob['backbone']} · {config.NUM_CLASSES} classes")
+    classes = blob["classes"]
+    print(f"📦 {ckpt_path.name} · {blob['backbone']} · {len(classes)} classes")
+    print(f"🏷️  {', '.join(classes)}")
 
     bundle = config.ARTIFACTS_DIR / f"{ckpt_path.stem}_bundle"
     bundle.mkdir(parents=True, exist_ok=True)
@@ -195,7 +197,7 @@ def main() -> int:
     onnx.checker.check_model(onnx.load(str(onnx_path)))
     print(f"   {onnx_path.name}  {onnx_path.stat().st_size / 1e6:.2f} MB")
 
-    batch = sample_inputs(args.samples)
+    batch = sample_inputs(args.samples, classes)
     with torch.no_grad():
         reference = model(batch).numpy()
 
@@ -230,12 +232,14 @@ def main() -> int:
     (bundle / "labels.json").write_text(
         json.dumps(
             {
-                "classes": config.CLASSES,
-                "material_classes": config.MATERIAL_CLASSES,
-                "not_waste_class": config.NOT_WASTE_CLASS,
+                "classes": classes,
+                "material_classes": [c for c in classes if c in config.MATERIAL_CLASSES],
+                "not_waste_class": (
+                    config.NOT_WASTE_CLASS if config.NOT_WASTE_CLASS in classes else None
+                ),
                 # Spelled out because index order is the contract between the graph's
                 # output vector and the class names.
-                "index_order": {i: name for i, name in enumerate(config.CLASSES)},
+                "index_order": {i: name for i, name in enumerate(classes)},
             },
             indent=2,
         ),

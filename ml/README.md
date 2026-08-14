@@ -233,6 +233,7 @@ scripts/
   new_batch.py         import a session's photographs: naming, grouping, metadata
   check_dataset.py     audit data/raw against the labelling policy
   ingest_public.py     map a downloaded public dataset into our classes
+  crop_taco.py         cut TACO's detection annotations into single-item crops
   make_smoke_data.py   synthetic dataset for pipeline testing
   prepare_dataset.py   manifest + group-aware split
   train.py             two-phase transfer learning

@@ -75,7 +75,10 @@ def main() -> int:
                 # Shots of one object share an object_id, so the split logic is tested.
                 rows.append((name, f"{class_name}_obj{obj:03d}"))
 
-    meta_path = config.DATA_DIR / "metadata.csv"
+    # Deliberately not data/metadata.csv: that file holds the team's hand-recorded
+    # rows, is the most expensive thing here to recreate, and writing synthetic rows
+    # over it would destroy real work to run a pipeline test.
+    meta_path = config.DATA_DIR / "smoke_metadata.csv"
     with open(meta_path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(["filename", "object_id", "source"])
@@ -84,6 +87,8 @@ def main() -> int:
 
     print(f"✅ {len(rows)} synthetic images across {len(COLORS)} classes → {args.out}")
     print(f"✅ metadata → {meta_path}")
+    print(f"\n   next: python scripts/prepare_dataset.py --raw-dir {args.out} "
+          f"--metadata {meta_path}")
     print("\n⚠️  Synthetic data. Metrics from it are meaningless — never cite them.")
     return 0
 
