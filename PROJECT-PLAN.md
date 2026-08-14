@@ -151,11 +151,20 @@ evaluation, temperature calibration, abstention thresholds, ONNX/TFLite export.
 **Track C — serving (weeks 6–7).** FastAPI inference service beside the Node backend;
 `aiController` calls it instead of Gemini. Same endpoint, same response shape.
 
+**Track D — detection (weeks 7–9).** Class-agnostic detector so the scanner handles
+photographs containing more than one item. See section 5b.
+
 **Exit criteria:** photograph an item, receive a classification from a model trained on
 local data, see the points land in MongoDB — with a per-class precision/recall table and
 a confusion matrix for the thesis.
 
-### Phase 2 — M2 Crowd-Sensing · Weeks 8–10
+**Progress (week 5).** Pipeline complete and a first model trained on 570 public images:
+7 of 10 classes, test accuracy 0.842, macro-F1 0.841, calibration error 0.160 → 0.102,
+ONNX export parity-verified. Those figures describe studio photographs of single items,
+not what the app receives, and stand only as a floor for the pipeline. Electronic, Wood
+and NotWaste have no images yet and are not trained.
+
+### Phase 2 — M2 Crowd-Sensing · Weeks 10–11
 
 - `BinReport` model; two-tap report screen (photo + automatic geotag → Full / OK / Overflowing).
 - Report clustering into wards via MongoDB geospatial queries; live map.
@@ -179,12 +188,17 @@ than a feature. It is entirely simulation-based and needs no pilot.
 
 ### Phase 4 — M4 Collector Formalization · Weeks 12–14
 
+Compressed to fund detection (section 5b). What remains:
+
 - `collector` role and registration.
 - Proximity-based task assignment drawn from Exchange donations.
 - Before/after photo verification plus citizen confirmation.
-- Append-only work ledger in MongoDB; monthly PDF work certificate.
+- Append-only work ledger in MongoDB.
 
-Out of scope for this phase: payments, UPI deep-links, reputation tiers.
+Out of scope: payments, UPI deep-links, reputation tiers, and the monthly PDF work
+certificate. The ledger still records every completed task, so the certificate is a
+rendering step over data that exists rather than missing capability — documented as
+future work.
 
 ### Phase 5 — Municipal Dashboard · Week 15
 
@@ -195,6 +209,52 @@ ward-level waste-composition analytics derived from scan data.
 
 Synopsis sections 2–6 map directly onto standard SRS chapters. The buffer is real and
 should not be spent early.
+
+---
+
+## 5b. Detection
+
+The scanner currently assumes one item filling the frame. When a user photographs a
+bin or a pile, the classifier assigns one material to the whole scene and is
+confidently wrong. Detection fixes that, and improves single-item accuracy as a side
+effect by cropping away background.
+
+### Two stages, each doing what it is good at
+
+```
+photo → detector    find discardable items, return boxes
+      → crop each box
+      → classifier  material per crop        (the existing MobileNetV3)
+      → aggregate   "3 items: 2 Plastic, 1 Metal"
+```
+
+The classifier is unchanged. It simply receives cleaner input.
+
+### Class-agnostic, deliberately
+
+The detector is trained on one class — "discardable item" — not on materials. TACO
+carries roughly 25 annotations per category across 60 categories, far too thin to
+learn materials from, but ample for the single question of whether something is a
+discardable object. Material is already answered by the classifier, and asking the
+detector to answer it again would do it worse.
+
+### Why this is affordable
+
+TACO ships COCO-format detection annotations, so the detector needs **no new
+annotation work**. The team continues photographing items into class folders exactly
+as before; nothing about the collection process changes.
+
+### Cost
+
+Roughly two to three weeks: a second model to train, evaluate, export and serve, plus
+detector latency (~30–80 ms on CPU) on top of the classifier's 2.7 ms. Funded by
+compressing M4 — see section 6.6.
+
+### What detection is not for
+
+Not M2. Synopsis module 2 specifies bin reporting as photo + geotag → Full / OK /
+Overflowing, which is three labels on one photograph — a classification problem.
+Detection serves the scanner only.
 
 ---
 
@@ -297,12 +357,19 @@ Synopsis section 6 specifies OSRM. A working K-means + TSP implementation alread
 in `services/routeOptimizer.js`. Self-hosting OSRM is roughly a week that the schedule
 does not have, for a marginal accuracy gain in the simulation.
 
-### 6.4 No hosted vision API
+### 6.4 No hosted vision API in the final system
 
 Synopsis module 1 proposes Gemini Vision for v1. Instead the classifier is trained here
 (section 5a). This is a deliberate increase in difficulty, taken for its learning value
 and because it converts the project's central claim — that Indian waste is not TrashNet
 — from an assertion into a measured result on a dataset the project itself collected.
+
+Gemini remains wired as a **temporary fallback**, firing only when the model service is
+unreachable, has no checkpoint, or times out. It deliberately does not fire when the
+model returns a low-confidence answer: substituting a hosted API for a weak prediction
+would hide the weakness and invalidate the accuracy evaluation. Every response carries
+an `engine` field so a fallback result can never be reported as the project's own
+model output. The fallback is removed once the classifier clears its target.
 
 The cost is approximately four weeks, and it is what funds section 6.5.
 
@@ -317,6 +384,25 @@ argument, and the reasoning for an ACID store — as a thesis chapter and as fut
 It is not implemented, and the thesis says so plainly.
 
 The project therefore delivers four of five modules, with the fifth specified.
+
+### 6.6 Detection added, as a second stage rather than a replacement
+
+Synopsis module 1 names YOLOv8 as the eventual model. It is adopted, but not in the
+role the synopsis implies: as a **class-agnostic detector feeding the classifier**
+(section 5b), rather than as a multi-class detector predicting materials directly.
+
+The reason is annotation density. TACO averages roughly 25 boxes per category across
+60 categories — enough to learn "this is a discardable object", nowhere near enough to
+learn "this object is Textile". Splitting the question lets the detector answer what it
+has data for and the classifier answer what it has data for.
+
+This costs two to three weeks and is funded by compressing M4 (phase 4): the monthly
+PDF work certificate is dropped, along with payments and reputation tiers. The work
+ledger still records every completed task, so the certificate is a rendering step over
+existing data rather than absent capability.
+
+Accepting the cost because detection removes a real failure the current build has —
+a photograph containing several items gets one confident material for the whole scene.
 
 ---
 
