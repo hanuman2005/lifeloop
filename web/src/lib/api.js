@@ -99,7 +99,25 @@ export const binsAPI = {
   getWards: (params) => api.get("/bins/wards", { params }),
   getActionable: (params) => api.get("/bins/actionable", { params }),
   getMyReports: () => api.get("/bins/my-reports"),
+  // Builds a collection route over the bins reported as needing emptying, and
+  // returns the saving against an ordered circuit over every reporting ward.
+  planRoute: (body) => api.post("/bins/route", body),
   resolve: (id) => api.patch(`/bins/${id}/resolve`),
+};
+
+export const collectorAPI = {
+  generateTasks: (body) => api.post("/collector/tasks/generate", body || {}),
+  getNearbyTasks: (params) => api.get("/collector/tasks/nearby", { params }),
+  getMyTasks: () => api.get("/collector/tasks/mine"),
+  accept: (id) => api.post(`/collector/tasks/${id}/accept`),
+  complete: (id, body) => api.post(`/collector/tasks/${id}/complete`, body),
+  // Called by the citizen who raised the work, never the collector.
+  verify: (id) => api.post(`/collector/tasks/${id}/verify`),
+  getLedger: (params) => api.get("/collector/ledger", { params }),
+};
+
+export const routesAPI = {
+  optimize: (body) => api.post("/routes/optimize", body),
 };
 
 export const chatAPI = {

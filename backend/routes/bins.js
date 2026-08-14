@@ -9,6 +9,7 @@ const {
   getNearby,
   getWardSummary,
   getActionable,
+  getCollectionRoute,
   resolveReport,
   getMyReports,
 } = require("../controllers/binController");
@@ -30,6 +31,7 @@ router.post("/report", auth, reportLimiter, createReport);
 router.get("/nearby", auth, getNearby);
 router.get("/wards", auth, getWardSummary);
 router.get("/actionable", auth, getActionable);
+router.post("/route", auth, getCollectionRoute);
 router.get("/my-reports", auth, getMyReports);
 router.patch("/:id/resolve", auth, resolveReport);
 

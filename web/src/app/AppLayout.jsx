@@ -4,16 +4,20 @@
 // layout is the primary one and the desktop sidebar is the adaptation.
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, Camera, LogOut, MapPin, Package, Trash2, User } from "lucide-react";
+import { BarChart3, Camera, LayoutDashboard, LogOut, MapPin, Package, Trash2, Truck, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { cn } from "@/lib/utils";
 
+// `roles` omitted means everyone. The mobile bar is capped at five items because
+// more than that stops being tappable one-handed.
 const NAV = [
   { to: "/scan", label: "Scan", icon: Camera },
   { to: "/listings", label: "Exchange", icon: Package },
   { to: "/bins/report", label: "Report bin", icon: Trash2 },
   { to: "/bins/map", label: "Waste map", icon: MapPin },
+  { to: "/collect", label: "Collect", icon: Truck, roles: ["collector", "admin"] },
+  { to: "/municipal", label: "Municipal", icon: LayoutDashboard, roles: ["admin"] },
   { to: "/impact", label: "Impact", icon: BarChart3 },
 ];
 
@@ -40,8 +44,10 @@ function NavItem({ to, label, icon: Icon, mobile }) {
 }
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, userType, logout } = useAuth();
   const navigate = useNavigate();
+
+  const nav = NAV.filter((item) => !item.roles || item.roles.includes(userType));
 
   const handleLogout = () => {
     logout();
@@ -60,7 +66,7 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavItem key={item.to} {...item} />
           ))}
         </nav>
@@ -87,7 +93,7 @@ export default function AppLayout() {
 
       {/* Mobile bottom bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t border-border bg-card px-1 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-        {NAV.map((item) => (
+        {nav.slice(0, 5).map((item) => (
           <NavItem key={item.to} {...item} mobile />
         ))}
       </nav>

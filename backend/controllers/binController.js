@@ -5,6 +5,7 @@
 // scalability argument.
 
 const BinReport = require("../models/BinReport");
+const { RouteOptimizer, haversineDistance } = require("../services/routeOptimizer");
 const EcoPoints = require("../models/EcoPoints");
 const binTrust = require("../services/binTrust");
 
@@ -286,6 +287,119 @@ const resolveReport = async (req, res, next) => {
   }
 };
 
+// @desc    Plan a collection route over the bins that actually need emptying
+// @route   POST /api/bins/route
+// @access  Private
+//
+// This is the M2-to-routing link: the truck is sent to reported-full bins rather
+// than driving a fixed circuit. The comparison figure returned here uses the same
+// method as scripts/routeSimulation.js, whose baseline is a fixed circuit over
+// every bin ordered with the same heuristics — not the naive per-bin round trip,
+// which flatters the result and does not describe how anyone collects.
+const getCollectionRoute = async (req, res, next) => {
+  try {
+    const { depot, hours = 24, maxPerRoute = 25 } = req.body;
+
+    if (!depot || !Number.isFinite(Number(depot.lat)) || !Number.isFinite(Number(depot.lng ?? depot.lon))) {
+      return res.status(400).json({
+        success: false,
+        message: "depot with lat and lng is required",
+      });
+    }
+
+    const origin = {
+      // routeOptimizer uses `lon`, the rest of the API uses `lng`.
+      lat: Number(depot.lat),
+      lon: Number(depot.lng ?? depot.lon),
+      name: depot.name || "Depot",
+    };
+
+    const reports = await BinReport.actionable({ hours: Number(hours) })
+      .select("location ward status weight")
+      .lean();
+
+    if (reports.length === 0) {
+      return res.json({
+        success: true,
+        message: "No bins currently need collection.",
+        stops: 0,
+        routes: [],
+      });
+    }
+
+    const stops = reports.map((report) => ({
+      id: String(report._id),
+      lat: report.location.coordinates[1],
+      lon: report.location.coordinates[0],
+      ward: report.ward,
+      status: report.status,
+    }));
+
+    const optimizer = new RouteOptimizer();
+    const result = await optimizer.optimizeRoutes(origin, stops, {
+      maxPickupsPerRoute: Number(maxPerRoute),
+    });
+
+    if (!result.success) {
+      return res.status(422).json({ success: false, message: result.message });
+    }
+
+    // Distance if every bin in the network were visited on one ordered circuit,
+    // which is what a fixed municipal route costs whether or not bins are full.
+    const allBins = await BinReport.aggregate([
+      { $match: { accepted: true } },
+      {
+        $group: {
+          _id: "$ward",
+          lng: { $avg: { $arrayElemAt: ["$location.coordinates", 0] } },
+          lat: { $avg: { $arrayElemAt: ["$location.coordinates", 1] } },
+        },
+      },
+    ]);
+
+    let circuitKm = 0;
+    if (allBins.length) {
+      let current = origin;
+      const remaining = allBins.map((w) => ({ lat: w.lat, lon: w.lng }));
+      while (remaining.length) {
+        let best = 0;
+        let bestDistance = Infinity;
+        remaining.forEach((point, index) => {
+          const distance = haversineDistance(current.lat, current.lon, point.lat, point.lon);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            best = index;
+          }
+        });
+        circuitKm += bestDistance;
+        current = remaining[best];
+        remaining.splice(best, 1);
+      }
+      circuitKm += haversineDistance(current.lat, current.lon, origin.lat, origin.lon);
+    }
+
+    const optimisedKm = Number(result.summary.totalDistance);
+
+    return res.json({
+      success: true,
+      stops: stops.length,
+      routes: result.routes,
+      summary: result.summary,
+      comparison: {
+        fixedCircuitKm: Number(circuitKm.toFixed(2)),
+        optimisedKm,
+        reductionPct:
+          circuitKm > 0
+            ? Number((((circuitKm - optimisedKm) / circuitKm) * 100).toFixed(1))
+            : null,
+        note: "Baseline is a single ordered circuit over every ward with reports, driven regardless of fill state.",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Reporter's own history and standing
 // @route   GET /api/bins/my-reports
 // @access  Private
@@ -323,6 +437,7 @@ module.exports = {
   getNearby,
   getWardSummary,
   getActionable,
+  getCollectionRoute,
   resolveReport,
   getMyReports,
   wardKey,

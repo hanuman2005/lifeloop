@@ -20,6 +20,8 @@ import MyListingsPage from "@/features/listings/MyListingsPage";
 import BinReportPage from "@/features/bins/BinReportPage";
 import BinMapPage from "@/features/bins/BinMapPage";
 import ImpactPage from "@/features/impact/ImpactPage";
+import CollectorPage from "@/features/collector/CollectorPage";
+import MunicipalPage from "@/features/municipal/MunicipalPage";
 import ProfilePage from "@/features/profile/ProfilePage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 
@@ -34,6 +36,16 @@ function RequireAuth({ children }) {
     // Remember where they were headed so login can return them there.
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
+  return children;
+}
+
+/** Restricts a route to specific userTypes. */
+function RequireRole({ allow, children }) {
+  const { userType, initialising } = useAuth();
+  if (initialising) return <LoadingState label="Loading" />;
+  // Redirect rather than showing a refusal: a citizen has no use for a page they
+  // cannot act on, and a dead end is worse than a sensible default.
+  if (!allow.includes(userType)) return <Navigate to="/scan" replace />;
   return children;
 }
 
@@ -80,6 +92,22 @@ export default function AppRouter() {
         <Route path="/listings/:id" element={<ListingDetailPage />} />
         <Route path="/bins/report" element={<BinReportPage />} />
         <Route path="/bins/map" element={<BinMapPage />} />
+        <Route
+          path="/collect"
+          element={
+            <RequireRole allow={["collector", "admin"]}>
+              <CollectorPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/municipal"
+          element={
+            <RequireRole allow={["admin"]}>
+              <MunicipalPage />
+            </RequireRole>
+          }
+        />
         <Route path="/impact" element={<ImpactPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
