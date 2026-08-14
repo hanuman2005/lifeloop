@@ -25,6 +25,10 @@ const ecoPointsSchema = new mongoose.Schema(
       totalReuseProjects: { type: Number, default: 0 },
       totalPickups: { type: Number, default: 0 },
       totalDonations: { type: Number, default: 0 },
+      // M2 crowd-sensing. Counted separately from totalScans: a bin report and a
+      // waste scan are different acts, and merging them would make both metrics
+      // unusable in the thesis.
+      totalBinReports: { type: Number, default: 0 },
       kgDiverted: { type: Number, default: 0 }, // kg of waste diverted from landfill
       co2Saved: { type: Number, default: 0 }, // kg CO2 equivalent saved
     },
@@ -51,6 +55,9 @@ ecoPointsSchema.methods.awardPoints = async function (
 ) {
   const POINTS_MAP = {
     scan: 5,
+    // Lower than a scan: a bin report is two taps and carries less information,
+    // and over-rewarding it is exactly what makes the module worth gaming.
+    bin_report: 3,
     reuse_project: 20,
     upcycle_project: 25,
     pickup_request: 30,
@@ -68,6 +75,7 @@ ecoPointsSchema.methods.awardPoints = async function (
 
   // Update stats
   if (action === "scan") this.stats.totalScans++;
+  if (action === "bin_report") this.stats.totalBinReports++;
   if (action === "reuse_project") this.stats.totalReuseProjects++;
   if (action === "pickup_request") this.stats.totalPickups++;
   if (action === "donate") this.stats.totalDonations++;
@@ -75,6 +83,9 @@ ecoPointsSchema.methods.awardPoints = async function (
   // CO2 calculation (approximate kg CO2 saved per action)
   const CO2_MAP = {
     scan: 0,
+    // Reporting a bin does not itself divert waste; the collection it triggers
+    // does, and that is credited to the collector.
+    bin_report: 0,
     reuse_project: 0.5,
     upcycle_project: 0.8,
     pickup_request: 1.2,
