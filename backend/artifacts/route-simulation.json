@@ -1,0 +1,113 @@
+{
+  "generatedBy": "scripts/routeSimulation.js",
+  "parameters": {
+    "bins": 100,
+    "trials": 30,
+    "seed": 42,
+    "source": "synthetic"
+  },
+  "depot": {
+    "lat": 16.5449,
+    "lon": 81.5212,
+    "name": "Municipal depot"
+  },
+  "fixedCircuitKm": 32.3,
+  "baseline": "Fixed circuit over every bin, ordered by nearest-neighbour + 2-opt, driven regardless of fill state.",
+  "limitations": [
+    "Straight-line haversine distance, not road network distance. Both arms are penalised equally, so the ratio is defensible but the absolute kilometres are not.",
+    "The optimised arm splits stops into capacity-limited routes of 25, each returning to the depot, while the baseline is a single tour. Above roughly 60% fill this asymmetry is what makes the optimised total longer: several depot returns cost more than one circuit. This is realistic for a fleet with limited capacity, but it means the crossover point is a property of the capacity assumption, not only of the routing.",
+    "No time windows or traffic modelling.",
+    "Bin locations are synthetic, drawn over the pilot area geometry."
+  ],
+  "finding": "Crowd-sensed routing wins precisely when bins are not uniformly full, which is the real-world case. Above roughly 60% fill the fixed circuit is better, because there is nothing left to skip. Reporting that crossover is what makes the headline figure credible.",
+  "results": [
+    {
+      "fillRate": 0.1,
+      "meanStops": 9.1,
+      "circuitKm": 32.3,
+      "optimisedKm": 15.26,
+      "naiveKm": 43.66,
+      "reductionPct": 52.8,
+      "reductionMinPct": 38.4,
+      "reductionMaxPct": 65.8,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.2,
+      "meanStops": 19.9,
+      "circuitKm": 32.3,
+      "optimisedKm": 19.06,
+      "naiveKm": 95.53,
+      "reductionPct": 41,
+      "reductionMinPct": 30.3,
+      "reductionMaxPct": 56,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.3,
+      "meanStops": 30.4,
+      "circuitKm": 32.3,
+      "optimisedKm": 23.17,
+      "naiveKm": 142.31,
+      "reductionPct": 28.3,
+      "reductionMinPct": 14.2,
+      "reductionMaxPct": 43.5,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.4,
+      "meanStops": 39.7,
+      "circuitKm": 32.3,
+      "optimisedKm": 25.34,
+      "naiveKm": 185.38,
+      "reductionPct": 21.6,
+      "reductionMinPct": 11.2,
+      "reductionMaxPct": 26.7,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.5,
+      "meanStops": 49.6,
+      "circuitKm": 32.3,
+      "optimisedKm": 27.49,
+      "naiveKm": 233.01,
+      "reductionPct": 14.9,
+      "reductionMinPct": 0.8,
+      "reductionMaxPct": 25.1,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.6,
+      "meanStops": 59.7,
+      "circuitKm": 32.3,
+      "optimisedKm": 31.14,
+      "naiveKm": 281.57,
+      "reductionPct": 3.6,
+      "reductionMinPct": -9.7,
+      "reductionMaxPct": 10.9,
+      "trials": 30
+    },
+    {
+      "fillRate": 0.8,
+      "meanStops": 80.6,
+      "circuitKm": 32.3,
+      "optimisedKm": 37.68,
+      "naiveKm": 376.26,
+      "reductionPct": -16.6,
+      "reductionMinPct": -27.4,
+      "reductionMaxPct": -3.2,
+      "trials": 30
+    },
+    {
+      "fillRate": 1,
+      "meanStops": 100,
+      "circuitKm": 32.3,
+      "optimisedKm": 38.82,
+      "naiveKm": 470.09,
+      "reductionPct": -20.2,
+      "reductionMinPct": -32.8,
+      "reductionMaxPct": -17.2,
+      "trials": 30
+    }
+  ]
+}
