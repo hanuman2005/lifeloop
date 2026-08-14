@@ -1,86 +1,83 @@
 # Demo Runbook
 
-Everything needed to get LifeLoop running in front of an audience, what to show, and
-what to avoid. Read the network section first — it is the single most likely thing to
-break.
+Startup order, what to show, and honest answers to the questions a panel will ask.
+Read section 1 at the venue — the network step is what breaks most often.
 
 ---
 
 ## 1. Network — do this first, at the venue
 
-The mobile app reaches the backend over your machine's LAN IP. That address changes
-every time you join a different network, and when it is wrong the app cannot reach the
-backend at all: no login, no scan, nothing.
+The web app runs in a browser, so a laptop-only demo needs no network setup at all:
+`localhost` works. You only need this section if you want to open the app **on a phone**,
+which is worth doing because the scanner then uses the real camera.
 
-Find the current address:
+Find the machine's current address:
 
 ```powershell
 Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' }
 ```
 
-Take the **Wi-Fi** one (currently `10.98.16.129`) and put it in two places:
+Take the **Wi-Fi** one and set it in two places:
 
-**`LifeLoop/app.json`**
-```json
-"API_URL": "http://<IP>:5000/api",
-"SOCKET_API_URL": "http://<IP>:5000",
+**`web/.env`**
+```
+VITE_API_URL=http://<IP>:5000/api
+VITE_SOCKET_URL=http://<IP>:5000
 ```
 
 **`backend/.env`**
 ```
-ALLOWED_ORIGINS=http://<IP>:8081,http://<IP>:19000,http://<IP>:19006
+ALLOWED_ORIGINS=http://<IP>:5173
 ```
 
-Then restart the backend and Expo. Changing `app.json` requires an Expo restart — it is
-read at startup, not on reload.
+Restart both. Vite reads `.env` at startup, and CORS now genuinely rejects unknown
+origins rather than waving everything through.
 
-**The phone and the laptop must be on the same Wi-Fi.** College guest networks often
-isolate clients from each other, which blocks this silently. If you can, use a phone
-hotspot with the laptop joined to it — that always works.
+Then open `http://<IP>:5173` on the phone.
 
-Verify from the laptop before trusting it:
+**Phone and laptop must be on the same Wi-Fi.** College guest networks often isolate
+clients from each other, which blocks this silently. A phone hotspot with the laptop
+joined to it always works.
 
-```bash
-curl http://<IP>:5000/health
-```
-
-Expect `{"status":"ok", ... "mongodb":"connected"}`.
+One caveat on phone camera access: browsers only allow `getUserMedia` on HTTPS or
+localhost. The scanner deliberately uses a file input with `capture`, which opens the
+native camera over plain HTTP too — so this works, but do not switch it to a live
+video preview at the venue.
 
 ---
 
-## 2. Start the three services
+## 2. Start the services
 
-Three terminals, in this order. MongoDB must already be running.
+MongoDB must already be running.
 
-**Terminal 1 — the classifier**
+**Terminal 1 — classifier** *(optional but wanted for the scan demo)*
 ```bash
 cd ml
-uvicorn serve.app:app --host 0.0.0.0 --port 8000
+uvicorn serve.app:app --host 127.0.0.1 --port 8000
 ```
 Wait for `✅ waste_mobilenet_v3_small.pt loaded`.
 
-**Terminal 2 — the backend**
+**Terminal 2 — backend**
 ```bash
 cd backend
 npm run dev
 ```
 Wait for `🚀 LIFELOOP SERVER RUNNING`.
 
-**Terminal 3 — the app**
+**Terminal 3 — web client**
 ```bash
-cd LifeLoop
-npx expo start
+cd web
+npm run dev
 ```
-Scan the QR code with Expo Go.
 
-### Health check before you present
+### Health check before presenting
 
 ```bash
 curl http://127.0.0.1:8000/health     # classifier: expect 7 classes listed
-curl http://<IP>:5000/health          # backend: expect mongodb "connected"
+curl http://127.0.0.1:5000/health     # backend: expect mongodb "connected"
 ```
 
-If port 5000 says `EADDRINUSE`, an old server is still running:
+If port 5000 reports `EADDRINUSE`, an old server is still holding it:
 
 ```powershell
 Get-NetTCPConnection -LocalPort 5000 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
@@ -90,14 +87,14 @@ Get-NetTCPConnection -LocalPort 5000 -State Listen | ForEach-Object { Stop-Proce
 
 ## 3. What the classifier can and cannot do
 
-Trained on 570 public images. **7 of 10 classes:**
+Trained on 570 public images. **7 of 10 classes.**
 
 ```
 ✅ Plastic   Glass   Metal   Paper   Organic   Textile   Hazardous
-❌ Electronic   Wood   NotWaste        ← no training images, never predicted
+❌ Electronic   Wood   NotWaste        ← no training data, never predicted
 ```
 
-Measured on held-out public images: **accuracy 0.842, macro-F1 0.841.**
+Test accuracy **0.842**, macro-F1 **0.841**.
 
 | Class | F1 | Demo confidence |
 |---|---|---|
@@ -109,105 +106,123 @@ Measured on held-out public images: **accuracy 0.842, macro-F1 0.841.**
 | Glass | 0.720 | Riskier |
 | Paper | 0.720 | Riskier — confused with Glass and Metal |
 
-### Good things to scan
+**Scan these:** plastic bottle, steel tumbler, banana peel, old shirt, battery. Single
+item, filling the frame, plain background, decent light.
 
-A plastic bottle, a steel tumbler, a banana peel, an old shirt, a battery. Single item,
-filling the frame, plain background, good light.
+**Avoid:** anything wooden or electronic (no training data), multi-item shots (one
+material is assigned to the whole scene), and paper on a shiny white background.
 
-### Avoid
-
-- **Anything wooden or electronic** — the model has never seen those classes and will
-  confidently pick something else.
-- **Multiple items in frame** — it assigns one material to the whole scene. This is the
-  known limitation that the detection work (PROJECT-PLAN.md §5b) exists to fix.
-- **Paper against a shiny or white background** — Paper is the weakest class.
-
-### If it is unsure
-
-Low confidence shows as *"Not sure — best guess: X"* with no confetti. That is
-deliberate, not a bug: the model abstains rather than presenting a guess as a result.
-Worth calling out — it is a design decision a panel will respect.
+**When it is unsure** it says so — "Not sure", no confetti, no "identified" badge. That
+is deliberate: the model abstains below its calibrated per-class threshold rather than
+presenting a guess as a result. Worth calling out; panels respect it.
 
 ---
 
-## 4. What to demo, in order
+## 4. Demo sequence
 
-1. **Register / login** — role selection, donor or recipient.
-2. **Scan an item** — the AI classifier. Show the confidence and the material.
-   This is the centrepiece: the model is trained by you, not a hosted API.
-3. **Create a listing** from the scan result.
-4. **Browse and express interest** as a recipient (second account, or the same one).
-5. **Chat** between donor and recipient — real-time over Socket.IO.
-6. **Schedule a pickup**, then **QR verification** at handover.
-7. **Impact dashboard** — CO₂ saved, eco points, leaderboard.
+1. **Register** — pick a role. Roles come from the same enum the backend enforces.
+2. **Scan an item** — the centrepiece. Show the material, the calibrated confidence, and
+   the disposal guidance. Then scan something it will hesitate on and show it abstaining.
+3. **Give it away** — the scan result preselects a category on the listing form.
+4. **Report a bin** — two taps plus a geotag. Show the accuracy readout.
+5. **Waste map** — the ward map built from those reports. Colour is weighted pressure,
+   size is report volume.
+6. **Municipal dashboard** *(admin account)* — ward pressure chart, then **Build route**
+   to show the collection plan and the saving against the fixed circuit.
+7. **Collector** *(collector account)* — accept a task, complete it with before/after
+   photos, then confirm from the citizen account. Show the work record and the
+   **Record intact** chain check.
 
-Steps 3–7 are complete and stable. Step 2 is the newest and the one worth talking about.
+Step 7 is the strongest sequence in the demo: it is the only part that visibly closes
+the loop from citizen report to verified collection.
+
+To make an admin, set `userType: "admin"` on the user document directly in MongoDB, or
+use `backend/scripts/makeAdmin.js`.
 
 ---
 
 ## 5. If the classifier dies mid-demo
 
-The backend falls back to Gemini automatically when the classifier service is
-unreachable, has no model loaded, or times out. It is **off by default**.
+The backend falls back to Gemini when the classifier service is unreachable, has no
+model loaded, or times out. It is **off by default**.
 
-To arm it, put a free key from `aistudio.google.com/apikey` in `backend/.env`:
+Put a key from `aistudio.google.com/apikey` in `backend/.env`:
 
 ```
 GEMINI_API_KEY=your_key_here
 ```
 
-Restart the backend. If the Python service dies, scans keep working and the response is
-tagged `engine: "gemini"` so the two are never confused.
+Restart the backend. Responses are tagged `engine: "gemini"`, and the UI shows a
+`fallback` badge, so the two can never be confused.
 
-Worth arming before the demo purely as insurance.
-
-**Important:** the fallback does *not* fire when your own model returns a low-confidence
-answer — only when it cannot be reached at all. That is deliberate, so a hosted API can
-never quietly stand in for your model's accuracy.
+Worth arming as insurance. It does **not** fire when your own model returns a
+low-confidence answer — only when it cannot be reached at all — so it can never quietly
+stand in for your model's accuracy.
 
 ---
 
 ## 6. Honest answers to likely questions
 
 **"Is this your own model?"**
-Yes. MobileNetV3-Small architecture from torchvision, ImageNet-pretrained, then
-fine-tuned on waste images in two phases. The weights are ours. Training a CNN
-architecture from scratch on this much data would be strictly worse — transfer learning
-is the correct approach at this scale.
+Yes. MobileNetV3-Small from torchvision, ImageNet-pretrained, then fine-tuned in two
+phases on waste images. The weights are ours. Transfer learning is the correct approach
+at this data scale — training an architecture from scratch on 570 images would be
+strictly worse.
 
 **"Why not YOLO, as the synopsis says?"**
-YOLO is a detector: it answers *where are the objects*. This is a classification
-problem — one item, one label — and detection would cost roughly five times the
-annotation effort for no gain. Detection is being added as a second stage to handle
-multi-item photographs; see PROJECT-PLAN.md §5b and §6.6.
+YOLO is a detector: it answers *where are the objects*. This is classification — one
+item, one label — and detection would cost roughly five times the annotation effort for
+no gain. Detection is scoped as a second stage for multi-item photographs; see
+PROJECT-PLAN.md §5b and §6.6. It is not built yet.
 
 **"What accuracy?"**
-84.2% on a held-out test set, 7 classes. But be straight: that is measured on public
-dataset photographs — single items on plain backgrounds. Real photographs will score
-lower, and closing that gap is exactly what the local data collection is for. Claiming
-84% represents real-world performance is the one thing that would damage your
-credibility.
+84.2% on a held-out, object-disjoint test set across 7 classes. Then say the important
+part unprompted: that is measured on **public dataset photographs** — single items on
+plain backgrounds. Real photographs will score lower, and closing that gap is what the
+local data collection is for. Claiming 84% represents real-world performance is the one
+thing that would cost you credibility.
 
 **"How much data?"**
-570 public images so far, from TrashNet, TACO and a Kaggle set. The team is collecting
-~2,000 local photographs in Bhimavaram, which is the project's actual data
-contribution — the argument being that Indian waste does not look like TrashNet.
+570 public images from TrashNet, TACO and a Kaggle set. The team is collecting ~2,000
+local photographs in Bhimavaram, which is the project's actual data contribution — the
+argument being that Indian waste does not look like TrashNet.
+
+**"How do you stop people gaming the bin reports?"**
+Four rules, all enforced and all measurable: SHA-256 image-hash duplicate detection, a
+per-user rate limit, a geofence, and a same-place cooldown. Rejected reports are stored
+rather than deleted, so the rejection rate is a number we can quote. Reporter reputation
+weights rather than blocks — a new reporter is not a bad reporter, and the map
+aggregates by summed weight so an unreliable account fades instead of vanishing.
+
+**"Is the 26.5% route saving real?"**
+It is measured against a *fixed circuit over every bin, ordered with the same
+heuristics* as the optimised route — not against a naive per-bin round trip, which would
+have shown 80–90% and meant nothing. The study also reports where the approach loses:
+above roughly 60% fill the fixed circuit wins, because there is nothing left to skip.
+That crossover is what makes the headline figure believable.
+
+**"Can the collector work record be faked?"**
+A collector cannot verify their own task — the citizen who raised it confirms. Entries
+are hash-chained, so altering one invalidates everything after it, and the chain is
+re-verified on every read. Application-level edits are blocked outright; a tamper
+applied directly to the database is detected at the exact entry.
 
 **"What is missing?"**
-Three classes with no data yet, multi-item photographs, and modules 2, 4 and 5. All
-recorded in PROJECT-PLAN.md rather than hidden.
+Three classifier classes with no data, multi-item detection, the EPR module, and the
+thesis. All recorded in PROJECT-PLAN.md §6a rather than hidden.
 
 ---
 
 ## 7. Pre-demo checklist
 
-- [ ] Laptop and phone on the same network (hotspot is safest)
-- [ ] IP updated in `app.json` and `backend/.env`
 - [ ] MongoDB running
-- [ ] Classifier service up — `/health` lists 7 classes
+- [ ] Classifier up — `/health` lists 7 classes
 - [ ] Backend up — `/health` says mongodb connected
-- [ ] Expo running, app loads on the phone
-- [ ] One test scan completed successfully end to end
+- [ ] Web client up, loads in the browser
+- [ ] One test scan completed end to end
+- [ ] Admin account ready (for the municipal dashboard)
+- [ ] Collector account ready, plus a second citizen account to verify with
+- [ ] Bin reports seeded so the map and dashboard are not empty
 - [ ] `GEMINI_API_KEY` set as insurance (optional)
-- [ ] A few known-good items on hand: bottle, tumbler, cloth, peel
+- [ ] Known-good items on hand: bottle, tumbler, cloth, peel
 - [ ] Laptop on mains power, sleep disabled

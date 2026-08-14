@@ -3,7 +3,7 @@
 **Student:** Hanumantha Rao Madineni · B.Tech CSE, SRKR Engineering College
 **Basis document:** `LifeLoop-Final-Year-Project.md` (synopsis / guide-approved scope)
 **Working mode:** Solo build · ~16 weeks (one semester) · small team assisting with data collection
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-14
 
 This file is the working plan of record. The synopsis describes the intended system; this
 file describes what will actually be built, in what order, and every place the
@@ -26,7 +26,7 @@ and issue verifiable proof that recycling happened.
 | M2 | Crowd-Sensing Bin Network | Citizens report public bin fill state; produces a live ward map without IoT hardware |
 | M3 | The Exchange | Items find a second owner before becoming waste |
 | M4 | Collector Formalization | Ragpickers get digital identity, proximity tasks, and a work ledger |
-| M5 | EPR Certificate Ledger | **Descoped — see 6.5.** Designed and documented, not built. |
+| M5 | EPR Certificate Ledger | **Descoped — see 6.5.** Its hash-chain technique is applied to the M4 work ledger instead. |
 | — | Points Economy | Cross-cutting incentive layer tying the modules together |
 
 **M1 is the centrepiece.** The classifier is trained from scratch on a locally collected
@@ -52,8 +52,10 @@ against the synopsis. Result:
 
 - `backend/` — Node.js + Express + MongoDB (Mongoose) + Socket.IO. ~17,400 lines.
   26 routers, 17 models, 21 controllers.
-- `LifeLoop/` — Expo / React Native 0.81 (SDK 54) mobile app. ~38,000 lines.
-  33 screens, 7 admin screens, 26 components, 6 contexts.
+- `web/` — React PWA (Vite, Tailwind, shadcn/ui). The current client.
+- `ml/` — the M1 classifier: dataset tooling, training, evaluation, FastAPI serving.
+- `LifeLoop/` — Expo / React Native 0.81 (SDK 54). Superseded by `web/`, retained
+  until the web app has been through a demo.
 
 ### Defects found in the audit
 
@@ -164,7 +166,9 @@ ONNX export parity-verified. Those figures describe studio photographs of single
 not what the app receives, and stand only as a floor for the pipeline. Electronic, Wood
 and NotWaste have no images yet and are not trained.
 
-### Phase 2 — M2 Crowd-Sensing · Weeks 10–11
+### Phase 2 — M2 Crowd-Sensing · Weeks 10–11 · **complete**
+
+Delivered ahead of schedule alongside the web rewrite.
 
 - `BinReport` model; two-tap report screen (photo + automatic geotag → Full / OK / Overflowing).
 - Report clustering into wards via MongoDB geospatial queries; live map.
@@ -175,7 +179,16 @@ and NotWaste have no images yet and are not trained.
 
 **Exit criteria:** citizens can report bins; a live ward map renders from those reports.
 
-### Phase 3 — Route optimization + simulation study · Week 11
+### Phase 3 — Route optimization + simulation study · Week 11 · **complete**
+
+Result: **26.5% mean distance reduction** at realistic fill rates (20–50%), against a
+synopsis target of 25–40%. Written up in `backend/artifacts/route-simulation.md`.
+
+The study also found where the approach fails: above roughly 60% fill the fixed
+circuit wins, reaching −20% at full occupancy. Crowd-sensing pays off precisely when
+bins are not uniformly full, which is the real-world case. Reporting that crossover is
+what makes the headline figure credible.
+
 
 - Re-point the existing K-means + TSP optimizer from pickup requests to reported-full bins.
 - Run the study: fixed-route baseline versus optimized route, over real Bhimavaram ward
@@ -186,7 +199,7 @@ than a feature. It is entirely simulation-based and needs no pilot.
 
 **Exit criteria:** a baseline-versus-optimized comparison with a defensible number.
 
-### Phase 4 — M4 Collector Formalization · Weeks 12–14
+### Phase 4 — M4 Collector Formalization · Weeks 12–14 · **complete**
 
 Compressed to fund detection (section 5b). What remains:
 
@@ -200,7 +213,7 @@ certificate. The ledger still records every completed task, so the certificate i
 rendering step over data that exists rather than missing capability — documented as
 future work.
 
-### Phase 5 — Municipal Dashboard · Week 15
+### Phase 5 — Municipal Dashboard · Week 15 · **complete**
 
 Extend the existing admin screens: live waste map, generated collection routes,
 ward-level waste-composition analytics derived from scan data.
@@ -331,12 +344,19 @@ behind it. On-device TFLite inference remains the stretch goal it is in the syno
 Each of these is a scope decision. They belong in the thesis as stated limitations, not
 hidden behind optimistic phrasing.
 
-### 6.1 React Native (Expo), not a React PWA
+### 6.1 React web — resolved, no longer a deviation
 
-Synopsis section 6 specifies a React PWA. A working React Native application already
-exists. Rewriting it as a PWA is roughly six weeks of work that adds no capability the
-project is evaluated on. Expo can additionally emit a web build if a browser target
-becomes necessary.
+Synopsis section 6 specifies a React PWA with Leaflet. The project had drifted to
+Expo React Native; it has now been rebuilt as a React web application in `web/`,
+so this deviation no longer applies.
+
+The rewrite was affordable because the backend is entirely platform agnostic — the
+same endpoints, auth and Socket.IO serve either client — and because an existing
+in-house design system (Vite, Tailwind, shadcn/ui) could be reused directly, which
+React Native could not do.
+
+The React Native client remains in `LifeLoop/` and still works. It is no longer the
+target and will be removed once the web app has been through a demo.
 
 ### 6.2 Simulation and a labelled test set, not a 30–50 user pilot
 
@@ -381,9 +401,17 @@ not hold two hard, unfamiliar subsystems.
 
 M5 is still designed and documented — schema, hash-chain construction, tamper-evidence
 argument, and the reasoning for an ACID store — as a thesis chapter and as future work.
-It is not implemented, and the thesis says so plainly.
+It is not implemented as an EPR certificate ledger, and the thesis says so plainly.
 
-The project therefore delivers four of five modules, with the fifth specified.
+**The hash-chain technique itself is implemented, in the M4 work ledger.** Every
+verified collection task appends an entry chained to the previous one, and the chain is
+re-verified on every read. That recovers most of the M5 idea at a fraction of the cost
+and gives the tamper-evidence argument somewhere real to live rather than existing only
+on paper. What is missing is the EPR domain layer — brand attribution, material weights,
+aggregator confirmation — not the integrity mechanism.
+
+The project therefore delivers four of five modules, with the fifth specified and its
+core technique demonstrated elsewhere.
 
 ### 6.6 Detection added, as a second stage rather than a replacement
 
@@ -403,6 +431,34 @@ existing data rather than absent capability.
 
 Accepting the cost because detection removes a real failure the current build has —
 a photograph containing several items gets one confident material for the whole scene.
+
+---
+
+## 6a. Status at 2026-08-14
+
+| Deliverable | State |
+|---|---|
+| Phase 0 — cleanup, scan contract | Complete |
+| M1 classifier — pipeline | Complete: dataset tooling, training, calibration, abstention, ONNX export, FastAPI serving |
+| M1 classifier — model | **Partial.** 7 of 10 classes, trained on 570 public images. Test accuracy 0.842, macro-F1 0.841. No local photographs yet |
+| M2 Crowd-Sensing | Complete: reports, four anti-gaming rules, reputation weighting, ward aggregation, Leaflet map |
+| M3 The Exchange | Complete (pre-existing, ported to the web client) |
+| M4 Collector Formalization | Complete: role, task generation, photo verification, tamper-evident work ledger |
+| M5 EPR Ledger | Descoped. Hash-chain technique applied to M4 instead |
+| Route efficiency study | Complete: 26.5% reduction at realistic fill rates, with the crossover reported |
+| Municipal dashboard | Complete: ward pressure, route planning, saving against the fixed circuit |
+| Web client | Complete: React PWA replacing React Native |
+| Detection (5b) | **Not started.** Scoped and funded, not built |
+| Thesis / SRS | Not started |
+
+### The two things that still gate the headline claim
+
+1. **Local photographs.** The 0.842 is measured on public studio images. Until the
+   team's Bhimavaram photographs land, the project's central argument — that Indian
+   waste does not look like TrashNet — is asserted rather than measured. Electronic,
+   Wood and NotWaste have no training data at all.
+2. **Detection.** A photograph containing several items still gets one confident
+   material for the whole scene.
 
 ---
 

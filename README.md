@@ -23,11 +23,20 @@ Final year project — B.Tech CSE, SRKR Engineering College.
 
 | # | Module | Status |
 |---|---|---|
-| M1 | AI Waste Scanner — photo → category, material, disposal instruction, points | In progress |
-| M2 | Crowd-Sensing Bin Network — citizen bin reports → live ward map | Planned |
-| M3 | The Exchange — items find a second owner before becoming waste | Built |
-| M4 | Collector Formalization — digital identity, proximity tasks, work ledger | Planned |
-| M5 | EPR Certificate Ledger — hash-chained append-only recycling certificates | Planned |
+| M1 | AI Waste Scanner — photo → material, confidence, disposal guidance | Pipeline complete; model covers 7 of 10 classes |
+| M2 | Crowd-Sensing Bin Network — citizen reports → live ward map → collection routes | Complete |
+| M3 | The Exchange — items find a second owner before becoming waste | Complete |
+| M4 | Collector Formalization — identity, proximity tasks, tamper-evident work ledger | Complete |
+| M5 | EPR Certificate Ledger | Descoped; its hash-chain technique is used in M4 |
+
+Two measured results, both reproducible:
+
+- **Classifier:** accuracy 0.842, macro-F1 0.841 on a locked, object-disjoint test set.
+  Measured on public dataset images, not real waste — see the caveat in
+  [ml/README.md](./ml/README.md).
+- **Route efficiency:** 26.5% mean distance reduction against a fixed collection
+  circuit at realistic fill rates. Full method and limitations in
+  [backend/artifacts/route-simulation.md](./backend/artifacts/route-simulation.md).
 
 Scope, schedule, and every deliberate departure from the synopsis are recorded in
 [PROJECT-PLAN.md](./PROJECT-PLAN.md). That file is the scope of record.
@@ -38,33 +47,49 @@ Scope, schedule, and every deliberate departure from the synopsis are recorded i
 
 ```
 backend/     Node.js + Express + MongoDB + Socket.IO API
-LifeLoop/    Expo / React Native mobile app (SDK 54)
+web/         React PWA (Vite, Tailwind, shadcn/ui) — the client
+ml/          The waste classifier: dataset tooling, training, FastAPI serving
+LifeLoop/    Expo React Native app — superseded by web/, retained for reference
 ```
 
 ---
 
 ## Getting Started
 
-### Backend
+Four terminals. MongoDB must be running first.
+
+### 1. Classifier
+
+```bash
+cd ml
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+uvicorn serve.app:app --host 127.0.0.1 --port 8000
+```
+
+Optional. Without it the scan endpoint returns a clean 503, or falls back to Gemini if
+a key is configured.
+
+### 2. Backend
 
 ```bash
 cd backend
 npm install
-cp .env.example .env    # then fill in the values below
+cp .env.example .env    # fill in the values below
 npm run dev             # http://localhost:5000
 ```
 
-### Mobile app
+### 3. Web client
 
 ```bash
-cd LifeLoop
+cd web
 npm install
-npx expo start
+cp .env.example .env
+npm run dev             # http://localhost:5173
 ```
 
-The mobile app reads its API URL from `expo.extra.API_URL` in `app.json`. On a physical
-device this must be your machine's LAN IP, not `localhost` — update both `API_URL` and
-`SOCKET_API_URL` when your network changes.
+To open the app from a phone, set `VITE_API_URL` to your machine's LAN IP rather than
+`localhost`, and add that origin to `ALLOWED_ORIGINS` in `backend/.env`.
 
 ### Required environment variables
 
@@ -72,18 +97,39 @@ device this must be your machine's LAN IP, not `localhost` — update both `API_
 |---|---|
 | `MONGO_URI` | MongoDB connection string |
 | `JWT_SECRET` | Token signing key (32+ characters) |
-| `GEMINI_API_KEY` | Gemini Vision — powers the M1 waste scanner |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Image storage |
+| `ALLOWED_ORIGINS` | Comma-separated browser origins permitted by CORS |
+| `MODEL_SERVICE_URL` | The classifier service, default `http://127.0.0.1:8000` |
+| `GEMINI_API_KEY` | Optional temporary fallback when the classifier is unreachable |
+| `CLOUDINARY_*` | Image storage |
 | `QR_SECRET_KEY` | Signs QR handover tokens |
 
 See [backend/.env.example](./backend/.env.example) for the full list.
 
 ---
 
+## Reproducing the results
+
+```bash
+# Route efficiency study
+cd backend && node scripts/routeSimulation.js --bins 100 --trials 30
+
+# Classifier: prepare, train, evaluate, export
+cd ml
+python scripts/check_dataset.py
+python scripts/prepare_dataset.py
+python scripts/train.py
+python scripts/evaluate.py
+python scripts/export.py
+```
+
+Both are seeded, so the figures in the thesis regenerate exactly.
+
+---
+
 ## Stack
 
-Node.js · Express · MongoDB (Mongoose, geospatial) · PostgreSQL (certificate ledger) ·
-Socket.IO · React Native (Expo) · Gemini Vision · JWT
+Node.js · Express · MongoDB (Mongoose, geospatial) · Socket.IO · React · Vite ·
+Tailwind · shadcn/ui · Leaflet · PyTorch · FastAPI · ONNX
 
 ---
 
