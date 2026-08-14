@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Enterprise B2B Onboarding — Design System
+   80% neutrals · 15% structure · 5% accent
+   All colors HSL.
+*/
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 60 14% 97%;            /* #FAFAF8 */
+    --foreground: 0 0% 7%;               /* #111111 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    /* Structural */
+    --primary: 0 0% 7%;                  /* near-black */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 60 9% 95%;
+    --secondary-foreground: 0 0% 7%;
+
+    --muted: 60 9% 96%;
+    --muted-foreground: 220 9% 46%;      /* #6B7280 */
+
+    /* Accent — #EB4C24 */
+    --accent: 12 84% 53%;
+    --accent-foreground: 0 0% 100%;
+    --accent-tint: 12 100% 97%;          /* #FFF4F1 */
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;               /* #E5E7EB */
+    --input: 220 13% 91%;
+    --ring: 12 84% 53%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar — Light */
+    --sidebar-background: 0 0% 100%;    /* white background */
+    --sidebar-foreground: 0 0% 8%;       /* very dark text for maximum contrast */
+    --sidebar-primary: 12 84% 53%;       /* Rafftar orange for active text */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 12 100% 92%;       /* light orange on hover */
+    --sidebar-accent-foreground: 12 84% 53%;
+    --sidebar-border: 12 100% 88%;       /* light orange border */
+    --sidebar-ring: 12 84% 53%;
+
+    /* Typography */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* Elevation */
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.06), 0 1px 2px -1px hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.06), 0 2px 4px -2px hsl(0 0% 0% / 0.04);
+    --shadow-card-hover: 0 8px 24px -8px hsl(0 0% 0% / 0.08), 0 4px 8px -4px hsl(0 0% 0% / 0.04);
+    --shadow-accent: 0 0 0 4px hsl(12 84% 53% / 0.12);
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 220 9% 64%;
+    --accent: 12 84% 53%;
+    --accent-foreground: 0 0% 100%;
+    --accent-tint: 12 60% 12%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 12 84% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  .font-serif {
+    font-family: var(--font-sans);
+    letter-spacing: -0.02em;
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+    font-feature-settings: 'tnum', 'zero';
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(var(--accent) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Numeric tabular */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply outline-none ring-0 transition-shadow duration-200;
+  }
+  .focus-ring:focus-visible {
+    box-shadow: var(--shadow-accent);
+  }
+
+  .surface-card {
+    @apply bg-card border border-border rounded-lg;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .input-base {
+    @apply h-11 w-full rounded-md border border-input bg-background px-3.5 text-[15px] text-foreground placeholder:text-muted-foreground transition-all duration-200;
+  }
+  .input-base:hover { @apply border-foreground/30; }
+  .input-base:focus-visible {
+    @apply outline-none border-accent;
+    box-shadow: var(--shadow-accent);
+  }
+
+  .label-base {
+    @apply text-[13px] font-medium text-foreground tracking-tight;
+  }
+
+  .helper-text {
+    @apply text-[12.5px] text-muted-foreground;
+  }
+
+  /* Selectable card */
+  .selectable-card {
+    @apply relative rounded-lg border border-border bg-card p-5 cursor-pointer transition-all duration-300;
+  }
+  .selectable-card:hover {
+    @apply border-foreground/30;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .selectable-card[data-selected="true"] {
+    @apply border-accent;
+    background: hsl(var(--accent-tint));
+    box-shadow: var(--shadow-accent);
+  }
+
+  /* Press */
+  .press {
+    @apply transition-transform duration-100 active:scale-[0.98];
+  }
+}
+
+@layer utilities {
+  /* Shake on error */
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-3px); }
+    40%, 60% { transform: translateX(3px); }
+  }
+  .animate-shake { animation: shake 0.4s var(--ease-out); }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in { animation: fade-in 0.3s var(--ease-out); }
+
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-right { animation: slide-in-right 0.32s var(--ease-out); }
+
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-left { animation: slide-in-left 0.32s var(--ease-out); }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in { animation: scale-in 0.22s var(--ease-out); }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .animate-pulse-dot { animation: pulse-dot 1.6s var(--ease-in-out) infinite; }
+
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow { animation: spin-slow 1.2s linear infinite; }
+
+  /* Hover scale 1.02 */
+  .hover-scale { @apply transition-transform duration-300; }
+  .hover-scale:hover { transform: scale(1.02); }
+
+  /* Hide scrollbar but allow scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+}
