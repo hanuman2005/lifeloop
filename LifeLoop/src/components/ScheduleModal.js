@@ -16,7 +16,7 @@ import * as Location from "expo-location";
 import { scheduleAPI } from "../services/api";
 import Toast from "react-native-toast-message";
 import CalendarPicker from "./CalendarPicker";
-import TimeSlotPicker from "./TimeSlotPicker";
+import TimeSlotPicker from "./TimeslotPicker";
 
 const STEPS = [
   { id: 1, label: "Date & Time" },
