@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ecoAPI, errorMessage, scanAPI } from "@/lib/api";
+import { ecoAPI, errorMessage, scanAPI, wasteAnalysisAPI } from "@/lib/api";
 import MaterialResult from "@/features/scanner/MaterialResult";
 import { MATERIAL_GUIDE } from "@/features/scanner/materials";
 
@@ -94,6 +94,25 @@ export default function ScannerPage() {
 
       setResult(data.analysis);
 
+      // Persist the analysis so it appears in history and feeds community stats.
+      // Fire-and-forget for the same reason as the points call: the result is
+      // already on screen and a storage failure must not retract it.
+      try {
+        await wasteAnalysisAPI.save({
+          tfLabel: data.analysis.label || data.analysis.material,
+          confidence: Number(data.analysis.confidence) || 0,
+          material: data.analysis.material,
+          recyclingGuidance: MATERIAL_GUIDE[data.analysis.material]?.disposal,
+          reuseIdeas: MATERIAL_GUIDE[data.analysis.material]?.reuse || [],
+          donationPossible: Boolean(data.analysis.donationPossible),
+          // The model's enum is mobile | tablet | desktop, so report which of
+          // those this browser actually is rather than inventing a "web" value.
+          deviceType: window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop",
+        });
+      } catch {
+        // Silent by design.
+      }
+
       // Points are a side effect; a failure here must not lose the scan result.
       try {
         await ecoAPI.award({
@@ -116,12 +135,17 @@ export default function ScannerPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Scan an item</h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Photograph one item filling the frame. We will tell you what it is made of and
-          what to do with it.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-tight">Scan an item</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">
+            Photograph one item filling the frame. We will tell you what it is made of and
+            what to do with it.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => navigate("/scan/history")}>
+          History
+        </Button>
       </header>
 
       <input

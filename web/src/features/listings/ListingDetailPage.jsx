@@ -12,6 +12,7 @@ import { EmptyState } from "@/shared/components/EmptyState";
 import { LoadingState } from "@/shared/components/LoadingState";
 import { errorMessage, listingsAPI } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
+import InterestedUsers from "@/features/listings/InterestedUsers";
 import { STATUS_TONE, categoryLabel } from "@/features/listings/constants";
 import { cn } from "@/lib/utils";
 
@@ -142,13 +143,23 @@ export default function ListingDetailPage() {
             </Button>
           )}
 
-          {isOwner && (
+          {!isOwner && listing.status !== "available" && (
             <div className="rounded-md border border-border bg-secondary px-3 py-2.5 text-[13px] text-muted-foreground">
-              This is your listing. You will be notified when someone expresses interest.
+              This item is no longer available.
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Only the donor sees who has asked, and only they can choose. */}
+      {isOwner && <InterestedUsers listing={listing} />}
+
+      {isOwner && listing.status === "assigned" && (
+        <div className="rounded-md border border-border bg-secondary px-3 py-2.5 text-[13px] text-muted-foreground">
+          Assigned. Agree a time under Pickups, then show your code on the Handover screen
+          when you meet.
+        </div>
+      )}
     </div>
   );
 }

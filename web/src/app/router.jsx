@@ -26,6 +26,8 @@ import BinReportPage from "@/features/bins/BinReportPage";
 
 import ImpactPage from "@/features/impact/ImpactPage";
 import ChatPage from "@/features/chat/ChatPage";
+import HistoryPage from "@/features/scanner/HistoryPage";
+import CentresPage from "@/features/centres/CentresPage";
 
 import SchedulesPage from "@/features/schedules/SchedulesPage";
 

@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { LoadingState } from "@/shared/components/LoadingState";
 import { errorMessage, listingsAPI, qrAPI } from "@/lib/api";
+import RateUserDialog from "@/features/ratings/RateUserDialog";
 
 /** Decode a QR from an image file. Returns the payload string, or null. */
 async function decodeQrFromFile(file) {
@@ -138,6 +139,7 @@ function RecipientPane() {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
+  const [rating, setRating] = useState(false);
 
   async function handlePhoto(event) {
     const file = event.target.files?.[0];
@@ -187,21 +189,42 @@ function RecipientPane() {
   }
 
   if (result) {
+    // The transaction shape varies by endpoint version, so look in the likely
+    // places rather than assuming one.
+    const counterparty =
+      result.transaction?.donor || result.donor || result.transaction?.listing?.donor;
+
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-green-300 bg-green-50 text-green-700">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-          <div className="text-[16px] font-medium">Handover complete</div>
-          <p className="max-w-sm text-[13.5px] text-muted-foreground">
-            The exchange is recorded and both of you have been credited.
-          </p>
-          <Button variant="outline" onClick={() => { setResult(null); setCode(""); }}>
-            Scan another
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md border border-green-300 bg-green-50 text-green-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="text-[16px] font-medium">Handover complete</div>
+            <p className="max-w-sm text-[13.5px] text-muted-foreground">
+              The exchange is recorded and both of you have been credited.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {counterparty && (
+                <Button onClick={() => setRating(true)}>Rate the donor</Button>
+              )}
+              <Button variant="outline" onClick={() => { setResult(null); setCode(""); }}>
+                Scan another
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {counterparty && (
+          <RateUserDialog
+            open={rating}
+            onOpenChange={setRating}
+            user={counterparty}
+            listingId={result.transaction?.listing?._id || result.transaction?.listing}
+          />
+        )}
+      </>
     );
   }
 

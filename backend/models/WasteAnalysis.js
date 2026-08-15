@@ -224,7 +224,7 @@ wasteAnalysisSchema.virtual("age").get(function () {
 // Static method: Get user's total eco score
 wasteAnalysisSchema.statics.getUserTotalEcoScore = async function (userId) {
   const result = await this.aggregate([
-    { $match: { user: mongoose.Types.ObjectId(userId) } },
+    { $match: { user: new mongoose.Types.ObjectId(userId) } },
     {
       $group: {
         _id: null,
@@ -248,7 +248,7 @@ wasteAnalysisSchema.statics.getUserTotalEcoScore = async function (userId) {
 
 // Static method: Get material breakdown
 wasteAnalysisSchema.statics.getMaterialStats = async function (userId = null) {
-  const match = userId ? { user: mongoose.Types.ObjectId(userId) } : {};
+  const match = userId ? { user: new mongoose.Types.ObjectId(userId) } : {};
 
   return await this.aggregate([
     { $match: match },

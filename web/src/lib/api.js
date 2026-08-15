@@ -166,6 +166,15 @@ export const impactAPI = {
 
 export const mapAPI = {
   getNearbyCenters: (params) => api.get("/map/nearby", { params }),
+  getPrices: () => api.get("/map/prices"),
+};
+
+export const wasteAnalysisAPI = {
+  save: (data) => api.post("/waste-analysis", data),
+  myHistory: (params) => api.get("/waste-analysis/my-history", { params }),
+  getById: (id) => api.get(`/waste-analysis/${id}`),
+  remove: (id) => api.delete(`/waste-analysis/${id}`),
+  myImpact: () => api.get("/waste-analysis/stats/my-impact"),
 };
 
 export const configAPI = {

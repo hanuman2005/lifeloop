@@ -4,7 +4,7 @@
 // layout is the primary one and the desktop sidebar is the adaptation.
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, CalendarClock, Camera, LayoutDashboard, LogOut, MapPin, MessageSquare, Package, QrCode, Trash2, Truck, User } from "lucide-react";
+import { BarChart3, CalendarClock, Camera, LayoutDashboard, LogOut, MapPin, MessageSquare, Package, QrCode, Recycle, Trash2, Truck, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import NotificationBell from "@/features/notifications/NotificationBell";
@@ -17,6 +17,7 @@ const NAV = [
   { to: "/listings", label: "Exchange", icon: Package },
   { to: "/bins/report", label: "Report bin", icon: Trash2 },
   { to: "/bins/map", label: "Waste map", icon: MapPin },
+  { to: "/centres", label: "Where to take it", icon: Recycle },
   { to: "/chat", label: "Messages", icon: MessageSquare },
   { to: "/schedules", label: "Pickups", icon: CalendarClock },
   { to: "/handover", label: "Handover", icon: QrCode },
