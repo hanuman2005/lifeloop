@@ -227,10 +227,20 @@ should not be spent early.
 
 ## 5b. Detection
 
-The scanner currently assumes one item filling the frame. When a user photographs a
-bin or a pile, the classifier assigns one material to the whole scene and is
-confidently wrong. Detection fixes that, and improves single-item accuracy as a side
-effect by cropping away background.
+**This section was rewritten on 2026-08-15 after the requirement was restated.**
+
+It originally treated detection as an improvement for the occasional multi-item
+photograph, on the assumption — taken from the existing app's UX rather than from the
+project's goal — that the product photographs one item filling the frame.
+
+That assumption was wrong. The municipal problem is segregating a **mixed pile**:
+several materials in one frame, sorted into categories, so that what is recyclable can
+be separated from what is not. For that input a classifier is not merely weaker, it is
+the wrong tool. It returns exactly one label per image, so a bin holding plastic, paper
+and a battery is reported as "Plastic, 87%" and sounds confident doing so.
+
+Detection is therefore the core of M1, not an enhancement to it. The classifier is not
+wasted: it becomes the second stage, which is what it has the data to do well.
 
 ### Two stages, each doing what it is good at
 
@@ -257,11 +267,17 @@ TACO ships COCO-format detection annotations, so the detector needs **no new
 annotation work**. The team continues photographing items into class folders exactly
 as before; nothing about the collection process changes.
 
-### Cost
+### Status
 
-Roughly two to three weeks: a second model to train, evaluate, export and serve, plus
-detector latency (~30–80 ms on CPU) on top of the classifier's 2.7 ms. Funded by
-compressing M4 — see section 6.6.
+Built. TACO's COCO annotations were converted to a class-agnostic YOLO dataset
+(499 images, 3.19 boxes per image, split by image so boxes from one photograph cannot
+straddle splits) and a yolov8n detector trained on it. `POST /analyze-scene` runs the
+two-stage pipeline and returns a per-item breakdown plus a composition summary — the
+recyclable share of the pile, which is the figure a municipality acts on.
+
+With no detector loaded the endpoint degrades to classifying the whole frame, so the
+single-item path a citizen uses is unaffected and callers can tell which happened from
+the `mode` field.
 
 ### What detection is not for
 

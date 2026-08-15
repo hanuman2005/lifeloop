@@ -24,21 +24,34 @@ from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from wasteml import config, data, model as model_lib  # noqa: E402
+from wasteml import config, data, detect, model as model_lib  # noqa: E402
 from wasteml.console import enable_utf8  # noqa: E402
 
 enable_utf8()
 
 CHECKPOINT = os.getenv("WASTE_MODEL", "waste_mobilenet_v3_small.pt")
+# Optional. Without it the service classifies the whole frame, which is the
+# original single-item behaviour and still correct for a citizen photographing
+# one bottle.
+DETECTOR = os.getenv("WASTE_DETECTOR", "waste_detector.pt")
 
 app = FastAPI(title="LifeLoop Waste Classifier", version="1.0.0")
 
-state = {"model": None, "blob": None, "temperature": 1.0, "thresholds": {}, "transform": None}
+state = {"model": None, "blob": None, "temperature": 1.0, "thresholds": {}, "transform": None,
+         "detector": None}
 
 
 class ClassifyRequest(BaseModel):
     image_base64: str
     media_type: str = "image/jpeg"
+
+
+class SceneRequest(BaseModel):
+    image_base64: str
+    media_type: str = "image/jpeg"
+    # Lower finds more items at the cost of more false boxes. A missed item is
+    # waste that goes unsorted; a false box costs one classifier call.
+    min_confidence: float = detect.DEFAULT_BOX_CONFIDENCE
 
 
 @app.on_event("startup")
@@ -82,7 +95,16 @@ def load_model() -> None:
     else:
         print("⚠️  no thresholds file — using uncalibrated confidence and the default cutoff")
 
+    detector_path = Path(DETECTOR)
+    if not detector_path.is_absolute():
+        detector_path = config.ARTIFACTS_DIR / detector_path
+    state["detector"] = detect.load_detector(detector_path)
+
     print(f"✅ {ckpt_path.name} loaded · {blob['backbone']} · {len(state['classes'])} classes")
+    if state["detector"]:
+        print(f"✅ detector loaded: {detector_path.name} — /analyze-scene available")
+    else:
+        print("ℹ️  no detector — /analyze-scene will fall back to single-item classification")
     print(f"   {', '.join(state['classes'])}")
     dormant = [c for c in config.CLASSES if c not in state["classes"]]
     if dormant:
@@ -100,6 +122,7 @@ def health():
             c for c in config.CLASSES if c not in (state.get("classes") or config.CLASSES)
         ],
         "calibrated": bool(state["thresholds"]),
+        "detector": bool(state["detector"]),
     }
 
 
@@ -159,3 +182,71 @@ def classify(request: ClassifyRequest):
         "latency_ms": round((time.perf_counter() - started) * 1000, 1),
         "model": state["blob"]["backbone"],
     }
+
+
+@app.post("/analyze-scene")
+def analyze_scene(request: SceneRequest):
+    """Find every discardable item in the frame and classify each one.
+
+    This is the municipal case: a mixed pile needs a per-item breakdown, not one
+    label for the whole photograph. A classifier alone cannot answer it — asked
+    about a bin holding plastic, paper and a battery it returns a single material
+    and sounds confident doing so.
+
+    With no detector loaded this degrades to classifying the whole frame, so the
+    endpoint is always callable and the caller can tell which happened from
+    `mode`.
+    """
+    if state["model"] is None:
+        raise HTTPException(status_code=503, detail="No model loaded")
+
+    try:
+        raw = base64.b64decode(request.image_base64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="image_base64 is not valid base64")
+
+    try:
+        image = Image.open(io.BytesIO(raw)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not decode the image")
+
+    started = time.perf_counter()
+
+    if state["detector"] is None:
+        material, confidence, _ = detect.classify_crop(
+            state["model"], state["transform"], image, state["classes"], state["temperature"]
+        )
+        no_item = material == config.NOT_WASTE_CLASS
+        items = (
+            []
+            if no_item
+            else [
+                {
+                    "material": material,
+                    "confidence": round(confidence * 100, 1),
+                    "uncertain": confidence
+                    < state["thresholds"].get(material, config.DEFAULT_CONFIDENCE_THRESHOLD),
+                    "box": None,
+                    "detectionScore": None,
+                }
+            ]
+        )
+        return {
+            "mode": "single",
+            "items": items,
+            "composition": detect.summarise(items),
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+        }
+
+    result = detect.analyse_scene(
+        image,
+        state["detector"],
+        state["model"],
+        state["transform"],
+        state["classes"],
+        state["temperature"],
+        state["thresholds"],
+    )
+    result["mode"] = "detected"
+    result["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)
+    return result

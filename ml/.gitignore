@@ -28,3 +28,10 @@ validation-bbox.csv
 # Pretrained weights downloaded on demand
 yolov8n-cls.pt
 yolo*.pt
+
+# Detection dataset and runs (regenerable from taco-annotations.json)
+data/detection/
+artifacts/detector/
+artifacts/*.pt
+taco-annotations.json
+runs/
