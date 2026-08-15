@@ -108,12 +108,15 @@ const cacheSet = (hash, analysis) => {
 };
 
 // ── Model service ───────────────────────────────────────────────────────────
-const callModelService = async (imageBase64) => {
+const callModelService = async (imageBase64, path = "/classify") => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+  // Scene analysis runs the detector plus one classifier pass per item, so it
+  // needs a longer budget than a single classification.
+  const budget = path === "/analyze-scene" ? MODEL_TIMEOUT_MS * 3 : MODEL_TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), budget);
 
   try {
-    const response = await fetch(`${MODEL_SERVICE_URL}/classify`, {
+    const response = await fetch(`${MODEL_SERVICE_URL}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image_base64: imageBase64 }),
@@ -324,3 +327,57 @@ const classifyFailure = (error) => {
 };
 
 exports._internal = { toAnalysis, classifyFailure, MATERIALS, MATERIAL_RULES };
+
+// @desc    Segregate every discardable item in one photograph
+// @route   POST /api/ai/analyze-scene
+// @access  Private
+//
+// The municipal case: a mixed pile needs a per-item breakdown, not one label for
+// the whole frame. Kept as a separate endpoint rather than a flag on
+// analyze-image because the response shape is genuinely different — a list of
+// items with boxes, plus a composition summary — and overloading one endpoint to
+// return either would push the branch onto every caller.
+exports.analyzeScene = async (req, res) => {
+  const { imageBase64 } = req.body || {};
+
+  if (!imageBase64 || typeof imageBase64 !== "string") {
+    return res.status(400).json({ success: false, message: "imageBase64 is required" });
+  }
+
+  const hash = crypto.createHash("sha256").update(imageBase64).digest("hex");
+
+  try {
+    const result = await callModelService(imageBase64, "/analyze-scene");
+
+    if (!result || !Array.isArray(result.items)) {
+      return res.status(502).json({
+        success: false,
+        message: "Scene analysis returned an unreadable response",
+      });
+    }
+
+    // Attach the same guidance the single-item path uses, so the client does not
+    // need a second lookup table.
+    const items = result.items.map((item) => ({
+      ...item,
+      ...(MATERIAL_RULES[item.material] || {}),
+    }));
+
+    console.log(
+      `🗺️  Scene ${hash.slice(0, 12)} → ${items.length} item(s), ` +
+        `${Math.round((result.composition?.recyclableShare || 0) * 100)}% recyclable [${result.mode}]`,
+    );
+
+    return res.json({
+      success: true,
+      mode: result.mode,
+      items,
+      composition: result.composition,
+      engine: "model",
+    });
+  } catch (error) {
+    const reason = classifyFailure(error);
+    console.error(`❌ ${reason.log}`);
+    return res.status(reason.status).json({ success: false, message: reason.message });
+  }
+};

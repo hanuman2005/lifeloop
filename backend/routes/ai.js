@@ -4,7 +4,7 @@ const rateLimit = require("express-rate-limit");
 const router = express.Router();
 
 const { auth } = require("../middleware/auth");
-const { analyzeImage } = require("../controllers/aiController");
+const { analyzeImage, analyzeScene } = require("../controllers/aiController");
 
 // Gemini free-tier quota is the binding constraint on this project, and an
 // unthrottled scan endpoint is also the obvious way to game the points economy.
@@ -22,5 +22,10 @@ const analyzeLimiter = rateLimit({
 
 // POST /api/ai/analyze-image
 router.post("/analyze-image", auth, analyzeLimiter, analyzeImage);
+
+// Segregates a mixed pile into per-item materials. Shares the scan limiter: it is
+// strictly more expensive than a single classification, so it must not be the
+// cheaper way to burn the quota.
+router.post("/analyze-scene", auth, analyzeLimiter, analyzeScene);
 
 module.exports = router;

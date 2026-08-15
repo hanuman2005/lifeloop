@@ -7,13 +7,15 @@
 
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Camera, Loader2, RotateCcw, Upload } from "lucide-react";
+import { AlertTriangle, Camera, Layers, Loader2, RotateCcw, ScanLine, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ecoAPI, errorMessage, scanAPI, wasteAnalysisAPI } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import MaterialResult from "@/features/scanner/MaterialResult";
+import SceneResult from "@/features/scanner/SceneResult";
 import { MATERIAL_GUIDE } from "@/features/scanner/materials";
 
 /** Strips the `data:image/jpeg;base64,` prefix the API does not want. */
@@ -57,12 +59,17 @@ export default function ScannerPage() {
   const [preview, setPreview] = useState(null);
   const [analysing, setAnalysing] = useState(false);
   const [result, setResult] = useState(null);
+  const [scene, setScene] = useState(null);
   const [noItem, setNoItem] = useState(false);
+  // "single" is one item filling the frame, which is the citizen case. "pile"
+  // segregates a mixed heap, which is what a municipality photographs.
+  const [mode, setMode] = useState("single");
 
   function reset() {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setResult(null);
+    setScene(null);
     setNoItem(false);
   }
 
@@ -79,6 +86,14 @@ export default function ScannerPage() {
     try {
       const compact = await downscale(file);
       const base64 = await readAsBase64(compact);
+
+      if (mode === "pile") {
+        const { data: sceneData } = await scanAPI.analyzeScene(base64);
+        if (!sceneData.success) throw new Error(sceneData.message || "Scene analysis failed");
+        setScene(sceneData);
+        return;
+      }
+
       const { data } = await scanAPI.analyzeImage(base64);
 
       // The model has a dedicated NotWaste class, so this is a real prediction
@@ -147,6 +162,34 @@ export default function ScannerPage() {
           History
         </Button>
       </header>
+
+      <div className="flex gap-1.5">
+        {[
+          { value: "single", label: "One item", icon: ScanLine },
+          { value: "pile", label: "Mixed pile", icon: Layers },
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => { setMode(option.value); reset(); }}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
+              mode === option.value
+                ? "border-accent bg-accent-tint text-accent"
+                : "border-border hover:bg-secondary",
+            )}
+          >
+            <option.icon className="h-4 w-4" />
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="-mt-2 text-[12.5px] text-muted-foreground">
+        {mode === "single"
+          ? "One item filling the frame."
+          : "Several items together — each is found and identified separately."}
+      </p>
 
       <input
         ref={cameraInput}
@@ -217,6 +260,10 @@ export default function ScannerPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {scene && (
+        <SceneResult imageUrl={preview} result={scene} onScanAnother={reset} />
       )}
 
       {result && (

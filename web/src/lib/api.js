@@ -92,9 +92,15 @@ export const listingsAPI = {
 };
 
 export const scanAPI = {
-  // The classifier. Returns { success, analysis } or { success:false, noItem:true }.
+  // Single item. Returns { success, analysis } or { success:false, noItem:true }.
   analyzeImage: (imageBase64) =>
     api.post("/ai/analyze-image", { imageBase64, mediaType: "image/jpeg" }, { timeout: 60000 }),
+
+  // A mixed pile: every item detected and classified separately, plus a
+  // composition summary. Slower, because it is one detector pass and one
+  // classifier pass per item.
+  analyzeScene: (imageBase64) =>
+    api.post("/ai/analyze-scene", { imageBase64, mediaType: "image/jpeg" }, { timeout: 120000 }),
 };
 
 export const ecoAPI = {
