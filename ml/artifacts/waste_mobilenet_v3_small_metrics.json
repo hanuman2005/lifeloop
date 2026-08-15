@@ -1,98 +1,120 @@
 {
   "checkpoint": "waste_mobilenet_v3_small.pt",
   "backbone": "mobilenet_v3_small",
-  "n_test": 82,
-  "accuracy": 0.8415,
-  "macro_f1": 0.8407,
-  "temperature": 0.7028,
-  "ece_before": 0.1596,
-  "ece_after": 0.1021,
+  "n_test": 113,
+  "accuracy": 0.8319,
+  "macro_f1": 0.8353,
+  "temperature": 0.7136,
+  "ece_before": 0.0953,
+  "ece_after": 0.0493,
   "classes": [
     "Plastic",
     "Glass",
     "Metal",
     "Paper",
     "Organic",
+    "Electronic",
     "Textile",
-    "Hazardous"
+    "Hazardous",
+    "NotWaste"
   ],
   "per_class": {
     "Plastic": {
-      "precision": 1.0,
-      "recall": 0.8,
-      "f1": 0.8889,
+      "precision": 0.9231,
+      "recall": 0.6,
+      "f1": 0.7273,
       "support": 20
     },
     "Glass": {
-      "precision": 0.6923,
-      "recall": 0.75,
-      "f1": 0.72,
-      "support": 12
+      "precision": 0.8,
+      "recall": 0.7273,
+      "f1": 0.7619,
+      "support": 11
     },
     "Metal": {
-      "precision": 0.7333,
-      "recall": 0.9167,
-      "f1": 0.8148,
-      "support": 12
+      "precision": 0.7273,
+      "recall": 0.7273,
+      "f1": 0.7273,
+      "support": 11
     },
     "Paper": {
-      "precision": 0.8182,
-      "recall": 0.6429,
-      "f1": 0.72,
-      "support": 14
+      "precision": 0.8125,
+      "recall": 0.8667,
+      "f1": 0.8387,
+      "support": 15
     },
     "Organic": {
-      "precision": 1.0,
+      "precision": 0.7059,
       "recall": 1.0,
-      "f1": 1.0,
+      "f1": 0.8276,
       "support": 12
     },
-    "Textile": {
+    "Electronic": {
       "precision": 0.8889,
       "recall": 1.0,
       "f1": 0.9412,
-      "support": 8
+      "support": 16
+    },
+    "Textile": {
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9474,
+      "support": 9
     },
     "Hazardous": {
-      "precision": 0.6667,
+      "precision": 0.8,
       "recall": 1.0,
-      "f1": 0.8,
+      "f1": 0.8889,
       "support": 4
+    },
+    "NotWaste": {
+      "precision": 0.9231,
+      "recall": 0.8,
+      "f1": 0.8571,
+      "support": 15
     }
   },
   "confusion_matrix": [
     [
-      16,
+      12,
+      0,
+      0,
+      3,
+      3,
+      0,
       1,
+      0,
+      1
+    ],
+    [
       1,
-      2,
+      8,
+      1,
+      0,
+      1,
+      0,
       0,
       0,
       0
     ],
     [
       0,
-      9,
-      1,
-      0,
-      0,
-      1,
-      1
-    ],
-    [
-      0,
-      0,
-      11,
-      0,
-      0,
-      0,
-      1
-    ],
-    [
-      0,
-      3,
       2,
-      9,
+      8,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      2,
+      13,
+      0,
+      0,
       0,
       0,
       0
@@ -104,6 +126,8 @@
       0,
       12,
       0,
+      0,
+      0,
       0
     ],
     [
@@ -112,7 +136,9 @@
       0,
       0,
       0,
-      8,
+      16,
+      0,
+      0,
       0
     ],
     [
@@ -122,63 +148,87 @@
       0,
       0,
       0,
-      4
+      9,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0,
+      0,
+      12
     ]
   ],
   "abstention_curve": [
     {
       "threshold": 0.0,
       "coverage": 1.0,
-      "accuracy_on_kept": 0.8415,
+      "accuracy_on_kept": 0.8319,
       "abstained": 0
     },
     {
       "threshold": 0.3,
-      "coverage": 0.9878,
-      "accuracy_on_kept": 0.8519,
-      "abstained": 1
+      "coverage": 1.0,
+      "accuracy_on_kept": 0.8319,
+      "abstained": 0
     },
     {
       "threshold": 0.4,
-      "coverage": 0.9512,
-      "accuracy_on_kept": 0.859,
-      "abstained": 4
+      "coverage": 0.9735,
+      "accuracy_on_kept": 0.8545,
+      "abstained": 3
     },
     {
       "threshold": 0.5,
-      "coverage": 0.9024,
-      "accuracy_on_kept": 0.8919,
+      "coverage": 0.9292,
+      "accuracy_on_kept": 0.8762,
       "abstained": 8
     },
     {
       "threshold": 0.55,
-      "coverage": 0.8415,
-      "accuracy_on_kept": 0.942,
-      "abstained": 13
+      "coverage": 0.8761,
+      "accuracy_on_kept": 0.899,
+      "abstained": 14
     },
     {
       "threshold": 0.6,
-      "coverage": 0.7683,
-      "accuracy_on_kept": 0.9841,
-      "abstained": 19
+      "coverage": 0.8496,
+      "accuracy_on_kept": 0.9062,
+      "abstained": 17
     },
     {
       "threshold": 0.7,
-      "coverage": 0.7195,
-      "accuracy_on_kept": 0.9831,
-      "abstained": 23
+      "coverage": 0.823,
+      "accuracy_on_kept": 0.914,
+      "abstained": 20
     },
     {
       "threshold": 0.8,
-      "coverage": 0.622,
-      "accuracy_on_kept": 0.9804,
-      "abstained": 31
+      "coverage": 0.7434,
+      "accuracy_on_kept": 0.9643,
+      "abstained": 29
     },
     {
       "threshold": 0.9,
-      "coverage": 0.5488,
-      "accuracy_on_kept": 0.9778,
-      "abstained": 37
+      "coverage": 0.5841,
+      "accuracy_on_kept": 0.9848,
+      "abstained": 47
     }
   ]
 }

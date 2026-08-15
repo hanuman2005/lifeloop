@@ -16,6 +16,8 @@ import { LoadingState } from "@/shared/components/LoadingState";
 
 import LoginPage from "@/features/auth/LoginPage";
 import RegisterPage from "@/features/auth/RegisterPage";
+import ForgotPasswordPage from "@/features/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/features/auth/ResetPasswordPage";
 import LandingPage from "@/features/marketing/LandingPage";
 import ScannerPage from "@/features/scanner/ScannerPage";
 import ListingsPage from "@/features/listings/ListingsPage";
@@ -37,6 +39,7 @@ const BinMapPage = lazy(() => import("@/features/bins/BinMapPage")); // leaflet
 const MunicipalPage = lazy(() => import("@/features/municipal/MunicipalPage")); // recharts
 const HandoverPage = lazy(() => import("@/features/handover/HandoverPage")); // jsqr
 const CollectorPage = lazy(() => import("@/features/collector/CollectorPage"));
+const AdminPage = lazy(() => import("@/features/admin/AdminPage"));
 import NotFoundPage from "@/shared/components/NotFoundPage";
 
 /** Blocks a route until the session is known, then redirects if unauthenticated. */
@@ -93,6 +96,10 @@ export default function AppRouter() {
         }
       />
 
+      {/* Both are reached while signed out — the reset link arrives by email. */}
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
       <Route
         element={
           <RequireAuth>
@@ -101,6 +108,8 @@ export default function AppRouter() {
         }
       >
         <Route path="/scan" element={<ScannerPage />} />
+        <Route path="/scan/history" element={<HistoryPage />} />
+        <Route path="/centres" element={<CentresPage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listings/new" element={<CreateListingPage />} />
         <Route path="/listings/mine" element={<MyListingsPage />} />
@@ -112,6 +121,14 @@ export default function AppRouter() {
           element={
             <RequireRole allow={["collector", "admin"]}>
               <CollectorPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireRole allow={["admin"]}>
+              <AdminPage />
             </RequireRole>
           }
         />

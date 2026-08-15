@@ -55,6 +55,20 @@ export const authAPI = {
   register: (userData) => api.post("/auth/register", userData),
   getMe: () => api.get("/auth/me"),
   updateProfile: (data) => api.put("/auth/profile", data),
+  forgotPassword: (body) => api.post("/auth/forgot-password", body),
+  resetPassword: (token, body) => api.post(`/auth/reset-password/${token}`, body),
+};
+
+export const adminAPI = {
+  dashboardStats: () => api.get("/admin/dashboard-stats"),
+  users: (params) => api.get("/admin/users", { params }),
+  suspendUser: (id, body) => api.put(`/admin/users/${id}/suspend`, body || {}),
+  unsuspendUser: (id) => api.put(`/admin/users/${id}/unsuspend`),
+  warnUser: (id, body) => api.put(`/admin/users/${id}/warn`, body || {}),
+  reports: (params) => api.get("/admin/reports", { params }),
+  flaggedContent: (params) => api.get("/admin/flagged-content", { params }),
+  removeFlagged: (id, body) => api.put(`/admin/flagged-content/${id}/remove`, body || {}),
+  restoreFlagged: (id) => api.put(`/admin/flagged-content/${id}/restore`),
 };
 
 export const listingsAPI = {

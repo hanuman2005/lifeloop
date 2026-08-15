@@ -16,3 +16,15 @@ artifacts/*.tflite
 artifacts/*_bundle/
 __pycache__/
 *.pyc
+
+# Working copies of downloaded public datasets
+openimages_crops/
+taco_crops/
+data/yolo_cls/
+artifacts/yolo/
+*.log
+validation-bbox.csv
+
+# Pretrained weights downloaded on demand
+yolov8n-cls.pt
+yolo*.pt
