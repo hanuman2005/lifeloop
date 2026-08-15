@@ -127,6 +127,36 @@ export const chatAPI = {
   createOrGet: (data) => api.post("/chat/create-or-get", data),
 };
 
+export const notificationsAPI = {
+  list: (params) => api.get("/notifications", { params }),
+  unreadCount: () => api.get("/notifications/unread-count"),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put("/notifications/mark-all-read"),
+  remove: (id) => api.delete(`/notifications/${id}`),
+};
+
+export const qrAPI = {
+  generate: (listingId, recipientId) => api.post("/qr/generate", { listingId, recipientId }),
+  verify: (qrCode, location = null) => api.post("/qr/verify", { qrCode, location }),
+  getTransaction: (id) => api.get(`/qr/transaction/${id}`),
+  myTransactions: (params) => api.get("/qr/my-transactions", { params }),
+};
+
+export const schedulesAPI = {
+  propose: (listingId, data) => api.post(`/listings/${listingId}/schedule`, data),
+  mine: (params) => api.get("/schedules/my-schedules", { params }),
+  upcoming: () => api.get("/schedules/upcoming"),
+  getById: (id) => api.get(`/schedules/${id}`),
+  confirm: (id, data) => api.put(`/schedules/${id}/confirm`, data || {}),
+  cancel: (id, data) => api.put(`/schedules/${id}/cancel`, data || {}),
+  complete: (id) => api.put(`/schedules/${id}/complete`),
+};
+
+export const ratingsAPI = {
+  rate: (userId, data) => api.post(`/ratings/${userId}`, data),
+  reviews: (userId, params) => api.get(`/ratings/${userId}`, { params }),
+};
+
 export const impactAPI = {
   getPersonalImpact: () => api.get("/impact/personal"),
   getCommunityImpact: () => api.get("/impact/community"),

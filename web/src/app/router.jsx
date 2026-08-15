@@ -1,8 +1,13 @@
 // Route table and access control.
 //
+// Heavy routes are lazily loaded. Leaflet, Recharts and the QR decoder together are
+// most of the bundle and are each used on a single screen, so loading them upfront
+// makes first paint slower for everyone to benefit nobody.
+//
 // Routes are declared as data so the navigation, the guards and the sidebar all
 // derive from one source. Adding a screen is one entry plus one component.
 
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/AuthContext";
@@ -18,11 +23,18 @@ import ListingDetailPage from "@/features/listings/ListingDetailPage";
 import CreateListingPage from "@/features/listings/CreateListingPage";
 import MyListingsPage from "@/features/listings/MyListingsPage";
 import BinReportPage from "@/features/bins/BinReportPage";
-import BinMapPage from "@/features/bins/BinMapPage";
+
 import ImpactPage from "@/features/impact/ImpactPage";
-import CollectorPage from "@/features/collector/CollectorPage";
-import MunicipalPage from "@/features/municipal/MunicipalPage";
+import ChatPage from "@/features/chat/ChatPage";
+
+import SchedulesPage from "@/features/schedules/SchedulesPage";
+
+
 import ProfilePage from "@/features/profile/ProfilePage";
+const BinMapPage = lazy(() => import("@/features/bins/BinMapPage")); // leaflet
+const MunicipalPage = lazy(() => import("@/features/municipal/MunicipalPage")); // recharts
+const HandoverPage = lazy(() => import("@/features/handover/HandoverPage")); // jsqr
+const CollectorPage = lazy(() => import("@/features/collector/CollectorPage"));
 import NotFoundPage from "@/shared/components/NotFoundPage";
 
 /** Blocks a route until the session is known, then redirects if unauthenticated. */
@@ -59,7 +71,8 @@ function RedirectIfAuthed({ children }) {
 
 export default function AppRouter() {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingState label="Loading" />}>
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
         path="/login"
@@ -108,11 +121,15 @@ export default function AppRouter() {
             </RequireRole>
           }
         />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/schedules" element={<SchedulesPage />} />
+        <Route path="/handover" element={<HandoverPage />} />
         <Route path="/impact" element={<ImpactPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

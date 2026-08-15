@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 
 import AppRouter from "@/app/router";
 import { AuthProvider } from "@/features/auth/AuthContext";
+import { SocketProvider } from "@/features/realtime/SocketContext";
 import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 import "@/index.css";
 
@@ -27,8 +28,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <AppRouter />
-            <Toaster position="top-center" richColors closeButton />
+            <SocketProvider>
+              <AppRouter />
+              <Toaster position="top-center" richColors closeButton />
+            </SocketProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

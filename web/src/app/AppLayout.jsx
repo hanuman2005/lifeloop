@@ -4,9 +4,10 @@
 // layout is the primary one and the desktop sidebar is the adaptation.
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BarChart3, Camera, LayoutDashboard, LogOut, MapPin, Package, Trash2, Truck, User } from "lucide-react";
+import { BarChart3, CalendarClock, Camera, LayoutDashboard, LogOut, MapPin, MessageSquare, Package, QrCode, Trash2, Truck, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import NotificationBell from "@/features/notifications/NotificationBell";
 import { cn } from "@/lib/utils";
 
 // `roles` omitted means everyone. The mobile bar is capped at five items because
@@ -16,6 +17,9 @@ const NAV = [
   { to: "/listings", label: "Exchange", icon: Package },
   { to: "/bins/report", label: "Report bin", icon: Trash2 },
   { to: "/bins/map", label: "Waste map", icon: MapPin },
+  { to: "/chat", label: "Messages", icon: MessageSquare },
+  { to: "/schedules", label: "Pickups", icon: CalendarClock },
+  { to: "/handover", label: "Handover", icon: QrCode },
   { to: "/collect", label: "Collect", icon: Truck, roles: ["collector", "admin"] },
   { to: "/municipal", label: "Municipal", icon: LayoutDashboard, roles: ["admin"] },
   { to: "/impact", label: "Impact", icon: BarChart3 },
@@ -48,6 +52,12 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   const nav = NAV.filter((item) => !item.roles || item.roles.includes(userType));
+
+  // The bottom bar holds five items at most before targets get too small to hit
+  // one-handed, so it carries the most-used screens rather than the first five
+  // declared. Everything else stays reachable from the sidebar and from links.
+  const MOBILE_PRIORITY = ["/scan", "/listings", "/bins/report", "/chat", "/impact"];
+  const mobileNav = MOBILE_PRIORITY.map((to) => nav.find((item) => item.to === to)).filter(Boolean);
 
   const handleLogout = () => {
     logout();
@@ -86,6 +96,10 @@ export default function AppLayout() {
 
       {/* Content. Bottom padding clears the mobile bar. */}
       <main className="md:pl-60 pb-20 md:pb-0">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:justify-end md:px-8">
+          <span className="text-[14px] font-semibold tracking-tight md:hidden">LifeLoop</span>
+          <NotificationBell />
+        </div>
         <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">
           <Outlet />
         </div>
@@ -93,7 +107,7 @@ export default function AppLayout() {
 
       {/* Mobile bottom bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex border-t border-border bg-card px-1 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-        {nav.slice(0, 5).map((item) => (
+        {mobileNav.map((item) => (
           <NavItem key={item.to} {...item} mobile />
         ))}
       </nav>
