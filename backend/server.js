@@ -92,10 +92,18 @@ const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
 const allowedOrigins = [
   ...configuredOrigins,
   process.env.CLIENT_URL,
-  // Local web development only; never trusted in production.
+  // Local web development only; never trusted in production. 5173 is Vite's
+  // default and is where the web client actually runs — omitting it blocks the
+  // app at the first request with a CORS error that looks like a server fault.
   ...(IS_PRODUCTION
     ? []
-    : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]),
+    : [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+      ]),
 ].filter(Boolean);
 
 const corsOptions = {
