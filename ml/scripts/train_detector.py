@@ -56,6 +56,11 @@ def main() -> int:
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--model", default="yolov8n.pt")
     parser.add_argument("--patience", type=int, default=12)
+    # Ultralytics checkpoints the optimizer state and epoch counter into last.pt
+    # after every epoch, so an interrupted run continues rather than restarting.
+    # On resume it reads the original args.yaml and ignores the flags passed here.
+    parser.add_argument("--resume", action="store_true",
+                        help="continue an interrupted run from artifacts/detector/waste/weights/last.pt")
     args = parser.parse_args()
 
     data_yaml = DETECTION_DIR / "data.yaml"
@@ -65,6 +70,11 @@ def main() -> int:
         return 1
 
     from ultralytics import YOLO
+
+    last = config.ARTIFACTS_DIR / "detector" / "waste" / "weights" / "last.pt"
+    if args.resume and not last.exists():
+        print(f"❌ --resume needs {last}, which does not exist. Run without it.")
+        return 1
 
     counts = {
         split: len(list((DETECTION_DIR / "images" / split).glob("*.jpg")))
@@ -76,26 +86,40 @@ def main() -> int:
     if counts["train"] < 50:
         print("⚠️  Fewer than 50 training images. Results will not be meaningful.")
 
-    model = YOLO(args.model)
-    model.train(
-        data=str(data_yaml),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        patience=args.patience,
-        workers=0,  # Windows: worker processes cost more here than they save
-        project=str(config.ARTIFACTS_DIR / "detector"),
-        name="waste",
-        exist_ok=True,
-        verbose=True,
-        plots=False,
-        # Litter is photographed from any angle and in any light, so geometric and
-        # colour augmentation is worth more here than it would be for studio shots.
-        degrees=10,
-        scale=0.5,
-        fliplr=0.5,
-        hsv_v=0.4,
-    )
+    if args.resume:
+        import torch
+
+        stored = torch.load(last, map_location="cpu", weights_only=False)
+        stored_epochs = (stored.get("train_args") or {}).get("epochs", args.epochs)
+        print(f"↩️  resuming from epoch {stored.get('epoch')} of {stored_epochs}")
+
+
+        # Every other argument is deliberately omitted: resume replays the run's
+        # own args.yaml, and passing conflicting values here would either be
+        # ignored silently or invalidate the optimizer state being restored.
+        model = YOLO(str(last))
+        model.train(resume=True)
+    else:
+        model = YOLO(args.model)
+        model.train(
+            data=str(data_yaml),
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            batch=args.batch,
+            patience=args.patience,
+            workers=0,  # Windows: worker processes cost more here than they save
+            project=str(config.ARTIFACTS_DIR / "detector"),
+            name="waste",
+            exist_ok=True,
+            verbose=True,
+            plots=False,
+            # Litter is photographed from any angle and in any light, so geometric
+            # and colour augmentation is worth more here than for studio shots.
+            degrees=10,
+            scale=0.5,
+            fliplr=0.5,
+            hsv_v=0.4,
+        )
 
     print("\n🔍 evaluating on the held-out test split")
     results = model.val(data=str(data_yaml), split="test", verbose=False)
