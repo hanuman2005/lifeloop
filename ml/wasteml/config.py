@@ -110,7 +110,11 @@ FILENAME_PATTERN = r"^(?P<cls>[A-Za-z]+)_(?P<initials>[A-Z]{2,4})_(?P<num>\d{4,}
 # score measured on them describes a different problem from the one the app solves.
 # See COLLECTION-PLAN.md. `local` is the team's own photographs; anything else (the
 # synthetic smoke set) is treated as local, because it is not this kind of mismatch.
-PUBLIC_SOURCES = {"trashnet", "garbage12", "taco", "openimages"}
+PUBLIC_SOURCES = {"trashnet", "garbage12", "taco", "openimages",
+    # Web image search. Same treatment as any other public source: training split
+    # only, never validation or test, so reported accuracy never rests on it.
+    "scraped",
+}
 
 # ── Training ────────────────────────────────────────────────────────────────
 BATCH_SIZE = 32

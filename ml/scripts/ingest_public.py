@@ -112,12 +112,104 @@ MAPPINGS = {
         "Camera": "Electronic",
         # NotWaste is not a material: it is everyday things that are not discardable
         # items, so the model can decline instead of calling a wall Plastic.
+        # ── Everyday and college objects ────────────────────────────────
+        # Open Images is not a waste dataset. Its objects are in use — a shirt on a
+        # person, a laptop on a desk — so it teaches the model what materials look
+        # like, not what discarded things look like. That is still the gap worth
+        # closing first: the classifier had never seen a printed document, and
+        # called one Plastic.
+        #
+        # Only classes whose material is determinable from a photograph are mapped.
+        # Teaching the model that a plastic chair is Wood would make it worse at
+        # both, and the honest answer for a genuinely ambiguous object is the
+        # `uncertain` flag the classifier already produces.
+
+        # Paper. "Book" moved here from NotWaste: it contradicted the policy's core
+        # rule, which is to label by what a thing is made of. A book is paper whether
+        # or not it has been discarded.
+        "Book": "Paper",
+        "Envelope": "Paper",
+        "Ring binder": "Paper",
+        "Poster": "Paper",
+
+        # Textiles. All fabric or leather regardless of use.
+        "Backpack": "Textile",
+        "Handbag": "Textile",
+        "Suitcase": "Textile",
+        "Boot": "Textile",
+        "Sandal": "Textile",
+        "Sock": "Textile",
+        "Shirt": "Textile",
+        "Jacket": "Textile",
+        "Trousers": "Textile",
+        "Hat": "Textile",
+        "Scarf": "Textile",
+        "Glove": "Textile",
+        "Towel": "Textile",
+        "Pillow": "Textile",
+
+        # Electronics.
+        "Computer keyboard": "Electronic",
+        "Computer mouse": "Electronic",
+        "Mobile phone": "Electronic",
+        "Laptop": "Electronic",
+        "Tablet computer": "Electronic",
+        "Printer": "Electronic",
+        "Television": "Electronic",
+        "Remote control": "Electronic",
+        "Headphones": "Electronic",
+        "Camera": "Electronic",
+        "Calculator": "Electronic",
+        "Telephone": "Electronic",
+        "Microwave oven": "Electronic",
+        "Ipod": "Electronic",
+
+        # Metal. Cutlery and hand tools are steel; a tin can is a tin can.
+        "Tin can": "Metal",
+        "Spoon": "Metal",
+        "Fork": "Metal",
+        "Knife": "Metal",
+        "Frying pan": "Metal",
+        "Kettle": "Metal",
+        "Wrench": "Metal",
+        "Scissors": "Metal",
+
+        # Organic. Food only — Plant and Flower are living things, not waste.
+        "Banana": "Organic",
+        "Apple": "Organic",
+        "Orange": "Organic",
+        "Tomato": "Organic",
+        "Potato": "Organic",
+        "Bread": "Organic",
+        "Vegetable": "Organic",
+        "Fruit": "Organic",
+
+        # Glass and plastic, only where the material is unambiguous.
+        "Wine glass": "Glass",
+        "Mirror": "Glass",
+        "Plastic bag": "Plastic",
+        "Toothbrush": "Plastic",
+
+        # NotWaste — everyday things that are not discardable items, so the model
+        # can decline instead of naming a material.
         "Houseplant": "NotWaste",
         "Tree": "NotWaste",
         "Chair": "NotWaste",
         "Door": "NotWaste",
         "Table": "NotWaste",
-        "Book": "NotWaste",
+        "Flower": "NotWaste",
+        "Plant": "NotWaste",
+
+        # Deliberately absent, because a photograph cannot settle the material:
+        #   Bottle, Cup, Bowl, Container, Jug  - plastic or glass
+        #   Box, Carton                        - cardboard or plastic
+        #   Pen, Ruler, Toy                    - plastic, wood or metal
+        #   Vase                               - glass or ceramic
+        #   Light bulb                         - LED is Electronic, CFL is Hazardous
+        #   Paper towel, Toilet paper          - Paper unused, Organic once soiled
+        #   Stool, Bench, Desk, Shelf, Ladder  - wood, metal or plastic; this is
+        #                                        why Wood still has no data and
+        #                                        needs photographs taken by hand
         # Deliberately absent: "Light bulb". LED is Electronic and CFL is Hazardous,
         # and Open Images does not distinguish them, so the label is unknowable.
     },
@@ -127,9 +219,15 @@ MAPPINGS = {
 # prepare_dataset.py keeps these sources out of validation and test by name. If the
 # two lists drift apart, a public dataset silently becomes eligible for the held-out
 # set and the reported score stops describing real photographs.
-assert set(MAPPINGS) == config.PUBLIC_SOURCES, (
-    f"MAPPINGS {sorted(MAPPINGS)} disagrees with "
-    f"config.PUBLIC_SOURCES {sorted(config.PUBLIC_SOURCES)}"
+# Subset rather than equality: not every public source arrives through folder
+# mapping. scrape_images.py writes straight into the class folders and tags its own
+# provenance, so it has no MAPPINGS entry. What must hold is that anything this
+# script can ingest is a source prepare_dataset.py recognises — otherwise a public
+# dataset silently becomes eligible for validation and test, and the reported score
+# stops describing real photographs.
+unknown_sources = set(MAPPINGS) - config.PUBLIC_SOURCES
+assert not unknown_sources, (
+    f"MAPPINGS has sources config.PUBLIC_SOURCES does not know: {sorted(unknown_sources)}"
 )
 
 

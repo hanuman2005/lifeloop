@@ -35,3 +35,7 @@ artifacts/detector/
 artifacts/*.pt
 taco-annotations.json
 runs/
+
+data/scraped/
+oi_paper/
+oi-classes.csv
