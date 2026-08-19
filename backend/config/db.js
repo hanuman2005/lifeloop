@@ -12,7 +12,10 @@ const connectDB = async () => {
       
       const conn = await mongoose.connect(process.env.MONGO_URI, {
         family: 4, // Force IPv4
-        serverSelectionTimeoutMS: 5000,
+        // 5s is comfortable for a local mongod but tight for a first Atlas
+        // connection, which has to resolve the SRV record and negotiate TLS
+        // across the network. Too low and a healthy cluster looks unreachable.
+        serverSelectionTimeoutMS: Number(process.env.MONGO_TIMEOUT_MS || 15000),
         socketTimeoutMS: 45000,
       });
 
