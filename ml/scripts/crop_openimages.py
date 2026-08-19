@@ -65,26 +65,45 @@ enable_utf8()
 
 OPEN_IMAGES_MAP = MAPPINGS["openimages"]
 
-# Open Images identifies classes by machine id; the CSV never spells them out.
-# These are the ids for the classes in MAPPINGS["openimages"], from
-# oidv7-class-descriptions-boxable.csv.
-LABEL_IDS = {
-    "/m/01m2v": "Computer keyboard",
-    "/m/020lf": "Computer mouse",
-    "/m/050k8": "Mobile phone",
-    "/m/01c648": "Laptop",
-    "/m/01m4t": "Printer",
-    "/m/07c52": "Television",
-    "/m/0qjjc": "Remote control",
-    "/m/01b7fy": "Headphones",
-    "/m/0dv5r": "Camera",
-    "/m/03fp41": "Houseplant",
-    "/m/07j7r": "Tree",
-    "/m/01mzpv": "Chair",
-    "/m/02dgv": "Door",
-    "/m/04bcr3": "Table",
-    "/m/0bt_c3": "Book",
-}
+# Open Images identifies classes by machine id ("/m/0bt_c3"); the annotation CSV
+# never spells the names out. This table used to be fifteen ids typed in by hand,
+# which silently capped what could be cropped: the mapping in ingest_public.py grew
+# to 59 classes and this script could still only resolve the original fifteen, so
+# every new class was ignored without an error.
+#
+# Now it is derived from the official class-descriptions file, so adding a class to
+# MAPPINGS is enough.
+CLASS_DESCRIPTIONS_URL = (
+    "https://storage.googleapis.com/openimages/v5/class-descriptions-boxable.csv"
+)
+CLASS_DESCRIPTIONS_PATH = config.ML_ROOT / "oi-classes.csv"
+
+
+def load_label_ids() -> dict:
+    """machine id -> class name, for the classes MAPPINGS actually asks for."""
+    if not CLASS_DESCRIPTIONS_PATH.exists():
+        print(f"⬇️  fetching {CLASS_DESCRIPTIONS_PATH.name}")
+        from urllib.request import urlopen
+
+        CLASS_DESCRIPTIONS_PATH.write_bytes(urlopen(CLASS_DESCRIPTIONS_URL, timeout=60).read())
+
+    wanted = set(OPEN_IMAGES_MAP)
+    ids = {}
+    with open(CLASS_DESCRIPTIONS_PATH, encoding="utf-8") as handle:
+        for row in csv.reader(handle):
+            if len(row) >= 2 and row[1] in wanted:
+                ids[row[0]] = row[1]
+
+    # A name in MAPPINGS that Open Images does not have is a typo, and silently
+    # skipping it is how the fifteen-id cap went unnoticed for so long.
+    missing = wanted - set(ids.values())
+    if missing:
+        print(f"⚠️  not present in Open Images, check spelling: {sorted(missing)}")
+
+    return ids
+
+
+LABEL_IDS = load_label_ids()
 
 IMAGE_URL = "https://open-images-dataset.s3.amazonaws.com/{split}/{image_id}.jpg"
 

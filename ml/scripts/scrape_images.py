@@ -20,11 +20,18 @@ occasional cartoon. None of that is a photograph of an item, and training on it
 teaches the model that plastic looks like a stock photo. The review step exists
 because no automatic filter catches this reliably.
 
-## Queries ask for the discarded state, not the object
+## Queries are short, and that matters more than phrasing
 
-"wooden chair" returns furniture catalogues. "broken wooden chair discarded"
-returns something closer to waste. Every query list below is written that way, and
-it is the single biggest lever on whether scraped data helps or hurts.
+Verified empirically. "banana" returns bananas. "broken wooden chair discarded"
+returns YouTube thumbnails and Canva letterhead templates, because Bing has almost
+no results for a four-word phrase and pads the response with unrelated filler.
+
+An earlier version of this file argued the opposite — that long phrases asking for
+the discarded state were the biggest lever. They are, in the wrong direction: they
+break the search outright. Two or three words, many of them, is what works.
+
+Even then the results skew towards stock photography and cut-outs on white, which
+is why the review step exists.
 
 ## Provenance
 
@@ -56,62 +63,35 @@ SCRAPE_DIR = config.DATA_DIR / "scraped"
 # overlap is removed by hashing anyway.
 QUERIES = {
     "Wood": [
-        "broken wooden chair discarded",
-        "waste wood planks pile",
-        "scrap timber offcuts",
-        "old wooden furniture thrown away",
-        "wooden crate broken discarded",
-        "sawdust wood waste",
-        "wooden pallet damaged discarded",
+        "wood scrap", "waste wood", "wooden pallet", "timber offcuts",
+        "broken wooden chair", "sawdust", "wooden crate", "firewood",
     ],
     "Paper": [
-        "crumpled printed document waste",
-        "waste paper office documents pile",
-        "old newspapers stacked for recycling",
-        "used notebooks discarded",
-        "torn paper envelopes waste",
-        "shredded paper waste bin",
-        "cardboard boxes flattened recycling",
+        "waste paper", "old newspaper", "paper documents", "used notebook",
+        "shredded paper", "cardboard waste", "paper envelope", "torn paper",
     ],
     "Plastic": [
-        "crushed plastic water bottle litter",
-        "plastic bag waste ground",
-        "plastic food container dirty discarded",
-        "plastic waste pile india",
+        "plastic waste", "crushed plastic bottle", "plastic bag litter",
+        "plastic container waste", "plastic bottle litter",
     ],
     "Glass": [
-        "broken glass bottle waste",
-        "glass jars for recycling dirty",
-        "glass bottle litter ground",
+        "broken glass", "glass bottle waste", "glass jar recycling", "glass shards",
     ],
     "Metal": [
-        "crushed aluminium can litter",
-        "scrap metal pile waste",
-        "rusty tin can discarded",
-        "metal scrap kabadiwala india",
+        "scrap metal", "crushed can", "rusty tin can", "metal waste", "aluminium can",
     ],
     "Organic": [
-        "vegetable peel waste kitchen",
-        "food waste compost pile",
-        "banana peel litter ground",
-        "rotten fruit waste",
+        "vegetable peel", "food waste", "banana peel", "rotten fruit", "kitchen waste",
     ],
     "Electronic": [
-        "e waste circuit boards pile",
-        "broken mobile phone discarded",
-        "old chargers cables tangled waste",
-        "e waste india scrap",
+        "e waste", "circuit board scrap", "broken phone", "old cables", "electronic scrap",
     ],
     "Textile": [
-        "old clothes pile discarded",
-        "torn cloth rags waste",
-        "worn out shoes discarded",
+        "old clothes waste", "cloth rags", "worn shoes", "textile waste",
     ],
     "Hazardous": [
-        "used batteries pile waste",
-        "discarded cfl tube light broken",
-        "empty paint tin discarded",
-        "medicine blister pack waste",
+        "used batteries", "broken tube light", "paint tin waste",
+        "medicine blister pack", "battery waste",
     ],
 }
 
