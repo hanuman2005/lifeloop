@@ -119,6 +119,13 @@ QUERIES = {
 # learn a texture from.
 MIN_SIZE = (300, 300)
 
+# Bing's relevance collapses past roughly the first twenty results for a narrow
+# query: it starts returning whatever is loosely visually similar. Asking one query
+# for 37 images is how "medicine blister pack waste" ended up returning autumn
+# leaves and photographs of cats. Many narrow queries beat few deep ones, so the
+# per-query ask is capped regardless of --limit.
+MAX_PER_QUERY = 18
+
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -150,8 +157,14 @@ def scrape_class(class_name: str, limit: int) -> int:
     target = SCRAPE_DIR / class_name
     target.mkdir(parents=True, exist_ok=True)
 
-    per_query = max(1, limit // len(queries))
-    print(f"\n{class_name}: {len(queries)} queries x ~{per_query} images")
+    per_query = min(MAX_PER_QUERY, max(1, limit // len(queries)))
+    reachable = per_query * len(queries)
+    print('')
+    print(f'{class_name}: {len(queries)} queries x {per_query} images (max {reachable})')
+    if reachable < limit:
+        print(f'  {limit} requested, {reachable} reachable at {MAX_PER_QUERY} per query.')
+        print('  Add queries rather than raising the cap: going deeper per query')
+        print('  returns unrelated images, not more waste.')
 
     for query in queries:
         # A separate crawler per query keeps the storage prefix distinct, so files
