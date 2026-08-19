@@ -18,10 +18,26 @@ from PIL import Image
 
 from . import config
 
-# Boxes below this confidence are more likely to be texture than an object. Kept
-# deliberately low: a missed item is waste that goes unsorted, whereas a false box
-# costs one classifier call and is usually caught by the NotWaste class.
-DEFAULT_BOX_CONFIDENCE = 0.25
+# Fallback only. The real value is measured by scripts/calibrate_detector.py and
+# loaded from artifacts/detector-thresholds.json, because a fixed cutoff does not
+# survive retraining: mAP is computed across all confidence levels, so a model can
+# rank boxes better while scoring them lower, and a hardcoded threshold then
+# silently discards most of its detections.
+DEFAULT_BOX_CONFIDENCE = 0.15
+
+
+def load_box_confidence(path, fallback: float = DEFAULT_BOX_CONFIDENCE) -> float:
+    """Read the calibrated box threshold, falling back if it has not been fitted."""
+    import json
+
+    path = Path(path)
+    if not path.exists():
+        return fallback
+    try:
+        value = float(json.loads(path.read_text(encoding="utf-8"))["box_confidence"])
+        return value if 0 < value < 1 else fallback
+    except Exception:
+        return fallback
 
 # Padding around each box before classification. The classifier was trained on
 # items filling 50-80% of the frame, so a tight crop is out of distribution; a
@@ -101,6 +117,7 @@ def analyse_scene(
     classes,
     temperature: float = 1.0,
     thresholds: dict = None,
+    box_confidence: float = DEFAULT_BOX_CONFIDENCE,
 ):
     """Detect every item and classify each one.
 
@@ -108,7 +125,7 @@ def analyse_scene(
     municipality cares about: how much of this pile is recyclable.
     """
     thresholds = thresholds or {}
-    boxes = detect_items(detector, image)
+    boxes = detect_items(detector, image, box_confidence)
 
     items = []
     for box in boxes:

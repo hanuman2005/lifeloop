@@ -99,10 +99,15 @@ def load_model() -> None:
     if not detector_path.is_absolute():
         detector_path = config.ARTIFACTS_DIR / detector_path
     state["detector"] = detect.load_detector(detector_path)
+    # Fitted on the test split rather than guessed; see scripts/calibrate_detector.py.
+    state["box_confidence"] = detect.load_box_confidence(
+        config.ARTIFACTS_DIR / "detector-thresholds.json"
+    )
 
     print(f"✅ {ckpt_path.name} loaded · {blob['backbone']} · {len(state['classes'])} classes")
     if state["detector"]:
         print(f"✅ detector loaded: {detector_path.name} — /analyze-scene available")
+        print(f"   box confidence {state['box_confidence']:.2f}")
     else:
         print("ℹ️  no detector — /analyze-scene will fall back to single-item classification")
     print(f"   {', '.join(state['classes'])}")
@@ -123,6 +128,7 @@ def health():
         ],
         "calibrated": bool(state["thresholds"]),
         "detector": bool(state["detector"]),
+        "box_confidence": state.get("box_confidence"),
     }
 
 
@@ -246,6 +252,7 @@ def analyze_scene(request: SceneRequest):
         state["classes"],
         state["temperature"],
         state["thresholds"],
+        box_confidence=state.get("box_confidence") or detect.DEFAULT_BOX_CONFIDENCE,
     )
     result["mode"] = "detected"
     result["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)

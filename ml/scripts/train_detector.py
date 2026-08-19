@@ -61,6 +61,14 @@ def main() -> int:
     # On resume it reads the original args.yaml and ignores the flags passed here.
     parser.add_argument("--resume", action="store_true",
                         help="continue an interrupted run from artifacts/detector/waste/weights/last.pt")
+    # Evaluation runs after training and can fail on its own — it decodes
+    # full-resolution images, and TACO has some at 2988x5312, which needs ~48MB
+    # each. If the machine is short of memory when that happens, thirty epochs of
+    # training are already done and only the measurement is missing.
+    parser.add_argument("--eval-only", action="store_true",
+                        help="skip training and evaluate the existing best.pt")
+    parser.add_argument("--val-batch", type=int, default=4,
+                        help="batch size for evaluation; lower it if evaluation runs out of memory")
     args = parser.parse_args()
 
     data_yaml = DETECTION_DIR / "data.yaml"
@@ -86,7 +94,15 @@ def main() -> int:
     if counts["train"] < 50:
         print("⚠️  Fewer than 50 training images. Results will not be meaningful.")
 
-    if args.resume:
+    best = config.ARTIFACTS_DIR / "detector" / "waste" / "weights" / "best.pt"
+    if args.eval_only:
+        if not best.exists():
+            print(f"❌ --eval-only needs {best}, which does not exist.")
+            return 1
+        print(f"⏭️  skipping training, evaluating {best.name}")
+
+        model = YOLO(str(best))
+    elif args.resume:
         import torch
 
         stored = torch.load(last, map_location="cpu", weights_only=False)
