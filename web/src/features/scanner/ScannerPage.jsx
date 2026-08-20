@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import LiveCamera from "@/features/scanner/LiveCamera";
 import MaterialResult from "@/features/scanner/MaterialResult";
 import SceneResult from "@/features/scanner/SceneResult";
+import ObjectResult from "@/features/scanner/ObjectResult";
 import { MATERIAL_GUIDE } from "@/features/scanner/materials";
 
 /** Strips the `data:image/jpeg;base64,` prefix the API does not want. */
@@ -72,10 +73,12 @@ export default function ScannerPage() {
   const [analysing, setAnalysing] = useState(false);
   const [result, setResult] = useState(null);
   const [scene, setScene] = useState(null);
+  const [objects, setObjects] = useState(null);
   const [noItem, setNoItem] = useState(false);
   const [liveCamera, setLiveCamera] = useState(false);
   // "single" is one item filling the frame, which is the citizen case. "pile"
   // segregates a mixed heap, which is what a municipality photographs.
+  // "objects" detects everyday items using COCO (phones, laptops, books, etc.).
   const [mode, setMode] = useState("single");
 
   function reset() {
@@ -83,6 +86,7 @@ export default function ScannerPage() {
     setPreview(null);
     setResult(null);
     setScene(null);
+    setObjects(null);
     setNoItem(false);
   }
 
@@ -131,6 +135,13 @@ export default function ScannerPage() {
         const { data: sceneData } = await scanAPI.analyzeScene(base64);
         if (!sceneData.success) throw new Error(sceneData.message || "Scene analysis failed");
         setScene(sceneData);
+        return;
+      }
+
+      if (mode === "objects") {
+        const { data: objectsData } = await scanAPI.detectObjects(base64);
+        if (!objectsData.success) throw new Error(objectsData.message || "Object detection failed");
+        setObjects(objectsData);
         return;
       }
 
@@ -213,6 +224,7 @@ export default function ScannerPage() {
         {[
           { value: "single", label: "One item", icon: ScanLine },
           { value: "pile", label: "Mixed pile", icon: Layers },
+          { value: "objects", label: "Find objects", icon: Camera },
         ].map((option) => (
           <button
             key={option.value}
@@ -321,6 +333,10 @@ export default function ScannerPage() {
 
       {scene && (
         <SceneResult imageUrl={preview} result={scene} onScanAnother={reset} />
+      )}
+
+      {objects && (
+        <ObjectResult imageUrl={preview} result={objects} onScanAnother={reset} />
       )}
 
       {result && (

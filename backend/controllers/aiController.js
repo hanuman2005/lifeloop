@@ -381,3 +381,50 @@ exports.analyzeScene = async (req, res) => {
     return res.status(reason.status).json({ success: false, message: reason.message });
   }
 };
+
+// @desc    Detect everyday objects in a photograph (COCO classes)
+// @route   POST /api/ai/detect-objects
+// @access  Private
+//
+// Demo-friendly endpoint: recognises phones, laptops, books, bottles, chairs,
+// backpacks, etc. using a pre-trained YOLOv8n model. Returns object names,
+// emojis, bounding boxes, and waste-category mappings.
+exports.detectObjects = async (req, res) => {
+  const { imageBase64 } = req.body || {};
+
+  if (!imageBase64 || typeof imageBase64 !== "string") {
+    return res.status(400).json({
+      success: false,
+      message: "imageBase64 is required",
+    });
+  }
+
+  const hash = crypto.createHash("sha256").update(imageBase64).digest("hex");
+
+  try {
+    const result = await callModelService(imageBase64, "/detect-objects");
+
+    if (!result || !Array.isArray(result.items)) {
+      return res.status(502).json({
+        success: false,
+        message: "Object detection returned an unreadable response",
+      });
+    }
+
+    console.log(
+      `📦 Objects ${hash.slice(0, 12)} → ${result.items.length} object(s) detected [${result.mode}]`,
+    );
+
+    return res.json({
+      success: true,
+      mode: result.mode,
+      items: result.items,
+      count: result.items.length,
+      engine: "yolov8n-coco",
+    });
+  } catch (error) {
+    const reason = classifyFailure(error);
+    console.error(`❌ ${reason.log}`);
+    return res.status(reason.status).json({ success: false, message: reason.message });
+  }
+};

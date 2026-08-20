@@ -101,6 +101,11 @@ export const scanAPI = {
   // classifier pass per item.
   analyzeScene: (imageBase64) =>
     api.post("/ai/analyze-scene", { imageBase64, mediaType: "image/jpeg" }, { timeout: 120000 }),
+
+  // Everyday objects: detects phones, laptops, books, bottles, chairs, etc.
+  // using YOLOv8n-COCO. Returns object names, emojis, boxes, and waste categories.
+  detectObjects: (imageBase64) =>
+    api.post("/ai/detect-objects", { imageBase64, mediaType: "image/jpeg" }, { timeout: 60000 }),
 };
 
 export const ecoAPI = {

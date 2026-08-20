@@ -105,10 +105,14 @@ ml/data/splits/
 ml/artifacts/*.pt
 ml/artifacts/*.onnx
 ml/artifacts/*.tflite
+ml/artifacts/*.torchscript
 
 # ML dataset downloads and build artefacts
 ml/.vite/
 ml/oi_everyday/
+ml/openimages_crops/
+ml/oi_paper/
+ml/validation-bbox.csv
 
 # Local dev server logs
 *.log

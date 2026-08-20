@@ -1,13 +1,11 @@
-// backend/routes/ai.js — M1 AI Waste Scanner
+// backend/routes/ai.js — M1 AI Waste Scanner + Everyday Object Detector
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const router = express.Router();
 
 const { auth } = require("../middleware/auth");
-const { analyzeImage, analyzeScene } = require("../controllers/aiController");
+const { analyzeImage, analyzeScene, detectObjects } = require("../controllers/aiController");
 
-// Gemini free-tier quota is the binding constraint on this project, and an
-// unthrottled scan endpoint is also the obvious way to game the points economy.
 const analyzeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 40,
@@ -27,5 +25,8 @@ router.post("/analyze-image", auth, analyzeLimiter, analyzeImage);
 // strictly more expensive than a single classification, so it must not be the
 // cheaper way to burn the quota.
 router.post("/analyze-scene", auth, analyzeLimiter, analyzeScene);
+
+// Detects everyday objects (phones, laptops, books, bottles, etc.) using YOLOv8n-COCO.
+router.post("/detect-objects", auth, analyzeLimiter, detectObjects);
 
 module.exports = router;

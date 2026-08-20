@@ -2,9 +2,11 @@
 
     cd ml && uvicorn serve.app:app --host 127.0.0.1 --port 8000
 
-The Node backend calls this over localhost. It is deliberately dumb: classify an image,
-return a material and a calibrated confidence. All advice, points, and impact figures
-stay in the Node layer, which already has CATEGORY_ADVICE.
+Two pipelines:
+1. Waste material classifier (MobileNetV3) — tells you what something is made of.
+2. Everyday object detector (YOLOv8n-COCO) — tells you what everyday objects are in the frame.
+
+The Node backend calls both. All advice, points, and impact figures stay in the Node layer.
 """
 
 import base64
@@ -30,15 +32,21 @@ from wasteml.console import enable_utf8  # noqa: E402
 enable_utf8()
 
 CHECKPOINT = os.getenv("WASTE_MODEL", "waste_mobilenet_v3_small.pt")
-# Optional. Without it the service classifies the whole frame, which is the
-# original single-item behaviour and still correct for a citizen photographing
-# one bottle.
 DETECTOR = os.getenv("WASTE_DETECTOR", "waste_detector.pt")
+COCO_MODEL = os.getenv("COCO_MODEL", "yolov8n.pt")
 
 app = FastAPI(title="LifeLoop Waste Classifier", version="1.0.0")
 
-state = {"model": None, "blob": None, "temperature": 1.0, "thresholds": {}, "transform": None,
-         "detector": None}
+state = {
+    "model": None,
+    "blob": None,
+    "temperature": 1.0,
+    "thresholds": {},
+    "transform": None,
+    "detector": None,
+    "coco_model": None,
+    "coco_classes": {},
+}
 
 
 class ClassifyRequest(BaseModel):
@@ -52,6 +60,12 @@ class SceneRequest(BaseModel):
     # Lower finds more items at the cost of more false boxes. A missed item is
     # waste that goes unsorted; a false box costs one classifier call.
     min_confidence: float = detect.DEFAULT_BOX_CONFIDENCE
+
+
+class DetectObjectsRequest(BaseModel):
+    image_base64: str
+    media_type: str = "image/jpeg"
+    min_confidence: float = 0.25
 
 
 @app.on_event("startup")
@@ -97,19 +111,43 @@ def load_model() -> None:
 
     detector_path = Path(DETECTOR)
     if not detector_path.is_absolute():
-        detector_path = config.ARTIFACTS_DIR / detector_path
+        detector_path = config.ARTIFACTS_DIR / DETECTOR
     state["detector"] = detect.load_detector(detector_path)
-    # Fitted on the test split rather than guessed; see scripts/calibrate_detector.py.
     state["box_confidence"] = detect.load_box_confidence(
         config.ARTIFACTS_DIR / "detector-thresholds.json"
     )
 
+    # Load COCO everyday-object detector (YOLOv8n). This is what lets the app
+    # recognise phones, laptops, books, bottles, chairs — things a citizen
+    # actually photographs — without retraining on a new dataset.
+    coco_path = Path(COCO_MODEL)
+    if not coco_path.is_absolute():
+        coco_path = config.ARTIFACTS_DIR / COCO_MODEL
+    if coco_path.exists():
+        try:
+            from ultralytics import YOLO
+
+            state["coco_model"] = YOLO(str(coco_path))
+            coco_classes_path = config.ARTIFACTS_DIR / "coco_classes.json"
+            if coco_classes_path.exists():
+                state["coco_classes"] = json.loads(
+                    coco_classes_path.read_text(encoding="utf-8")
+                ).get("classes", {})
+            print(
+                f"✅ COCO detector loaded: {coco_path.name} — /detect-objects available"
+            )
+        except Exception as error:  # noqa: BLE001
+            print(f"⚠️  COCO detector could not be loaded: {error}")
+            state["coco_model"] = None
+    else:
+        print("ℹ️  no COCO model found — /detect-objects will return 503")
+
     print(f"✅ {ckpt_path.name} loaded · {blob['backbone']} · {len(state['classes'])} classes")
     if state["detector"]:
-        print(f"✅ detector loaded: {detector_path.name} — /analyze-scene available")
+        print(f"✅ waste detector loaded: {detector_path.name} — /analyze-scene available")
         print(f"   box confidence {state['box_confidence']:.2f}")
     else:
-        print("ℹ️  no detector — /analyze-scene will fall back to single-item classification")
+        print("ℹ️  no waste detector — /analyze-scene will fall back to single-item classification")
     print(f"   {', '.join(state['classes'])}")
     dormant = [c for c in config.CLASSES if c not in state["classes"]]
     if dormant:
@@ -129,6 +167,8 @@ def health():
         "calibrated": bool(state["thresholds"]),
         "detector": bool(state["detector"]),
         "box_confidence": state.get("box_confidence"),
+        "coco_detector": bool(state["coco_model"]),
+        "coco_classes_loaded": len(state["coco_classes"]),
     }
 
 
@@ -257,3 +297,73 @@ def analyze_scene(request: SceneRequest):
     result["mode"] = "detected"
     result["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)
     return result
+
+
+@app.post("/detect-objects")
+def detect_objects(request: DetectObjectsRequest):
+    """Detect everyday objects in the frame using a general-purpose COCO model.
+
+    Returns bounding boxes, class names, and waste-category mappings for each
+    detected item. This is the demo-friendly endpoint: it recognises phones,
+    laptops, books, bottles, chairs, backpacks, etc.
+    """
+    if state["coco_model"] is None:
+        raise HTTPException(
+            status_code=503, detail="COCO object detector not loaded"
+        )
+
+    try:
+        raw = base64.b64decode(request.image_base64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="image_base64 is not valid base64")
+
+    try:
+        image = Image.open(io.BytesIO(raw)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not decode the image")
+
+    started = time.perf_counter()
+
+    results = state["coco_model"].predict(
+        image, conf=request.min_confidence, verbose=False
+    )
+    if not results:
+        return {
+            "mode": "coco",
+            "items": [],
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+        }
+
+    coco_classes = state["coco_classes"]
+    items = []
+    for box in results[0].boxes:
+        x1, y1, x2, y2 = (float(v) for v in box.xyxy[0].tolist())
+        cls_id = str(int(box.cls[0].item()))
+        score = float(box.conf[0].item())
+
+        class_info = coco_classes.get(cls_id, {})
+        items.append(
+            {
+                "name": class_info.get("name", cls_id),
+                "label": class_info.get("label", cls_id),
+                "emoji": class_info.get("emoji", "📦"),
+                "wasteCategory": class_info.get("wasteCategory"),
+                "confidence": round(score * 100, 1),
+                "box": {
+                    "x1": round(x1, 1),
+                    "y1": round(y1, 1),
+                    "x2": round(x2, 1),
+                    "y2": round(y2, 1),
+                },
+            }
+        )
+
+    items.sort(key=lambda i: i["confidence"], reverse=True)
+
+    return {
+        "mode": "coco",
+        "items": items,
+        "count": len(items),
+        "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+        "model": "yolov8n-coco",
+    }
