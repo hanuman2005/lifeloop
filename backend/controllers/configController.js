@@ -117,6 +117,16 @@ const WASTE_CATEGORIES = [
     examples: "Furniture, logs, pallets",
     keywords: ["wood", "wooden", "log", "furniture", "pallet"],
   },
+  {
+    id: "Hazardous",
+    label: "Hazardous",
+    icon: "⚠️",
+    color: "#dc2626",
+    bg: "#fef2f2",
+    border: "#fca5a5",
+    examples: "Batteries, chemicals, tube lights",
+    keywords: ["battery", "chemical", "hazardous", "toxic", "paint"],
+  },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────

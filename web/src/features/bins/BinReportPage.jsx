@@ -196,16 +196,27 @@ export default function BinReportPage() {
               type="button"
               onClick={() => setStatus(option.value)}
               className={cn(
-                "flex items-center gap-3 rounded-md border p-4 text-left transition-colors",
-                status === option.value ? option.tone : "border-border bg-card hover:bg-secondary",
+                "flex items-center gap-3.5 rounded-lg border p-4 text-left transition-all duration-200",
+                status === option.value
+                  ? option.tone + " shadow-sm border-l-4"
+                  : "border-border bg-card hover:bg-secondary hover:border-accent/20",
               )}
             >
-              <Trash2 className="h-5 w-5 shrink-0" />
+              <div className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border",
+                status === option.value ? "bg-white/50 border-white/60" : "bg-muted border-border"
+              )}>
+                <Trash2 className="h-5 w-5" />
+              </div>
               <span className="flex-1">
-                <span className="block text-[15px] font-medium">{option.label}</span>
-                <span className="block text-[12.5px] opacity-80">{option.hint}</span>
+                <span className="block text-[15px] font-semibold">{option.label}</span>
+                <span className="block text-[12.5px] opacity-80 mt-0.5">{option.hint}</span>
               </span>
-              {status === option.value && <Check className="h-4 w-4" />}
+              {status === option.value && (
+                <div className="h-5 w-5 rounded-full bg-white/40 flex items-center justify-center">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+              )}
             </button>
           ))}
         </div>

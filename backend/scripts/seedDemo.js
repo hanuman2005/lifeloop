@@ -24,14 +24,18 @@ const User = require("../models/User");
 const Listing = require("../models/Listing");
 const BinReport = require("../models/BinReport");
 const EcoPoints = require("../models/EcoPoints");
+const WasteAnalysis = require("../models/WasteAnalysis");
+const CollectionTask = require("../models/CollectionTask");
+const WorkLedgerEntry = require("../models/WorkLedgerEntry");
+const Chat = require("../models/Chat");
+const Message = require("../models/Message");
+const Schedule = require("../models/Schedule");
+const Rating = require("../models/Rating");
+const Transaction = require("../models/Transaction");
 
 const PASSWORD = "Demo1234!";
-// The User model validates the address, and it rejects made-up TLDs like
-// ".demo", so this uses a real one on a subdomain nobody will confuse for a
-// person's account.
 const DOMAIN = "@demo.lifeloop.com";
 
-// Bhimavaram — the pilot area.
 const CENTRE = { lat: 16.5449, lng: 81.5212 };
 
 const ACCOUNTS = [
@@ -83,9 +87,37 @@ const LISTINGS = [
     unit: "items",
     pickupLocation: "Vidya Nagar",
   },
+  {
+    title: "Glass jars with lids, set of 6",
+    description: "From imported food. Labels soaked off, jars and lids are clean.",
+    category: "household-items",
+    quantity: 6,
+    unit: "items",
+    pickupLocation: "Narasapuram road",
+  },
+  {
+    title: "Children's story books",
+    description: "Aged 4-8 years. Amar Chitra Katha and Panchatantra, good condition.",
+    category: "books",
+    quantity: 12,
+    unit: "items",
+    pickupLocation: "Bhimavaram market",
+  },
 ];
 
-/** A point scattered up to `spreadKm` from the pilot centre. */
+const WASTE_MATERIALS = [
+  { material: "Plastic", confidence: 92, label: "Plastic bottle" },
+  { material: "Metal", confidence: 88, label: "Steel tumbler" },
+  { material: "Organic", confidence: 97, label: "Banana peel" },
+  { material: "Paper", confidence: 79, label: "Old newspaper" },
+  { material: "Glass", confidence: 85, label: "Broken glass jar" },
+  { material: "Textile", confidence: 91, label: "Cotton shirt" },
+  { material: "Hazardous", confidence: 94, label: "Used battery" },
+  { material: "Plastic", confidence: 76, label: "Plastic bag" },
+  { material: "Paper", confidence: 83, label: "Cardboard box" },
+  { material: "Metal", confidence: 89, label: "Aluminium can" },
+];
+
 function nearby(spreadKm = 3) {
   const angle = Math.random() * 2 * Math.PI;
   const distance = Math.sqrt(Math.random()) * spreadKm;
@@ -98,23 +130,38 @@ function nearby(spreadKm = 3) {
 const wardKey = ([lng, lat]) => `W${lat.toFixed(2)}_${lng.toFixed(2)}`;
 
 async function wipe() {
-  const users = await User.find({ email: new RegExp(`${DOMAIN}$`) }).select("_id").lean();
-  const ids = users.map((u) => u._id);
+  const collections = [
+    { name: "chats", model: Chat },
+    { name: "messages", model: Message },
+    { name: "schedules", model: Schedule },
+    { name: "ratings", model: Rating },
+    { name: "transactions", model: Transaction },
+    { name: "workLedgerEntries", model: WorkLedgerEntry },
+    { name: "collectionTasks", model: CollectionTask },
+    { name: "wasteAnalyses", model: WasteAnalysis },
+    { name: "listings", model: Listing },
+    { name: "binReports", model: BinReport },
+    { name: "ecoPoints", model: EcoPoints },
+    { name: "users", model: User },
+  ];
 
-  const removed = {
-    listings: (await Listing.deleteMany({ donor: { $in: ids } })).deletedCount,
-    binReports: (await BinReport.deleteMany({ reporter: { $in: ids } })).deletedCount,
-    ecoPoints: (await EcoPoints.deleteMany({ userId: { $in: ids } })).deletedCount,
-    users: (await User.deleteMany({ _id: { $in: ids } })).deletedCount,
-  };
-
-  console.log("🧹 removed previous demo data:", removed);
+  for (const item of collections) {
+    const count = await item.model.countDocuments({});
+    if (count > 0) {
+      await item.model.deleteMany({});
+      console.log(`  🗑️  ${item.name}: ${count} removed`);
+    }
+  }
 }
 
 async function main() {
   await connectDB();
 
-  if (process.argv.includes("--wipe")) await wipe();
+  if (process.argv.includes("--wipe")) {
+    console.log("🧹 Wiping previous demo data...");
+    await wipe();
+    console.log("");
+  }
 
   // ── Accounts ─────────────────────────────────────────────────────────────
   const users = {};
@@ -123,8 +170,6 @@ async function main() {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Assigned via the document rather than an update, so the pre-save hook
-      // hashes the password. A direct updateOne would store it in clear.
       user = await User.create({
         ...account,
         email,
@@ -136,8 +181,14 @@ async function main() {
   }
   console.log(`👤 ${Object.keys(users).length} accounts ready`);
 
+  const donor = users.donor;
+  const recipient = users.recipient;
+  const both = users.both;
+  const collector = users.collector;
+  const admin = users.admin;
+
   // ── Listings ─────────────────────────────────────────────────────────────
-  const donors = [users.donor, users.both];
+  const donors_list = [donor, both];
   let listingsMade = 0;
 
   for (const [index, template] of LISTINGS.entries()) {
@@ -147,28 +198,62 @@ async function main() {
     const point = nearby(2);
     await Listing.create({
       ...template,
-      donor: donors[index % donors.length]._id,
+      donor: donors_list[index % donors_list.length]._id,
       location: { type: "Point", coordinates: [point.lng, point.lat] },
       status: "available",
       images: [],
     });
     listingsMade += 1;
   }
-  console.log(`📦 ${listingsMade} listings created (${LISTINGS.length - listingsMade} already present)`);
+  console.log(`📦 ${listingsMade} listings created`);
 
-  // ── Bin reports ──────────────────────────────────────────────────────────
-  // Spread over several wards and weighted towards needing collection, so the
-  // ward map shows a range of pressure rather than a uniform colour.
-  const existingReports = await BinReport.countDocuments({ reporter: { $in: Object.values(users).map((u) => u._id) } });
+  // ── Waste Analyses ───────────────────────────────────────────────────────
+  let analysesMade = 0;
+  const existingAnalyses = await WasteAnalysis.countDocuments({
+    user: { $in: [donor._id, both._id, recipient._id] },
+  });
+
+  if (existingAnalyses < 10) {
+    const scanUsers = [donor, both, recipient];
+    for (let i = 0; i < 15; i++) {
+      const waste = WASTE_MATERIALS[i % WASTE_MATERIALS.length];
+      const daysAgo = Math.floor(Math.random() * 14);
+      const created = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+
+      await WasteAnalysis.create({
+        user: scanUsers[i % scanUsers.length]._id,
+        tfLabel: waste.label,
+        material: waste.material,
+        confidence: waste.confidence + Math.floor(Math.random() * 8 - 4),
+        recyclingGuidance: `${waste.material} disposal guidance here.`,
+        impact: {
+          carbonSaved: parseFloat((Math.random() * 0.5).toFixed(2)),
+          wasteDiverted: parseFloat((Math.random() * 0.3).toFixed(2)),
+          ecoScore: Math.floor(Math.random() * 10) + 1,
+        },
+        analysisCount: 1,
+        lastAnalyzedAt: created,
+        createdAt: created,
+      });
+      analysesMade += 1;
+    }
+  }
+  console.log(`🔍 ${analysesMade} waste analyses created`);
+
+  // ── Bin Reports ──────────────────────────────────────────────────────────
+  const existingReports = await BinReport.countDocuments({
+    reporter: { $in: Object.values(users).map((u) => u._id) },
+  });
   let reportsMade = 0;
 
-  if (existingReports < 10) {
-    const reporters = [users.donor, users.recipient, users.both];
+  if (existingReports < 30) {
+    const reporters = [donor, recipient, both];
+    const statuses = ["full", "overflowing", "ok"];
 
-    for (let i = 0; i < 24; i += 1) {
-      const point = nearby(3.5);
+    for (let i = 0; i < 35; i++) {
+      const point = nearby(4);
       const roll = Math.random();
-      const status = roll < 0.45 ? "full" : roll < 0.7 ? "overflowing" : "ok";
+      const status = roll < 0.4 ? "full" : roll < 0.65 ? "overflowing" : "ok";
 
       await BinReport.create({
         reporter: reporters[i % reporters.length]._id,
@@ -176,37 +261,160 @@ async function main() {
         location: { type: "Point", coordinates: [point.lng, point.lat] },
         ward: wardKey([point.lng, point.lat]),
         accuracyMetres: 8 + Math.floor(Math.random() * 40),
-        // Varied so the map's weighted pressure differs from a raw count, which
-        // is the whole reason reputation weighting exists.
         weight: Number((0.8 + Math.random() * 1.4).toFixed(2)),
         accepted: true,
-        // Spread across the last two days so the 6h/24h/3d filters differ.
-        createdAt: new Date(Date.now() - Math.random() * 48 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - Math.random() * 72 * 60 * 60 * 1000),
       });
       reportsMade += 1;
     }
   }
-  console.log(`🗑️  ${reportsMade} bin reports created (${existingReports} already present)`);
+  console.log(`🗑️  ${reportsMade} bin reports created`);
 
-  // ── Eco points ───────────────────────────────────────────────────────────
+  // ── Collection Tasks ─────────────────────────────────────────────────────
+  let tasksMade = 0;
+  const existingTasks = await CollectionTask.countDocuments({});
+
+  if (existingTasks < 5) {
+    const binReports = await BinReport.find({ accepted: true, status: { $in: ["full", "overflowing"] } })
+      .limit(10)
+      .lean();
+
+    for (const report of binReports.slice(0, 6)) {
+      const exists = await CollectionTask.findOne({ sourceRef: report._id });
+      if (exists) continue;
+
+      await CollectionTask.create({
+        source: "bin_report",
+        sourceRef: report._id,
+        sourceModel: "BinReport",
+        location: report.location,
+        ward: report.ward,
+        priority: report.status === "overflowing" ? 3 : 2,
+        status: "open",
+      });
+      tasksMade += 1;
+    }
+  }
+  console.log(`📋 ${tasksMade} collection tasks created`);
+
+  // ── Work Ledger Entries ──────────────────────────────────────────────────
+  let ledgerMade = 0;
+  const existingLedger = await WorkLedgerEntry.countDocuments({});
+
+  if (existingLedger < 3) {
+    const tasks = await CollectionTask.find({ status: "verified" }).limit(5).lean();
+
+    for (const task of tasks) {
+      const tip = await WorkLedgerEntry.findOne({ collector: collector._id }).sort({ sequence: -1 }).lean();
+      const draft = {
+        collector: collector._id,
+        task: task._id,
+        taskType: task.source,
+        ward: task.ward,
+        completedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+        verifiedBy: admin._id,
+        sequence: (tip?.sequence || 0) + 1,
+        previousHash: tip?.hash || WorkLedgerEntry.GENESIS_HASH,
+      };
+      draft.hash = WorkLedgerEntry.computeHash(draft);
+      await WorkLedgerEntry.create(draft);
+      ledgerMade += 1;
+    }
+  }
+  console.log(`📒 ${ledgerMade} ledger entries created`);
+
+  // ── Eco Points ───────────────────────────────────────────────────────────
   for (const user of Object.values(users)) {
     let eco = await EcoPoints.findOne({ userId: user._id });
     if (!eco) eco = await EcoPoints.create({ userId: user._id });
 
     if (eco.totalPoints === 0) {
-      for (let i = 0; i < 4; i += 1) await eco.awardPoints("scan", "Demo scan");
-      for (let i = 0; i < 3; i += 1) await eco.awardPoints("bin_report", "Demo bin report");
+      for (let i = 0; i < 5; i++) await eco.awardPoints("scan", "Demo scan");
+      for (let i = 0; i < 4; i++) await eco.awardPoints("bin_report", "Demo bin report");
       await eco.awardPoints("donate", "Demo donation");
     }
   }
-  console.log("🌱 eco points seeded");
+  console.log(`🌱 eco points seeded`);
+
+  // ── Chats & Messages ────────────────────────────────────────────────────
+  let chatsMade = 0;
+  const existingChats = await Chat.countDocuments({});
+
+  if (existingChats < 2) {
+    const listing = await Listing.findOne({ status: "available" });
+    if (listing) {
+      const chat = await Chat.create({
+        participants: [donor._id, recipient._id],
+        listing: listing._id,
+        lastMessage: {
+          content: "Hi, is this still available?",
+          sender: recipient._id,
+          sentAt: new Date(Date.now() - 3600000),
+        },
+      });
+
+      await Message.create({
+        chat: chat._id,
+        sender: recipient._id,
+        content: "Hi, is this still available?",
+        messageType: "text",
+      });
+      await Message.create({
+        chat: chat._id,
+        sender: donor._id,
+        content: "Yes, it is! When can you collect?",
+        messageType: "text",
+      });
+      chatsMade += 1;
+    }
+  }
+  console.log(`💬 ${chatsMade} chats created`);
+
+  // ── Schedules ───────────────────────────────────────────────────────────
+  let schedulesMade = 0;
+  const existingSchedules = await Schedule.countDocuments({});
+
+  if (existingSchedules < 2) {
+    const listing = await Listing.findOne({ status: "available" });
+    if (listing) {
+    await Schedule.create({
+      listing: listing._id,
+      donor: donor._id,
+      recipient: recipient._id,
+      proposedDate: new Date(Date.now() + 86400000),
+      proposedTime: "10:00",
+      proposedDateTime: new Date(Date.now() + 86400000),
+      status: "proposed",
+      pickupLocation: listing.pickupLocation,
+    });
+      schedulesMade += 1;
+    }
+  }
+  console.log(`📅 ${schedulesMade} schedules created`);
+
+  // ── Ratings ─────────────────────────────────────────────────────────────
+  let ratingsMade = 0;
+  const existingRatings = await Rating.countDocuments({});
+
+  if (existingRatings < 2) {
+    await Rating.create({
+      rater: recipient._id,
+      rated: donor._id,
+      rating: 5,
+      comment: "Very generous, item was in great condition.",
+      listing: null,
+      ratingType: "donor",
+    });
+    ratingsMade += 1;
+  }
+  console.log(`⭐ ${ratingsMade} ratings created`);
 
   console.log("\n" + "=".repeat(58));
   console.log("  Sign in with any of these — password is the same for all");
   console.log("=".repeat(58));
   for (const account of ACCOUNTS) {
     const email = `${account.firstName.toLowerCase()}${DOMAIN}`;
-    console.log(`  ${account.userType.padEnd(10)} ${email.padEnd(26)} ${PASSWORD}`);
+    console.log(`  ${account.userType.padEnd(10)} ${email.padEnd(28)} ${PASSWORD}`);
   }
   console.log("=".repeat(58));
   console.log("\n  admin      sees Admin and Municipal in the sidebar");

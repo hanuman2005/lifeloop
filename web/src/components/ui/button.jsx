@@ -10,10 +10,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // The brand button. Kept separate from `default` so the neutral ink button
+        // stays available for secondary actions on the same screen.
+        accent: "bg-accent text-accent-foreground shadow-cta hover:bg-accent/90",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        // shadcn ships these hovering to `bg-accent`, which assumes `accent` is a
+        // muted grey. Here it is saturated violet, so an outline or ghost button
+        // would flip to a solid brand fill on hover. They hover to the tint instead.
+        outline: "border border-input bg-card hover:border-accent/40 hover:bg-accent-tint hover:text-accent",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-secondary hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

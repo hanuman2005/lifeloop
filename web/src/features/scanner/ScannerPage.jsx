@@ -1,9 +1,20 @@
 // M1 — the waste scanner.
 //
-// Uses a file input with `capture` rather than getUserMedia. On a phone that opens
-// the native camera, which handles focus, exposure and orientation far better than
-// anything we would build, and it degrades to a file picker on desktop with no
-// extra code.
+// "Open camera" takes one of two paths, because no single mechanism works well on
+// both kinds of device:
+//
+// On a touch-primary device it clicks a file input carrying `capture="environment"`,
+// which opens the native camera app. That app handles focus, exposure and
+// orientation better than anything we would build, and photo quality is the one
+// thing the model actually depends on.
+//
+// Everywhere else it opens a getUserMedia preview (LiveCamera). Desktop browsers
+// ignore `capture` and fall back to the file picker, so the original single-path
+// version showed a file dialog from a button labelled "Open camera".
+//
+// `(pointer: coarse)` is the test rather than the user agent string, because what
+// matters is whether there is a native camera app behind the file input, and that
+// tracks the input device rather than the OS name.
 
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ecoAPI, errorMessage, scanAPI, wasteAnalysisAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import LiveCamera from "@/features/scanner/LiveCamera";
 import MaterialResult from "@/features/scanner/MaterialResult";
 import SceneResult from "@/features/scanner/SceneResult";
 import { MATERIAL_GUIDE } from "@/features/scanner/materials";
@@ -61,6 +73,7 @@ export default function ScannerPage() {
   const [result, setResult] = useState(null);
   const [scene, setScene] = useState(null);
   const [noItem, setNoItem] = useState(false);
+  const [liveCamera, setLiveCamera] = useState(false);
   // "single" is one item filling the frame, which is the citizen case. "pile"
   // segregates a mixed heap, which is what a municipality photographs.
   const [mode, setMode] = useState("single");
@@ -73,13 +86,40 @@ export default function ScannerPage() {
     setNoItem(false);
   }
 
+  /**
+   * Where "Open camera" goes. A touch-primary device has a native camera app behind
+   * the file input; anything else needs the getUserMedia preview, because the
+   * `capture` attribute is ignored there and the file picker opens instead.
+   */
+  function openCamera() {
+    const touchPrimary = window.matchMedia("(pointer: coarse)").matches;
+
+    if (touchPrimary) {
+      cameraInput.current?.click();
+      return;
+    }
+
+    if (navigator.mediaDevices?.getUserMedia) {
+      reset();
+      setLiveCamera(true);
+      return;
+    }
+
+    // No camera API at all — an old browser, or plain http on a LAN address.
+    fileInput.current?.click();
+  }
+
   async function handleFile(event) {
     const file = event.target.files?.[0];
     // Clear immediately so picking the same file twice still fires onChange.
     event.target.value = "";
     if (!file) return;
+    await analyse(file);
+  }
 
+  async function analyse(file) {
     reset();
+    setLiveCamera(false);
     setPreview(URL.createObjectURL(file));
     setAnalysing(true);
 
@@ -150,17 +190,23 @@ export default function ScannerPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Scan an item</h1>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">
-            Photograph one item filling the frame. We will tell you what it is made of and
-            what to do with it.
-          </p>
+      <header>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-display text-[22px] font-bold tracking-tight">
+            {mode === "single" ? "Scan an item" : "Segregate a pile"}
+          </h1>
+          <Button variant="ghost" size="sm" className="shrink-0" asChild>
+            <Link to="/scan/history">
+              <Camera className="mr-1.5 h-4 w-4" />
+              History
+            </Link>
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/scan/history")}>
-          History
-        </Button>
+        <p className="mt-1.5 max-w-lg text-[13.5px] text-muted-foreground">
+          {mode === "single"
+            ? "Photograph one item filling the frame. We will tell you what it is made of and what to do with it."
+            : "Photograph a mixed heap. Every item is found and named separately, with the recyclable share on top."}
+        </p>
       </header>
 
       <div className="flex gap-1.5">
@@ -173,10 +219,10 @@ export default function ScannerPage() {
             type="button"
             onClick={() => { setMode(option.value); reset(); }}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-[13px] font-medium transition-colors",
+              "flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
               mode === option.value
-                ? "border-accent bg-accent-tint text-accent"
-                : "border-border hover:bg-secondary",
+                ? "border-accent bg-accent-tint text-accent shadow-sm"
+                : "border-border hover:bg-secondary hover:border-accent/30",
             )}
           >
             <option.icon className="h-4 w-4" />
@@ -185,7 +231,7 @@ export default function ScannerPage() {
         ))}
       </div>
 
-      <p className="-mt-2 text-[12.5px] text-muted-foreground">
+      <p className="-mt-1 text-[12.5px] text-muted-foreground">
         {mode === "single"
           ? "One item filling the frame."
           : "Several items together — each is found and identified separately."}
@@ -201,24 +247,32 @@ export default function ScannerPage() {
       />
       <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
-      {!preview && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground">
-              <Camera className="h-6 w-6" />
+      {liveCamera && (
+        <LiveCamera onCapture={analyse} onCancel={() => setLiveCamera(false)} />
+      )}
+
+      {!preview && !liveCamera && (
+        <Card className="overflow-hidden border-dashed border-accent/20">
+          <CardContent className="flex flex-col items-center gap-5 py-14 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-dashed border-accent/30 bg-accent-tint/50 text-accent">
+              <Camera className="h-7 w-7" />
             </div>
             <div>
-              <div className="text-[14.5px] font-medium">Take a photo of the item</div>
-              <div className="mt-1 text-[13px] text-muted-foreground">
-                One item, filling the frame, good light
+              <div className="text-[15px] font-semibold">
+                {mode === "single" ? "Take a photo of the item" : "Take a photo of the pile"}
+              </div>
+              <div className="mt-1.5 text-[13px] text-muted-foreground max-w-xs mx-auto">
+                {mode === "single"
+                  ? "One item, filling the frame, good light"
+                  : "Everything visible from above, good light"}
               </div>
             </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={() => cameraInput.current?.click()}>
+            <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:justify-center">
+              <Button variant="accent" size="lg" className="rounded-full px-7 shadow-cta" onClick={openCamera}>
                 <Camera className="mr-2 h-4 w-4" />
                 Open camera
               </Button>
-              <Button variant="outline" onClick={() => fileInput.current?.click()}>
+              <Button variant="outline" size="lg" className="rounded-full px-7" onClick={() => fileInput.current?.click()}>
                 <Upload className="mr-2 h-4 w-4" />
                 Choose a file
               </Button>
@@ -228,13 +282,16 @@ export default function ScannerPage() {
       )}
 
       {preview && (
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden border-border shadow-sm">
           <div className="relative bg-muted">
-            <img src={preview} alt="Item being analysed" className="max-h-[340px] w-full object-contain" />
+            <img src={preview} alt="Item being analysed" className="max-h-[360px] w-full object-contain" />
             {analysing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm">
-                <Loader2 className="h-5 w-5 animate-spin text-accent" />
-                <span className="font-mono text-[12px] uppercase tracking-wider text-muted-foreground">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+                <div className="relative">
+                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                  <div className="absolute inset-0 h-8 w-8 animate-ping rounded-full bg-accent/20" />
+                </div>
+                <span className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted-foreground">
                   Analysing
                 </span>
               </div>

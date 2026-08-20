@@ -51,23 +51,23 @@ export default function ImpactPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Your impact</h1>
+        <h1 className="font-display text-[22px] font-bold tracking-tight">Your impact</h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground">
           What your scanning, giving and reporting has added up to.
         </p>
       </header>
 
       {record.level && (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-3 py-4">
+        <Card className="overflow-hidden border-accent/20">
+          <CardContent className="flex items-center justify-between gap-3 py-5">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                 Level
               </div>
-              <div className="mt-0.5 text-[17px] font-medium">{record.level}</div>
+              <div className="mt-1 text-[17px] font-medium">{record.level}</div>
             </div>
             <div className="text-right">
-              <div className="text-[24px] font-semibold tabular-nums leading-none">
+              <div className="text-[28px] font-bold tabular-nums leading-none text-accent">
                 {record.totalPoints ?? 0}
               </div>
               <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -79,10 +79,10 @@ export default function ImpactPage() {
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat icon={Recycle} label="Items scanned" value={stats.totalScans ?? 0} />
-        <Stat icon={Trash2} label="Bins reported" value={stats.totalBinReports ?? 0} />
-        <Stat icon={Award} label="Donations" value={stats.totalDonations ?? 0} />
-        <Stat
+        <StatCard icon={Recycle} label="Items scanned" value={stats.totalScans ?? 0} />
+        <StatCard icon={Trash2} label="Bins reported" value={stats.totalBinReports ?? 0} />
+        <StatCard icon={Award} label="Donations" value={stats.totalDonations ?? 0} />
+        <StatCard
           icon={Leaf}
           label="CO₂ saved"
           value={Number(stats.co2Saved ?? 0).toFixed(1)}

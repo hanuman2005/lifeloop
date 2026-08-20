@@ -117,6 +117,7 @@ const userSchema = new mongoose.Schema(
     // Activity counters
     completedDonations: { type: Number, default: 0 },
     completedPickups: { type: Number, default: 0 },
+    reportedCount: { type: Number, default: 0 },
 
     // Moderation
     isSuspended: { type: Boolean, default: false },
@@ -131,6 +132,16 @@ const userSchema = new mongoose.Schema(
     ],
 
     // ============================================
+    // VERIFICATION STATUS
+    // ============================================
+    verificationStatus: {
+      email: { type: Boolean, default: false },
+      phone: { type: Boolean, default: false },
+      identity: { type: Boolean, default: false },
+      address: { type: Boolean, default: false },
+    },
+
+    // ============================================
     // LIFELOOP-SPECIFIC METRICS
     // ============================================
     ecoScore: {
@@ -141,15 +152,31 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    listingsCount: {
+      type: Number,
+      default: 0,
+    },
+
+    // ============================================
+    // STATS (for QR transactions, etc.)
+    // ============================================
+    stats: {
+      totalDonations: { type: Number, default: 0 },
+      totalReceived: { type: Number, default: 0 },
+      totalScans: { type: Number, default: 0 },
+      totalPickups: { type: Number, default: 0 },
+    },
 
     // ============================================
     // FUTURE FEATURES (Commented for reference)
     // ============================================
-    // FUTURE: Email verification with tokens
-    // passwordResetToken: String,
-    // passwordResetExpires: Date,
-    // emailVerifyToken: String,
-    // emailVerifyExpires: Date,
+    // Password reset tokens
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+
+    // Email verification tokens
+    emailVerifyToken: String,
+    emailVerifyExpires: Date,
 
     // FUTURE: Advanced notification preferences
     emailPreferences: {

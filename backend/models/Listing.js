@@ -281,6 +281,27 @@ const listingSchema = new mongoose.Schema(
       enum: ["not_generated", "pending", "verified", "expired"],
       default: "not_generated",
     },
+
+    // Reporting / flagging
+    isFlagged: {
+      type: Boolean,
+      default: false,
+    },
+    flagReason: String,
+    reportCount: {
+      type: Number,
+      default: 0,
+    },
+
+    // AI Analysis link
+    fromAIAnalysis: {
+      type: Boolean,
+      default: false,
+    },
+    aiAnalysisId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "WasteAnalysis",
+    },
   },
   { timestamps: true },
 );
@@ -406,6 +427,23 @@ listingSchema.methods.updateScheduleStatus = async function (status) {
     this.status = "completed";
     this.completedAt = new Date();
   }
+  await this.save();
+  return this;
+};
+
+listingSchema.methods.incrementReportCount = async function () {
+  this.reportCount = (this.reportCount || 0) + 1;
+  if (this.reportCount >= 3) {
+    this.isFlagged = true;
+  }
+  await this.save();
+  return this;
+};
+
+listingSchema.methods.flagListing = async function (reason) {
+  this.isFlagged = true;
+  this.flagReason = reason;
+  this.status = "removed";
   await this.save();
   return this;
 };

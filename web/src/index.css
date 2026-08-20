@@ -1,40 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Enterprise B2B Onboarding — Design System
-   80% neutrals · 15% structure · 5% accent
-   All colors HSL.
+/* LifeLoop — Design System
+   80% neutrals · 15% structure · 5% accent. All colors HSL.
+
+   The surface is a pale lavender (#FAF8FF) and the accent is violet (#7C3AED).
+   Three constraints shaped how far that tint is allowed to go, and all three come
+   from how the app is used rather than from taste:
+
+   1. Photographs sit on --card, which is pure white. The scanner and the bin report
+      are photo-first screens and the user is looking at their own photograph to
+      judge whether the model named the right material, so the tint stops at the
+      card edge and never sits behind an image.
+
+   2. Contrast is set for outdoor daylight. This is used standing over a bin in
+      direct sun. Body text is 5.8:1 and headings 15:1 against the surface, and the
+      accent is the darker #7C3AED rather than the lighter violet of the reference,
+      because white label text has to survive on it. The lighter violet exists as
+      --accent-soft and is only ever decorative.
+
+   3. --success stays green. It used to be the same hue as the accent, which made
+      "this succeeded" and "this is interactive" indistinguishable.
+
+   Per-material colours are NOT defined here. They live in
+   features/scanner/materials.js next to the class list, because they label model
+   output rather than interface state, and the two must not drift.
 */
 
 @layer base {
   :root {
     /* Surfaces */
-    --background: 60 14% 97%;            /* #FAFAF8 */
-    --foreground: 0 0% 7%;               /* #111111 */
+    --background: 252 100% 98%;          /* #FAF8FF */
+    --foreground: 263 28% 13%;           /* #1E1729 */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 263 28% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 263 28% 13%;
 
     /* Structural */
-    --primary: 0 0% 7%;                  /* near-black */
+    --primary: 263 28% 13%;              /* the heading ink, not a brand colour */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 60 9% 95%;
-    --secondary-foreground: 0 0% 7%;
+    --secondary: 255 50% 96%;
+    --secondary-foreground: 263 28% 13%;
 
-    --muted: 60 9% 96%;
-    --muted-foreground: 220 9% 46%;      /* #6B7280 */
+    --muted: 255 45% 97%;
+    --muted-foreground: 253 12% 45%;     /* #6A6480 */
 
-    /* Accent — #EB4C24 */
-    --accent: 12 84% 53%;
+    /* Accent — #7C3AED */
+    --accent: 263 83% 58%;
     --accent-foreground: 0 0% 100%;
-    --accent-tint: 12 100% 97%;          /* #FFF4F1 */
+    --accent-tint: 258 100% 96%;         /* #EEEAFF — pale wash for selected states */
+    --accent-soft: 258 90% 70%;          /* #A78BFA — decorative only, never behind text */
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -42,32 +64,34 @@
     --success: 152 60% 36%;
     --success-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;               /* #E5E7EB */
-    --input: 220 13% 91%;
-    --ring: 12 84% 53%;
+    --border: 258 35% 91%;               /* #E4DFF0 */
+    --input: 258 35% 91%;
+    --ring: 263 83% 58%;
 
-    --radius: 0.5rem;
+    --radius: 0.875rem;
 
     /* Sidebar — Light */
-    --sidebar-background: 0 0% 100%;    /* white background */
-    --sidebar-foreground: 0 0% 8%;       /* very dark text for maximum contrast */
-    --sidebar-primary: 12 84% 53%;       /* Rafftar orange for active text */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 263 28% 13%;
+    --sidebar-primary: 263 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 12 100% 92%;       /* light orange on hover */
-    --sidebar-accent-foreground: 12 84% 53%;
-    --sidebar-border: 12 100% 88%;       /* light orange border */
-    --sidebar-ring: 12 84% 53%;
+    --sidebar-accent: 258 100% 96%;
+    --sidebar-accent-foreground: 263 76% 48%;
+    --sidebar-border: 258 35% 91%;
+    --sidebar-ring: 263 83% 58%;
 
     /* Typography */
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Manrope', 'Inter', ui-sans-serif, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    /* Elevation */
-    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.06), 0 1px 2px -1px hsl(0 0% 0% / 0.04);
-    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.06), 0 2px 4px -2px hsl(0 0% 0% / 0.04);
-    --shadow-card-hover: 0 8px 24px -8px hsl(0 0% 0% / 0.08), 0 4px 8px -4px hsl(0 0% 0% / 0.04);
-    --shadow-accent: 0 0 0 4px hsl(12 84% 53% / 0.12);
+    /* Elevation — tinted rather than grey, so shadows belong to the surface */
+    --shadow-xs: 0 1px 2px 0 hsl(263 40% 20% / 0.05);
+    --shadow-sm: 0 1px 3px 0 hsl(263 40% 20% / 0.07), 0 1px 2px -1px hsl(263 40% 20% / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(263 40% 20% / 0.08), 0 2px 4px -2px hsl(263 40% 20% / 0.05);
+    --shadow-card-hover: 0 10px 28px -10px hsl(263 45% 25% / 0.14), 0 4px 10px -4px hsl(263 45% 25% / 0.07);
+    --shadow-accent: 0 0 0 4px hsl(263 83% 58% / 0.18);
+    --shadow-cta: 0 10px 24px -8px hsl(263 83% 58% / 0.45);
 
     /* Motion */
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -75,24 +99,27 @@
   }
 
   .dark {
-    --background: 0 0% 7%;
+    --background: 263 30% 8%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 9%;
+    --card: 263 24% 11%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 9%;
+    --popover: 263 24% 11%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 7%;
-    --secondary: 0 0% 12%;
+    --primary-foreground: 263 30% 8%;
+    --secondary: 263 20% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 220 9% 64%;
-    --accent: 12 84% 53%;
-    --accent-foreground: 0 0% 100%;
-    --accent-tint: 12 60% 12%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 12 84% 53%;
+    --muted: 263 20% 16%;
+    --muted-foreground: 253 14% 66%;
+    /* Lifted for contrast on a dark surface, which flips the label to dark ink. */
+    --accent: 258 90% 70%;
+    --accent-foreground: 263 30% 10%;
+    --accent-tint: 263 35% 17%;
+    --accent-soft: 258 85% 78%;
+    --border: 263 18% 20%;
+    --input: 263 18% 20%;
+    --ring: 258 90% 70%;
+    --shadow-cta: 0 10px 24px -8px hsl(258 90% 70% / 0.35);
   }
 }
 
@@ -106,6 +133,11 @@
     font-feature-settings: 'cv11', 'ss01', 'ss03';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
   }
 
   body {
@@ -149,9 +181,9 @@
   }
 
   .input-base {
-    @apply h-11 w-full rounded-md border border-input bg-background px-3.5 text-[15px] text-foreground placeholder:text-muted-foreground transition-all duration-200;
+    @apply h-11 w-full rounded-md border border-input bg-card px-3.5 text-[15px] text-foreground placeholder:text-muted-foreground transition-all duration-200;
   }
-  .input-base:hover { @apply border-foreground/30; }
+  .input-base:hover { @apply border-accent/40; }
   .input-base:focus-visible {
     @apply outline-none border-accent;
     box-shadow: var(--shadow-accent);
@@ -170,7 +202,7 @@
     @apply relative rounded-lg border border-border bg-card p-5 cursor-pointer transition-all duration-300;
   }
   .selectable-card:hover {
-    @apply border-foreground/30;
+    @apply border-accent/40;
     transform: translateY(-1px);
     box-shadow: var(--shadow-card-hover);
   }
@@ -187,6 +219,43 @@
 }
 
 @layer utilities {
+  /* Marketing atmosphere.
+     Three layers, used only on the landing page. Each one is a background image
+     on a positioned, pointer-events-none element rather than a coloured DOM node,
+     so none of them can sit above content or swallow a click. */
+
+  /* The violet bloom behind the headline. */
+  .aura-hero {
+    background:
+      radial-gradient(60% 55% at 50% 0%, hsl(var(--accent-soft) / 0.20) 0%, transparent 70%),
+      radial-gradient(40% 40% at 12% 22%, hsl(258 100% 92% / 0.55) 0%, transparent 65%),
+      radial-gradient(40% 40% at 88% 18%, hsl(263 100% 93% / 0.50) 0%, transparent 65%);
+  }
+
+  /* The faint meridian grid, masked to a soft oval so it has no visible edge. */
+  .veil-grid {
+    background-image:
+      repeating-linear-gradient(to right, hsl(var(--accent) / 0.055) 0 1px, transparent 1px 76px),
+      repeating-linear-gradient(to bottom, hsl(var(--accent) / 0.045) 0 1px, transparent 1px 76px);
+    -webkit-mask-image: radial-gradient(58% 72% at 50% 30%, #000 0%, transparent 78%);
+    mask-image: radial-gradient(58% 72% at 50% 30%, #000 0%, transparent 78%);
+  }
+
+  /* The arc that closes the hero: an oversized ellipse whose top edge is the only
+     part on screen. */
+  .arc-hero {
+    background: linear-gradient(to bottom, hsl(258 100% 96%) 0%, hsl(var(--background)) 62%);
+    border-top: 1px solid hsl(var(--accent) / 0.14);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  .text-gradient-accent {
+    background-image: linear-gradient(100deg, hsl(263 83% 62%), hsl(258 90% 72%) 55%, hsl(280 80% 68%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   /* Shake on error */
   @keyframes shake {
     10%, 90% { transform: translateX(-1px); }
@@ -201,6 +270,23 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .animate-fade-in { animation: fade-in 0.3s var(--ease-out); }
+
+  /* The hero load sequence: one keyframe, staggered by an inline delay, so the
+     order of arrival matches the reading order. */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-rise {
+    opacity: 0;
+    animation: rise-in 0.7s var(--ease-out) forwards;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-9px) rotate(8deg); }
+  }
+  .animate-drift { animation: drift 6s var(--ease-in-out) infinite; }
 
   @keyframes slide-in-right {
     from { opacity: 0; transform: translateX(12px); }
@@ -231,12 +317,51 @@
   }
   .animate-spin-slow { animation: spin-slow 1.2s linear infinite; }
 
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .animate-float { animation: float 4s var(--ease-in-out) infinite; }
+
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-count { animation: count-up 0.5s var(--ease-out) forwards; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--accent) / 0.06) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2.5s var(--ease-in-out) infinite;
+  }
+
   /* Hover scale 1.02 */
   .hover-scale { @apply transition-transform duration-300; }
   .hover-scale:hover { transform: scale(1.02); }
+
+  /* Card entrance */
+  .card-enter {
+    animation: fade-in 0.4s var(--ease-out) forwards;
+  }
 
   /* Hide scrollbar but allow scroll */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+  @media (prefers-reduced-motion: reduce) {
+    .animate-rise,
+    .animate-drift,
+    .animate-fade-in,
+    .animate-scale-in,
+    .animate-slide-in-left,
+    .animate-slide-in-right {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
 }

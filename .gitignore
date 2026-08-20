@@ -106,6 +106,10 @@ ml/artifacts/*.pt
 ml/artifacts/*.onnx
 ml/artifacts/*.tflite
 
+# ML dataset downloads and build artefacts
+ml/.vite/
+ml/oi_everyday/
+
 # Local dev server logs
 *.log
 !package-lock.json

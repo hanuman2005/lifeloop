@@ -70,21 +70,21 @@ export default function ListingDetailPage() {
             <img src={images[activeImage]} alt={listing.title} className="h-full w-full object-contain" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
-              <Package className="h-10 w-10" />
+              <Package className="h-12 w-12" />
             </div>
           )}
         </div>
 
         {images.length > 1 && (
-          <div className="flex gap-2 border-b border-border p-3">
+          <div className="flex gap-2 border-b border-border p-3 overflow-x-auto">
             {images.map((src, index) => (
               <button
                 key={src}
                 type="button"
                 onClick={() => setActiveImage(index)}
                 className={cn(
-                  "h-14 w-14 overflow-hidden rounded-md border",
-                  index === activeImage ? "border-accent" : "border-border",
+                  "h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+                  index === activeImage ? "border-accent shadow-sm" : "border-border opacity-70 hover:opacity-100",
                 )}
               >
                 <img src={src} alt="" className="h-full w-full object-cover" />
@@ -93,9 +93,9 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        <CardContent className="space-y-4 pt-5">
+        <CardContent className="space-y-5 pt-6">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-[20px] font-semibold tracking-tight">{listing.title}</h1>
+            <h1 className="font-display text-[20px] font-bold tracking-tight">{listing.title}</h1>
             {listing.status && (
               <Badge variant="outline" className={cn("shrink-0", STATUS_TONE[listing.status])}>
                 {listing.status}
@@ -107,29 +107,29 @@ export default function ListingDetailPage() {
 
           <Separator />
 
-          <dl className="grid grid-cols-2 gap-3 text-[13.5px]">
-            <div>
+          <dl className="grid grid-cols-2 gap-4 text-[13.5px]">
+            <div className="rounded-md border border-border bg-secondary/30 p-3">
               <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Category</dt>
-              <dd className="mt-0.5">{categoryLabel(listing.category)}</dd>
+              <dd className="mt-1 font-medium">{categoryLabel(listing.category)}</dd>
             </div>
-            <div>
+            <div className="rounded-md border border-border bg-secondary/30 p-3">
               <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Quantity</dt>
-              <dd className="mt-0.5 tabular-nums">{listing.quantity} {listing.unit || "items"}</dd>
+              <dd className="mt-1 font-medium tabular-nums">{listing.quantity} {listing.unit || "items"}</dd>
             </div>
             {listing.pickupLocation && (
-              <div className="col-span-2">
+              <div className="col-span-2 rounded-md border border-border bg-secondary/30 p-3">
                 <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Pickup</dt>
-                <dd className="mt-0.5 flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <dd className="mt-1 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-accent" />
                   {listing.pickupLocation}
                 </dd>
               </div>
             )}
             {listing.donor?.firstName && (
-              <div className="col-span-2">
+              <div className="col-span-2 rounded-md border border-border bg-secondary/30 p-3">
                 <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Offered by</dt>
-                <dd className="mt-0.5 flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <dd className="mt-1 flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-accent" />
                   {listing.donor.firstName} {listing.donor.lastName || ""}
                 </dd>
               </div>
@@ -137,14 +137,14 @@ export default function ListingDetailPage() {
           </dl>
 
           {!isOwner && listing.status === "available" && (
-            <Button className="w-full" onClick={() => interest.mutate()} disabled={interest.isPending}>
+            <Button className="w-full" size="lg" onClick={() => interest.mutate()} disabled={interest.isPending}>
               {interest.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               I want this
             </Button>
           )}
 
           {!isOwner && listing.status !== "available" && (
-            <div className="rounded-md border border-border bg-secondary px-3 py-2.5 text-[13px] text-muted-foreground">
+            <div className="rounded-md border border-border bg-secondary px-3 py-3 text-[13px] text-muted-foreground">
               This item is no longer available.
             </div>
           )}
@@ -155,7 +155,7 @@ export default function ListingDetailPage() {
       {isOwner && <InterestedUsers listing={listing} />}
 
       {isOwner && listing.status === "assigned" && (
-        <div className="rounded-md border border-border bg-secondary px-3 py-2.5 text-[13px] text-muted-foreground">
+        <div className="rounded-md border border-accent/20 bg-accent-tint px-3 py-3 text-[13px] text-muted-foreground">
           Assigned. Agree a time under Pickups, then show your code on the Handover screen
           when you meet.
         </div>

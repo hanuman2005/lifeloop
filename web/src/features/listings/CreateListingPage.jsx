@@ -81,28 +81,29 @@ export default function CreateListingPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Give an item</h1>
+        <h1 className="font-display text-[22px] font-bold tracking-tight">Give an item</h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground">
           Someone nearby may need what you no longer do.
         </p>
       </header>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title" className="text-[13px] font-medium">Title</Label>
               <Input
                 id="title"
                 value={form.title}
                 onChange={update("title")}
                 placeholder="Steel water bottle"
                 required
+                className="h-11"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-[13px] font-medium">Description</Label>
               <Textarea
                 id="description"
                 rows={3}
@@ -116,8 +117,8 @@ export default function CreateListingPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Category</Label>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium">Category</Label>
               <div className="flex flex-wrap gap-1.5">
                 {CATEGORIES.map((entry) => (
                   <button
@@ -125,10 +126,10 @@ export default function CreateListingPage() {
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, category: entry.value }))}
                     className={cn(
-                      "rounded-md border px-2.5 py-1.5 text-[12.5px] transition-colors",
+                      "rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-all",
                       form.category === entry.value
-                        ? "border-accent bg-accent-tint text-accent"
-                        : "border-border hover:bg-secondary",
+                        ? "border-accent bg-accent-tint text-accent shadow-sm"
+                        : "border-border hover:bg-secondary hover:border-accent/30",
                     )}
                   >
                     {entry.label}
@@ -139,7 +140,7 @@ export default function CreateListingPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity" className="text-[13px] font-medium">Quantity</Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -148,15 +149,16 @@ export default function CreateListingPage() {
                   value={form.quantity}
                   onChange={update("quantity")}
                   required
+                  className="h-11"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="unit">Unit</Label>
+                <Label htmlFor="unit" className="text-[13px] font-medium">Unit</Label>
                 <select
                   id="unit"
                   value={form.unit}
                   onChange={update("unit")}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   {UNITS.map((entry) => (
                     <option key={entry.value} value={entry.value}>
@@ -168,38 +170,39 @@ export default function CreateListingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="pickupLocation">Pickup location</Label>
+              <Label htmlFor="pickupLocation" className="text-[13px] font-medium">Pickup location</Label>
               <Input
                 id="pickupLocation"
                 value={form.pickupLocation}
                 onChange={update("pickupLocation")}
                 placeholder="Area or landmark, not your full address"
                 required
+                className="h-11"
               />
               <p className="text-[12px] text-muted-foreground">
                 Keep it approximate. Exact details are shared only once a pickup is arranged.
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>
-                Photos <span className="text-muted-foreground">(up to 5)</span>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium">
+                Photos <span className="text-muted-foreground font-normal">(up to 5)</span>
               </Label>
               <div className="flex flex-wrap gap-2">
                 {previews.map((src, index) => (
-                  <div key={src} className="relative h-20 w-20 overflow-hidden rounded-md border border-border">
+                  <div key={src} className="relative h-20 w-20 overflow-hidden rounded-lg border border-border">
                     <img src={src} alt="" className="h-full w-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute right-0.5 top-0.5 rounded bg-background/90 p-0.5"
+                      className="absolute right-1 top-1 rounded-md bg-background/90 p-1 shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}
                 {images.length < 5 && (
-                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground hover:bg-secondary">
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground hover:bg-secondary hover:border-accent/30 transition-colors">
                     <Upload className="h-4 w-4" />
                     <span className="text-[11px]">Add</span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={addImages} />
@@ -208,7 +211,7 @@ export default function CreateListingPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" className="w-full" size="lg" disabled={submitting}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Post item
             </Button>

@@ -102,9 +102,16 @@ export default function ChatPage() {
           </Button>
         )}
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Messages</h1>
+          <h1 className="font-display text-[22px] font-bold tracking-tight">Messages</h1>
           <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {connected ? "Connected" : "Reconnecting…"}
+            {connected ? (
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                Connected
+              </span>
+            ) : (
+              "Reconnecting…"
+            )}
           </p>
         </div>
       </header>

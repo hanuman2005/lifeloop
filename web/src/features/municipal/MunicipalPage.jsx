@@ -11,7 +11,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
-import { Loader2, Route, TrendingDown } from "lucide-react";
+import { AlertTriangle, Loader2, MapPin, Route, TrendingDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -70,22 +70,25 @@ export default function MunicipalPage() {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Municipal dashboard</h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Ward pressure from citizen reports, and today&apos;s collection plan.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[22px] font-bold tracking-tight">Municipal dashboard</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">
+            Ward pressure from citizen reports, and today&apos;s collection plan.
+          </p>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          { label: "Wards reporting", value: totals.wards },
-          { label: "Reports (24h)", value: totals.reports },
-          { label: "Awaiting collection", value: totals.unresolved },
-          { label: "Critical wards", value: totals.critical },
+          { label: "Wards reporting", value: totals.wards, icon: MapPin },
+          { label: "Reports (24h)", value: totals.reports, icon: Trash2 },
+          { label: "Awaiting collection", value: totals.unresolved, icon: Loader2 },
+          { label: "Critical wards", value: totals.critical, icon: AlertTriangle },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardContent className="py-3.5">
+              <stat.icon className="h-3.5 w-3.5 text-accent mb-2" />
               <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                 {stat.label}
               </div>

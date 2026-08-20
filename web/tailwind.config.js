@@ -11,8 +11,13 @@ export default {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      // Small phones are a real target here — this is used one-handed over a bin —
+      // and 320px is narrow enough that some rows need their own breakpoint rather
+      // than being tuned for 640px and hoping.
+      screens: { xs: "380px" },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Manrope", "Inter", "ui-sans-serif", "sans-serif"],
         serif: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)"],
       },
@@ -27,7 +32,12 @@ export default {
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
         success: { DEFAULT: "hsl(var(--success))", foreground: "hsl(var(--success-foreground))" },
         muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
-        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))", tint: "hsl(var(--accent-tint))" },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+          tint: "hsl(var(--accent-tint))",
+          soft: "hsl(var(--accent-soft))",
+        },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         sidebar: {
@@ -52,6 +62,7 @@ export default {
         md: "var(--shadow-md)",
         "card-hover": "var(--shadow-card-hover)",
         accent: "var(--shadow-accent)",
+        cta: "var(--shadow-cta)",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

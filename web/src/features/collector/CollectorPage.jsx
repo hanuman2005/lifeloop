@@ -131,7 +131,7 @@ export default function CollectorPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Collection work</h1>
+          <h1 className="font-display text-[22px] font-bold tracking-tight">Collection work</h1>
           <p className="mt-1 text-[13.5px] text-muted-foreground">
             Tasks near you, and your verified work record.
           </p>
@@ -148,9 +148,18 @@ export default function CollectorPage() {
 
       <Tabs defaultValue="available">
         <TabsList className="w-full">
-          <TabsTrigger value="available" className="flex-1">Available</TabsTrigger>
-          <TabsTrigger value="mine" className="flex-1">Mine</TabsTrigger>
-          <TabsTrigger value="record" className="flex-1">Record</TabsTrigger>
+          <TabsTrigger value="available" className="flex-1">
+            <Crosshair className="mr-1.5 h-3.5 w-3.5" />
+            Available
+          </TabsTrigger>
+          <TabsTrigger value="mine" className="flex-1">
+            <Package className="mr-1.5 h-3.5 w-3.5" />
+            Mine
+          </TabsTrigger>
+          <TabsTrigger value="record" className="flex-1">
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            Record
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="space-y-2 pt-4">

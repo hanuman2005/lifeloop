@@ -15,7 +15,7 @@ const {
 const generateQR = async (req, res) => {
   try {
     const { listingId, recipientId } = req.body;
-    const donorId = req.user.id;
+    const donorId = req.user._id;
 
     if (!listingId || !recipientId) {
       return res.status(400).json({
@@ -156,7 +156,7 @@ const generateQR = async (req, res) => {
 const verifyQR = async (req, res) => {
   try {
     const { qrCode, location } = req.body;
-    const scannerId = req.user.id;
+    const scannerId = req.user._id;
 
     // ✅ FIX: Add safety check for qrCode
     if (!qrCode || qrCode === "undefined" || qrCode === "null") {
@@ -285,7 +285,7 @@ const verifyQR = async (req, res) => {
 const getTransaction = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const transaction = await Transaction.findById(id)
       .populate("listing", "title quantity category imageUrl")
@@ -330,7 +330,7 @@ const getTransaction = async (req, res) => {
  */
 const getMyTransactions = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const { status, role } = req.query; // role: 'donor' or 'recipient'
 
     let query = {};
@@ -376,7 +376,7 @@ const getMyTransactions = async (req, res) => {
 const downloadQR = async (req, res) => {
   try {
     const { transactionId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const transaction = await Transaction.findById(transactionId);
 

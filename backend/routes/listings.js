@@ -21,7 +21,6 @@ const {
 } = require("../controllers/listingController");
 const queueController = require("../controllers/queueController");
 const { proposeSchedule } = require("../controllers/scheduleController");
-const { generateQRCode } = require("../utils/qrGenerator");
 
 const router = express.Router();
 

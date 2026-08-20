@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Ban, Flag, RotateCcw, ShieldCheck, Users } from "lucide-react";
+import { AlertTriangle, Ban, BarChart3, Flag, RotateCcw, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -319,7 +319,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-[22px] font-semibold tracking-tight">Administration</h1>
+        <h1 className="font-display text-[22px] font-bold tracking-tight">Administration</h1>
         <p className="mt-1 text-[13.5px] text-muted-foreground">
           Platform health, accounts, and content that users have reported.
         </p>
@@ -327,13 +327,22 @@ export default function AdminPage() {
 
       <Tabs defaultValue="overview">
         <TabsList className="w-full">
-          <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+          <TabsTrigger value="overview" className="flex-1">
+            <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="users" className="flex-1">
             <Users className="mr-1.5 h-3.5 w-3.5" />
             Users
           </TabsTrigger>
-          <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
-          <TabsTrigger value="flagged" className="flex-1">Flagged</TabsTrigger>
+          <TabsTrigger value="reports" className="flex-1">
+            <Flag className="mr-1.5 h-3.5 w-3.5" />
+            Reports
+          </TabsTrigger>
+          <TabsTrigger value="flagged" className="flex-1">
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
+            Flagged
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="pt-4"><Overview /></TabsContent>

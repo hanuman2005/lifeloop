@@ -656,8 +656,8 @@ const approveVerification = async (req, res) => {
     user.trustScore = Math.min(100, (user.trustScore || 50) + 20);
 
     // Add verified badge
-    if (!user.trustBadges) user.trustBadges = [];
-    user.trustBadges.push({
+    if (!user.badges) user.badges = [];
+    user.badges.push({
       badge: "verified_contributor",
       earnedAt: new Date(),
       description: "Identity verified by admin",

@@ -35,7 +35,7 @@ export default function ListingsPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Exchange</h1>
+          <h1 className="font-display text-[22px] font-bold tracking-tight">Exchange</h1>
           <p className="mt-1 text-[13.5px] text-muted-foreground">
             Items nearby looking for a second owner.
           </p>
@@ -51,7 +51,7 @@ export default function ListingsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search items"
-          className="pl-9"
+          className="pl-9 h-11"
         />
       </div>
 
@@ -60,8 +60,8 @@ export default function ListingsPage() {
           type="button"
           onClick={() => setCategory(null)}
           className={cn(
-            "rounded-md border px-2.5 py-1 text-[12.5px] transition-colors",
-            !category ? "border-accent bg-accent-tint text-accent" : "border-border hover:bg-secondary",
+            "inline-flex min-h-9 items-center rounded-full border px-3.5 text-[12.5px] font-medium transition-all",
+            !category ? "border-accent bg-accent-tint text-accent shadow-sm" : "border-border hover:bg-secondary hover:border-accent/30",
           )}
         >
           All
@@ -72,10 +72,10 @@ export default function ListingsPage() {
             type="button"
             onClick={() => setCategory(entry.value === category ? null : entry.value)}
             className={cn(
-              "rounded-md border px-2.5 py-1 text-[12.5px] transition-colors",
+              "inline-flex min-h-9 items-center rounded-full border px-3.5 text-[12.5px] font-medium transition-all",
               category === entry.value
-                ? "border-accent bg-accent-tint text-accent"
-                : "border-border hover:bg-secondary",
+                ? "border-accent bg-accent-tint text-accent shadow-sm"
+                : "border-border hover:bg-secondary hover:border-accent/30",
             )}
           >
             {entry.label}

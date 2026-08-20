@@ -63,7 +63,7 @@ export default function HistoryPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Scan history</h1>
+          <h1 className="font-display text-[22px] font-bold tracking-tight">Scan history</h1>
           <p className="mt-1 text-[13.5px] text-muted-foreground">
             What you have scanned, and what it says about your waste.
           </p>
@@ -87,25 +87,30 @@ export default function HistoryPage() {
       )}
 
       {composition.length > 0 && (
-        <Card>
-          <CardContent className="space-y-3 pt-5">
-            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              Your waste composition · {analyses.length} scans
+        <Card className="overflow-hidden">
+          <CardContent className="space-y-4 pt-5">
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                Your waste composition · {analyses.length} scans
+              </div>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                By item count
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {composition.map((row) => (
                 <div key={row.material} className="flex items-center gap-3">
-                  <span className="w-6 text-center text-[15px]">
+                  <span className="w-8 text-center text-[16px]">
                     {MATERIAL_GUIDE[row.material]?.icon || "📦"}
                   </span>
-                  <span className="w-24 shrink-0 text-[13px]">{row.material}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <span className="w-28 shrink-0 text-[13px] font-medium">{row.material}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-accent"
+                      className="h-full rounded-full bg-accent transition-all duration-500"
                       style={{ width: `${Math.round(row.share * 100)}%` }}
                     />
                   </div>
-                  <span className="w-10 text-right font-mono text-[12px] tabular-nums text-muted-foreground">
+                  <span className="w-12 text-right font-mono text-[12px] tabular-nums text-muted-foreground">
                     {Math.round(row.share * 100)}%
                   </span>
                 </div>
@@ -117,9 +122,9 @@ export default function HistoryPage() {
 
       <div className="space-y-2">
         {analyses.map((entry) => (
-          <Card key={entry._id}>
+          <Card key={entry._id} className="transition-shadow hover:shadow-sm">
             <CardContent className="flex items-center gap-3 py-3.5">
-              <span className="w-8 shrink-0 text-center text-[18px]">
+              <span className="w-9 shrink-0 text-center text-[18px]">
                 {MATERIAL_GUIDE[entry.material]?.icon || "📦"}
               </span>
 
@@ -130,7 +135,7 @@ export default function HistoryPage() {
                   </span>
                   <Badge variant="secondary">{entry.material}</Badge>
                   {entry.analysisCount > 1 && (
-                    <Badge variant="outline">seen {entry.analysisCount}×</Badge>
+                    <Badge variant="outline" className="font-mono text-[10px]">seen {entry.analysisCount}×</Badge>
                   )}
                 </div>
                 <div className="mt-0.5 text-[12.5px] text-muted-foreground">
@@ -142,7 +147,7 @@ export default function HistoryPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="shrink-0 text-muted-foreground"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={() => remove.mutate(entry._id)}
                 aria-label="Remove scan"
               >
