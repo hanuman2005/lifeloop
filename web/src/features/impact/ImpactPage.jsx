@@ -79,10 +79,10 @@ export default function ImpactPage() {
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatCard icon={Recycle} label="Items scanned" value={stats.totalScans ?? 0} />
-        <StatCard icon={Trash2} label="Bins reported" value={stats.totalBinReports ?? 0} />
-        <StatCard icon={Award} label="Donations" value={stats.totalDonations ?? 0} />
-        <StatCard
+        <Stat icon={Recycle} label="Items scanned" value={stats.totalScans ?? 0} />
+        <Stat icon={Trash2} label="Bins reported" value={stats.totalBinReports ?? 0} />
+        <Stat icon={Award} label="Donations" value={stats.totalDonations ?? 0} />
+        <Stat
           icon={Leaf}
           label="CO₂ saved"
           value={Number(stats.co2Saved ?? 0).toFixed(1)}

@@ -66,7 +66,7 @@ const NAV = [
 // the hero taller than a phone screen and pushed the third stat below the fold.
 const HERO_STATS = [
   { value: "9 + 1", label: "material classes" },
-  { value: "3.19", label: "items per photo" },
+  { value: "3,170", label: "training photographs" },
   { value: "0", label: "sensors to fit" },
 ];
 
@@ -158,15 +158,16 @@ const AUDIENCES = [
 
 // Published deliberately, failures included. See the comment at the top.
 const RESULTS = [
-  { value: "0.835", label: "classifier macro-F1", note: "9 classes, held-out test set" },
-  { value: "0.653", label: "detector mAP50", note: "class-agnostic, 3.19 items per photo" },
+  { value: "0.835", label: "classifier macro-F1", note: "9 classes, 3170 training images" },
+  { value: "0.746", label: "detector mAP50", note: "class-agnostic, 670 annotated photos" },
   { value: "26.5%", label: "collection distance saved", note: "against a fixed circuit, 20–50% fill" },
 ];
 
 const LIMITS = [
-  "Accuracy is measured on public dataset photographs. Real waste, in real light, scores lower — closing that gap is what the local collection round is for.",
+  "Every score above is an upper bound. All 3,170 training images come from public datasets, so the held-out set is studio and stock photographs. Real waste, in real light, scores lower.",
+  "The model declines too rarely. On photographs containing no discardable item it still names a material about half the time, which is the opposite of the behaviour that class exists for.",
+  "Wood has no training data. No public dataset covers wood waste in a way that could be labelled honestly, so the class is declared and the model is trained on the other nine.",
   "Above roughly 60% bin occupancy a fixed circuit beats the optimised route. Crowd-sensing pays off when bins are not uniformly full.",
-  "Wood has no training data yet. No public dataset covers wood waste in a way that could be labelled honestly, so the class is declared and empty.",
 ];
 
 const STACK = [

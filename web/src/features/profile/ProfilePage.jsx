@@ -15,6 +15,21 @@ const ROLE_LABEL = {
   admin: "Administrator",
 };
 
+/**
+ * User.address is an object, and every field except country is optional. Returns
+ * an empty string when nothing but the default country is set, so the row is
+ * hidden rather than showing a lone "India".
+ */
+function formatAddress(address) {
+  if (!address || typeof address !== "object") return address || "";
+
+  const parts = [address.street, address.city, address.state, address.zipCode]
+    .map((part) => (part || "").trim())
+    .filter(Boolean);
+
+  return parts.join(", ");
+}
+
 export default function ProfilePage() {
   const { user, userType, logout } = useAuth();
   const navigate = useNavigate();
@@ -59,10 +74,14 @@ export default function ProfilePage() {
                 <dd className="tabular-nums">{user.phoneNumber}</dd>
               </div>
             )}
-            {user?.address && (
+            {/* address is an object on the User schema — street, city, state,
+                zipCode, country. Rendering it directly threw "Objects are not
+                valid as a React child" and took the whole page down, because
+                every field but country defaults to undefined. */}
+            {formatAddress(user?.address) && (
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted-foreground">Address</dt>
-                <dd className="truncate max-w-[200px]">{user.address}</dd>
+                <dd className="truncate max-w-[200px]">{formatAddress(user.address)}</dd>
               </div>
             )}
           </dl>

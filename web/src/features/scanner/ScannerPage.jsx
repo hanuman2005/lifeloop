@@ -17,7 +17,7 @@
 // tracks the input device rather than the OS name.
 
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, Camera, Layers, Loader2, RotateCcw, ScanLine, Upload } from "lucide-react";
 import { toast } from "sonner";
 

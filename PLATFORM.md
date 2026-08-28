@@ -101,11 +101,24 @@ do both would make it worse at both.
 | | |
 |---|---|
 | Classes | 9 — Plastic, Glass, Metal, Paper, Organic, Electronic, Textile, Hazardous, NotWaste |
-| Training data | 790 images (TrashNet 299, Kaggle garbage 170, TACO crops 101, Open Images 220) |
-| Test accuracy | **0.832** |
+| Training data | 3,170 images (Kaggle garbage 1,890, Open Images 582, TrashNet 299, TACO crops 399) |
+| Test accuracy | **0.848** |
 | Test macro-F1 | **0.835** |
-| Calibration error | 0.095 → **0.049** after temperature scaling (T = 0.714) |
-| Export | ONNX 6.1 MB, 2.7 ms per image, parity verified |
+| Calibration error | 0.073 → **0.018** after temperature scaling (T = 0.781) |
+| Export | ONNX 6.1 MB, 4.7 ms per image, parity verified (agreement 1.000) |
+
+Per-class F1 on the test set, best to worst: Organic 0.938, Textile 0.897,
+Hazardous 0.889, Electronic 0.870, Paper 0.855, Glass 0.852, Plastic 0.820,
+Metal 0.781, **NotWaste 0.611**.
+
+**NotWaste is the weakest class and the one that matters most.** Its recall is
+0.524, so half of the photographs containing no discardable item still get given a
+material. That class exists precisely so the model can decline, and right now it
+declines about half as often as it should. It has 149 images, the second-smallest
+count after Electronic.
+
+The largest material confusion is Plastic predicted as Glass, 8 of 83. Transparent
+plastic and glass are genuinely hard to separate from a photograph.
 
 **Why two training phases.** Phase A trains only the new classification head with
 the backbone frozen: the head starts as random noise, and letting its large early
@@ -139,10 +152,10 @@ choose instead is both more accurate and easier to defend.
 
 | | |
 |---|---|
-| Data | 499 images, 350 / 75 / 75, **3.19 objects per image** |
-| mAP50 | **0.653** |
-| mAP50-95 | 0.419 |
-| Precision / Recall | 0.684 / 0.606 |
+| Data | 670 images, 468 / 100 / 102 — TACO plus 170 annotated Indian household-trash photographs |
+| mAP50 | **0.746** (test) · 0.652 (val) |
+| mAP50-95 | 0.479 |
+| Precision / Recall | 0.841 / 0.627 |
 | Serving threshold | **0.15**, calibrated — see below |
 
 **The threshold is measured, not chosen, and this mattered.** It was originally
@@ -518,9 +531,11 @@ Stated here rather than discovered later.
 
 | Gap | Detail |
 |---|---|
-| **No locally collected photographs** | All 790 classifier images are public. The central claim — that Indian waste does not look like TrashNet — is currently **asserted, not measured** |
+| **No locally collected photographs** | All 3,170 classifier images are public, so `prepare_dataset.py` had to be run with `--allow-public-holdout`. Every score above is therefore an **upper bound measured on studio and stock photographs**, not a measurement on real waste. The central claim — that Indian waste does not look like TrashNet — remains **asserted, not measured** |
+| **No end-to-end score** | mAP50 and macro-F1 are each measured alone. Nothing measures *photograph of a mixed pile in, correct material breakdown out*, which is what the product claims to do |
 | **`Wood` has no training data** | No public dataset covers wood waste honestly. Open Images furniture is `NotWaste` by our own policy, and labelling a working chair as Wood would teach the model something false |
-| **Detector trained on 350 images** | 0.653 mAP50 is usable but will improve substantially with more data |
+| **Detector recall 0.627** | 37% of items are missed, and a missed item is unsorted waste. Recall, not precision, is the binding limit |
+| **NotWaste recall 0.524** | Half of non-waste photographs are given a material instead of being declined |
 | **M5 EPR ledger** | Descoped; specified in the plan, technique demonstrated in M4 |
 | **Thesis / SRS** | Not written |
 | **No database auth in local dev** | `mongod.cfg` has security commented out. Fine locally, not fine deployed |

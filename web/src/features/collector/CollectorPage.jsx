@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Crosshair, Loader2, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Crosshair, Loader2, MapPin, Package, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
