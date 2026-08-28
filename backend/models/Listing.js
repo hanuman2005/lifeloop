@@ -22,18 +22,10 @@ const listingSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Category is required"],
+      // What someone can still use, plus one bucket for material sold by weight.
+      // The nine food categories this list used to carry were inherited from the
+      // food-donation app this started as; no listing has ever used one.
       enum: [
-        // Food categories
-        "produce",
-        "vegetables",
-        "cooked_food",
-        "canned-goods",
-        "dairy",
-        "bakery",
-        "beverages",
-        "frozen",
-        "snacks",
-        // Non-food categories
         "household-items",
         "clothing",
         "electronics",
@@ -41,6 +33,7 @@ const listingSchema = new mongoose.Schema(
         "books",
         "toys",
         "sports",
+        "scrap-materials",
         "other",
       ],
     },

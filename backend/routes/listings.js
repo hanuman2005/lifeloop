@@ -1,6 +1,22 @@
 // ============================================
 // routes/listings.js - COMPLETE & FIXED
 // ============================================
+// Must match the enum in models/Listing.js. Defined once here because the create
+// and search validators previously held two separate hand-written copies, and the
+// search copy had already drifted — it omitted electronics, furniture and books,
+// so those categories could be created but never filtered for.
+const LISTING_CATEGORIES = [
+  "household-items",
+  "clothing",
+  "electronics",
+  "furniture",
+  "books",
+  "toys",
+  "sports",
+  "scrap-materials",
+  "other",
+];
+
 const express = require("express");
 const { body, query } = require("express-validator");
 const { auth } = require("../middleware/auth");
@@ -42,18 +58,7 @@ const listingValidation = [
     .notEmpty()
     .withMessage("Category is required")
     .trim()
-    .isIn([
-      "produce",
-      "canned-goods",
-      "dairy",
-      "bakery",
-      "household-items",
-      "clothing",
-      "electronics",
-      "furniture",
-      "books",
-      "other",
-    ])
+    .isIn(LISTING_CATEGORIES)
     .withMessage("Invalid category"),
   body("quantity")
     .notEmpty()
@@ -117,15 +122,7 @@ const nearbyValidation = [
 const searchValidation = [
   query("category")
     .optional()
-    .isIn([
-      "produce",
-      "canned-goods",
-      "dairy",
-      "bakery",
-      "household-items",
-      "clothing",
-      "other",
-    ]),
+    .isIn(LISTING_CATEGORIES),
   query("urgency").optional().isInt({ min: 1, max: 3 }),
   query("sortBy").optional().isIn(["newest", "oldest", "popular", "distance"]),
   query("lat").optional().isFloat({ min: -90, max: 90 }),

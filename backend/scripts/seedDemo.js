@@ -16,6 +16,7 @@
  * able to read the password off the terminal matters more than protecting it.
  */
 
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
@@ -32,6 +33,7 @@ const Message = require("../models/Message");
 const Schedule = require("../models/Schedule");
 const Rating = require("../models/Rating");
 const Transaction = require("../models/Transaction");
+const DonationCenter = require("../models/DonationCenter");
 
 const PASSWORD = "Demo1234!";
 const DOMAIN = "@demo.lifeloop.com";
@@ -103,6 +105,32 @@ const LISTINGS = [
     unit: "items",
     pickupLocation: "Bhimavaram market",
   },
+];
+
+// Drop-off points around Bhimavaram. Real road names so the map does not look
+// synthetic, but the phone numbers are deliberately unroutable — a demo must never
+// send anyone to a real number.
+const CENTRES = [
+  { name: "Bhimavaram Municipal Dry Waste Centre", type: "recycling",
+    address: "Juvvalapalem Road, near the water tank, Bhimavaram",
+    phone: "08816-000101", acceptedMaterials: ["Plastic", "Paper", "Metal", "Glass"],
+    operatingHours: "Mon-Sat 7:00-13:00", offset: [0.010, 0.008], verified: true },
+  { name: "Sri Lakshmi Kabadiwala", type: "kabadiwala",
+    address: "Gunupudi Main Road, opposite the temple, Bhimavaram",
+    phone: "08816-000102", acceptedMaterials: ["Paper", "Metal", "Plastic"],
+    operatingHours: "Daily 8:00-19:00", offset: [-0.012, 0.004], verified: true },
+  { name: "Godavari E-Waste Collection Point", type: "ewaste",
+    address: "Near SRKR Engineering College, Chinaamiram, Bhimavaram",
+    phone: "08816-000103", acceptedMaterials: ["Electronic", "Hazardous"],
+    operatingHours: "Mon-Fri 10:00-17:00", offset: [0.006, -0.011], verified: true },
+  { name: "Ward 12 Compost Yard", type: "compost",
+    address: "Behind the vegetable market, Bhimavaram",
+    phone: "08816-000104", acceptedMaterials: ["Organic"],
+    operatingHours: "Daily 6:00-11:00", offset: [-0.005, -0.009], verified: false },
+  { name: "Vasavi Scrap and Metal Traders", type: "recycler",
+    address: "Tadepalligudem Road, Bhimavaram",
+    phone: "08816-000105", acceptedMaterials: ["Metal", "Glass", "Wood"],
+    operatingHours: "Mon-Sat 9:00-18:00", offset: [0.014, -0.003], verified: true },
 ];
 
 const WASTE_MATERIALS = [
@@ -283,6 +311,16 @@ async function main() {
       const exists = await CollectionTask.findOne({ sourceRef: report._id });
       if (exists) continue;
 
+      // Spread across the lifecycle. Seeding everything as "open" left the
+      // collector screen showing only unclaimed work, and left the ledger query
+      // for verified tasks with nothing to match — so M4 seeded empty.
+      const lifecycle = ["open", "open", "assigned", "verified", "verified", "verified"];
+      const status = lifecycle[tasksMade % lifecycle.length];
+      const completedAt =
+        status === "verified"
+          ? new Date(Date.now() - (tasksMade + 1) * 18 * 60 * 60 * 1000)
+          : undefined;
+
       await CollectionTask.create({
         source: "bin_report",
         sourceRef: report._id,
@@ -290,7 +328,9 @@ async function main() {
         location: report.location,
         ward: report.ward,
         priority: report.status === "overflowing" ? 3 : 2,
-        status: "open",
+        status,
+        ...(status === "open" ? {} : { assignedTo: collector._id }),
+        ...(completedAt ? { completedAt, verifiedBy: admin._id } : {}),
       });
       tasksMade += 1;
     }
@@ -342,7 +382,13 @@ async function main() {
 
   if (existingChats < 2) {
     const listing = await Listing.findOne({ status: "available" });
-    if (listing) {
+    // `participants` carries a unique index, so a second run against a database
+    // that already holds this pair's chat aborts the whole seed. Counting chats
+    // was not enough of a guard.
+    const alreadyPaired = await Chat.findOne({
+      participants: { $all: [donor._id, recipient._id] },
+    });
+    if (listing && !alreadyPaired) {
       const chat = await Chat.create({
         participants: [donor._id, recipient._id],
         listing: listing._id,
@@ -397,17 +443,97 @@ async function main() {
   const existingRatings = await Rating.countDocuments({});
 
   if (existingRatings < 2) {
-    await Rating.create({
-      rater: recipient._id,
-      rated: donor._id,
-      rating: 5,
-      comment: "Very generous, item was in great condition.",
-      listing: null,
-      ratingType: "donor",
-    });
-    ratingsMade += 1;
+    // `listing` is required by the schema; this used to pass null and abort the
+    // whole seed at the last step, which is why ratings, and everything after
+    // them, never appeared.
+    const ratedListing = await Listing.findOne({});
+    if (ratedListing) {
+      const pairs = [
+        { rater: recipient, rated: donor, rating: 5, ratingType: "donor",
+          comment: "Very generous, item was in great condition." },
+        { rater: donor, rated: recipient, rating: 4, ratingType: "recipient",
+          comment: "Turned up on time and brought their own bag." },
+        { rater: both, rated: collector, rating: 5, ratingType: "donor",
+          comment: "Cleared the bin the same morning it was reported." },
+      ];
+
+      for (const pair of pairs) {
+        const exists = await Rating.findOne({
+          rater: pair.rater._id,
+          rated: pair.rated._id,
+        });
+        if (exists) continue;
+
+        await Rating.create({
+          rater: pair.rater._id,
+          rated: pair.rated._id,
+          rating: pair.rating,
+          comment: pair.comment,
+          listing: ratedListing._id,
+          ratingType: pair.ratingType,
+        });
+        ratingsMade += 1;
+      }
+    }
   }
   console.log(`⭐ ${ratingsMade} ratings created`);
+
+  // ── Drop-off centres ────────────────────────────────────────────────────
+  let centresMade = 0;
+  for (const template of CENTRES) {
+    const exists = await DonationCenter.findOne({ name: template.name });
+    if (exists) continue;
+
+    const { offset, ...rest } = template;
+    await DonationCenter.create({
+      ...rest,
+      location: {
+        type: "Point",
+        coordinates: [CENTRE.lng + offset[0], CENTRE.lat + offset[1]],
+      },
+    });
+    centresMade += 1;
+  }
+  console.log(`📍 ${centresMade} drop-off centres created`);
+
+  // ── Completed handovers ─────────────────────────────────────────────────
+  // Impact is aggregated from transactions rather than from listings, so without
+  // these the impact screen reads zero for every account.
+  let handoversMade = 0;
+
+  if ((await Transaction.countDocuments({})) < 3) {
+    const claimable = await Listing.find({}).limit(3);
+
+    for (const [index, listing] of claimable.entries()) {
+      if (await Transaction.findOne({ listing: listing._id })) continue;
+
+      const handedOverAt = new Date(Date.now() - (index + 1) * 36 * 60 * 60 * 1000);
+      // qrCode, qrCodeHash and expiresAt are all required and all unique. The
+      // pre-save hook that defaults expiresAt runs after validation, so it cannot
+      // help here — these have to be set explicitly.
+      const secret = crypto.randomBytes(12).toString("hex");
+
+      const transaction = new Transaction({
+        listing: listing._id,
+        donor: listing.donor || donor._id,
+        recipient: index % 2 === 0 ? recipient._id : both._id,
+        status: "completed",
+        qrCode: `demo-${secret}`,
+        qrCodeHash: crypto.createHash("sha256").update(secret).digest("hex"),
+        expiresAt: new Date(handedOverAt.getTime() + 24 * 60 * 60 * 1000),
+        completedAt: handedOverAt,
+        scannedAt: handedOverAt,
+        verifiedBy: listing.donor || donor._id,
+      });
+
+      // Uses the schema's own method, so the demo numbers come from the same code
+      // path the app uses rather than being written by hand here.
+      transaction.calculateImpact(listing);
+      await transaction.save();
+      handoversMade += 1;
+    }
+  }
+  console.log(`🤝 ${handoversMade} completed handovers created`);
 
   console.log("\n" + "=".repeat(58));
   console.log("  Sign in with any of these — password is the same for all");

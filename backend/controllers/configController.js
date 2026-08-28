@@ -4,33 +4,31 @@
 // ──────────────────────────────────────────────────────────────────────────
 // LISTING CATEGORIES
 // ──────────────────────────────────────────────────────────────────────────
+// Must stay in step with LISTING_CATEGORIES in routes/listings.js and the enum in
+// models/Listing.js. The four food categories that used to head this list came
+// from the food-donation app this started as; no listing has ever used one.
 const CATEGORIES = [
-  { value: "produce", label: "🥦 Fresh Produce" },
-  { value: "dairy", label: "🥛 Dairy" },
-  { value: "bakery", label: "🍞 Bakery" },
-  { value: "canned-goods", label: "🥫 Canned Goods" },
-  { value: "household-items", label: "🏠 Household" },
+  { value: "household-items", label: "🏠 Household items" },
   { value: "clothing", label: "👕 Clothing" },
   { value: "electronics", label: "📱 Electronics" },
-  { value: "books", label: "📚 Books" },
   { value: "furniture", label: "🪑 Furniture" },
+  { value: "books", label: "📚 Books and paper" },
+  { value: "toys", label: "🧸 Toys" },
+  { value: "sports", label: "⚽ Sports gear" },
+  { value: "scrap-materials", label: "♻️ Scrap materials" },
   { value: "other", label: "📦 Other" },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────
 // MEASUREMENT UNITS
 // ──────────────────────────────────────────────────────────────────────────
+// Only units the create-listing validator accepts. Servings, portions, gallons and
+// dozen were food measures and are gone; kilograms is what waste is weighed in.
 const UNITS = [
   { value: "items", label: "Items" },
   { value: "kg", label: "Kilograms (kg)" },
-  { value: "lbs", label: "Pounds (lbs)" },
-  { value: "liters", label: "Liters (L)" },
-  { value: "gallons", label: "Gallons (gal)" },
-  { value: "boxes", label: "Boxes" },
   { value: "bags", label: "Bags" },
-  { value: "servings", label: "Servings" },
-  { value: "portions", label: "Portions" },
-  { value: "dozen", label: "Dozen (12 items)" },
+  { value: "boxes", label: "Boxes" },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────

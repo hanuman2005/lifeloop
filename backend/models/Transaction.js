@@ -97,7 +97,9 @@ const transactionSchema = new mongoose.Schema(
         type: Number,
         default: 0,
       },
-      mealsProvided: {
+      // Renamed from mealsProvided, which measured food donation. A waste platform
+      // diverts items from landfill; it does not feed anyone.
+      itemsDiverted: {
         type: Number,
         default: 0,
       },
@@ -151,16 +153,37 @@ transactionSchema.methods.complete = async function (
   return this.save();
 };
 
+// Emission factors, kg CO2 avoided per kg of material kept in use rather than
+// replaced with virgin production. Order of magnitude only, and deliberately
+// conservative: these figures appear in the impact screen, so overstating them
+// would make the whole number worthless.
+//
+// They replace a flat 2.5 applied to everything, which was carried over from food
+// donation and treated a cotton shirt and a glass jar as identical.
+const CO2_PER_KG = {
+  "electronics": 12.0,
+  "clothing": 8.0,
+  "scrap-materials": 3.0,
+  "furniture": 2.0,
+  "books": 1.5,
+  "toys": 2.5,
+  "sports": 2.5,
+  "household-items": 2.5,
+  "other": 2.0,
+};
+
 // Method to calculate impact
 transactionSchema.methods.calculateImpact = function (listingData) {
-  // Basic calculations (you can enhance these)
   const quantity = listingData.quantity || 1;
   const estimatedWeight = listingData.estimatedWeight || 1; // kg
+  const totalWeight = quantity * estimatedWeight;
+
+  const factor = CO2_PER_KG[listingData.category] ?? CO2_PER_KG.other;
 
   this.impact = {
-    wastePreventedKg: quantity * estimatedWeight,
-    co2SavedKg: quantity * estimatedWeight * 2.5, // Rough estimate
-    mealsProvided: Math.floor((quantity * estimatedWeight) / 0.5), // 0.5kg per meal
+    wastePreventedKg: totalWeight,
+    co2SavedKg: parseFloat((totalWeight * factor).toFixed(2)),
+    itemsDiverted: quantity,
   };
 
   return this.impact;

@@ -10,8 +10,8 @@ const aggregateUserImpact = (transactions) => {
       totalWastePreventedKg:
         acc.totalWastePreventedKg + (t.impact?.wastePreventedKg || 0),
       totalCO2SavedKg: acc.totalCO2SavedKg + (t.impact?.co2SavedKg || 0),
-      totalMealsProvided:
-        acc.totalMealsProvided + (t.impact?.mealsProvided || 0),
+      totalItemsDiverted:
+        acc.totalItemsDiverted + (t.impact?.itemsDiverted || 0),
       totalWaterSavedLiters:
         acc.totalWaterSavedLiters + (t.impact?.wastePreventedKg || 0) * 15,
       treesEquivalent:
@@ -22,7 +22,7 @@ const aggregateUserImpact = (transactions) => {
     {
       totalWastePreventedKg: 0,
       totalCO2SavedKg: 0,
-      totalMealsProvided: 0,
+      totalItemsDiverted: 0,
       totalWaterSavedLiters: 0,
       treesEquivalent: 0,
       carsOffRoadDays: 0,
@@ -90,8 +90,8 @@ const getPersonalImpact = async (req, res) => {
         recipientImpact.totalWastePreventedKg,
       totalCO2SavedKg:
         donorImpact.totalCO2SavedKg + recipientImpact.totalCO2SavedKg,
-      totalMealsProvided:
-        donorImpact.totalMealsProvided + recipientImpact.totalMealsProvided,
+      totalItemsDiverted:
+        donorImpact.totalItemsDiverted + recipientImpact.totalItemsDiverted,
       totalWaterSavedLiters:
         donorImpact.totalWaterSavedLiters +
         recipientImpact.totalWaterSavedLiters,
@@ -309,7 +309,7 @@ const getImpactTimeline = async (req, res) => {
           count: { $sum: 1 },
           totalWaste: { $sum: "$impact.wastePreventedKg" },
           totalCO2: { $sum: "$impact.co2SavedKg" },
-          totalMeals: { $sum: "$impact.mealsProvided" },
+          totalItemsDiverted: { $sum: "$impact.itemsDiverted" },
         },
       },
       { $sort: { _id: 1 } },
@@ -354,14 +354,14 @@ const generateShareCard = async (req, res) => {
       impact: {
         wasteKg: impact.totalWastePreventedKg,
         co2Kg: impact.totalCO2SavedKg,
-        meals: impact.totalMealsProvided,
+        itemsDiverted: impact.totalItemsDiverted,
         trees: impact.treesEquivalent,
       },
-      message: `I've saved ${impact.totalCO2SavedKg.toFixed(
+      message: `I've kept ${
+        impact.totalItemsDiverted
+      } items out of landfill and avoided ${impact.totalCO2SavedKg.toFixed(
         1
-      )}kg of CO2 and provided ${
-        impact.totalMealsProvided
-      } meals through community sharing! 🌍💚`,
+      )}kg of CO2 on LifeLoop. ♻️`,
       timestamp: new Date(),
     };
 
