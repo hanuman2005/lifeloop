@@ -48,6 +48,52 @@ CROP_PADDING = 0.12
 # protects the response time, since every box costs a classifier pass.
 MAX_ITEMS = 20
 
+# NMS overlap passed to the detector. Ultralytics defaults to 0.7, which let a
+# single A4 sheet through as two boxes at IoU 0.70 — the composition summary then
+# reported two Paper items for one document.
+NMS_IOU = 0.5
+
+# Second pass, because IoU alone does not catch this. Two boxes around the same
+# object at different scales can sit just under any IoU cutoff while the smaller is
+# almost entirely inside the larger: the pair above scored IoU 0.70 but the
+# intersection covered 93% of the smaller box.
+#
+# Measuring the intersection against the *smaller* box catches that, and does not
+# merge genuine neighbours in a pile — a can resting on a newspaper overlaps its
+# neighbour by far less than this.
+MAX_CONTAINMENT = 0.75
+
+
+def _containment(a, b) -> float:
+    """Intersection area as a share of the smaller of the two boxes."""
+    ax1, ay1, ax2, ay2 = a[:4]
+    bx1, by1, bx2, by2 = b[:4]
+
+    overlap_width = min(ax2, bx2) - max(ax1, bx1)
+    overlap_height = min(ay2, by2) - max(ay1, by1)
+    if overlap_width <= 0 or overlap_height <= 0:
+        return 0.0
+
+    smaller = min((ax2 - ax1) * (ay2 - ay1), (bx2 - bx1) * (by2 - by1))
+    if smaller <= 0:
+        return 0.0
+
+    return (overlap_width * overlap_height) / smaller
+
+
+def suppress_duplicates(boxes, max_containment: float = MAX_CONTAINMENT):
+    """Drop boxes that mostly sit inside a higher-scoring one.
+
+    Expects boxes sorted by score, highest first, so the survivor of each pair is
+    always the more confident detection.
+    """
+    kept = []
+    for box in boxes:
+        if any(_containment(box, other) > max_containment for other in kept):
+            continue
+        kept.append(box)
+    return kept
+
 
 def load_detector(path: Path):
     """Load the YOLO detector, or return None if it is unavailable.
@@ -71,7 +117,7 @@ def detect_items(detector, image: Image.Image, confidence: float = DEFAULT_BOX_C
     if detector is None:
         return []
 
-    results = detector.predict(image, conf=confidence, verbose=False)
+    results = detector.predict(image, conf=confidence, iou=NMS_IOU, verbose=False)
     if not results:
         return []
 
@@ -81,6 +127,8 @@ def detect_items(detector, image: Image.Image, confidence: float = DEFAULT_BOX_C
         boxes.append((x1, y1, x2, y2, float(box.conf[0])))
 
     boxes.sort(key=lambda item: item[4], reverse=True)
+    # Sorted first, so suppression always keeps the higher-scoring box of a pair.
+    boxes = suppress_duplicates(boxes)
     return boxes[:MAX_ITEMS]
 
 

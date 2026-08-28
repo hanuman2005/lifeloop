@@ -27,63 +27,63 @@
     "color_space": "RGB"
   },
   "metrics": {
-    "val_accuracy": 0.8584070796460177,
-    "val_macro_f1": 0.8364973072773584,
-    "best_epoch": 22,
+    "val_accuracy": 0.8322295805739515,
+    "val_macro_f1": 0.8346934316050039,
+    "best_epoch": 10,
     "per_class": {
       "Plastic": {
-        "precision": 0.8947,
-        "recall": 0.85,
-        "f1": 0.8718,
-        "support": 20
+        "precision": 0.8133,
+        "recall": 0.7349,
+        "f1": 0.7722,
+        "support": 83
       },
       "Glass": {
-        "precision": 0.9167,
-        "recall": 1.0,
-        "f1": 0.9565,
-        "support": 11
+        "precision": 0.7377,
+        "recall": 0.9,
+        "f1": 0.8108,
+        "support": 50
       },
       "Metal": {
-        "precision": 0.625,
-        "recall": 0.8333,
-        "f1": 0.7143,
-        "support": 12
+        "precision": 0.7536,
+        "recall": 0.8667,
+        "f1": 0.8062,
+        "support": 60
       },
       "Paper": {
-        "precision": 0.875,
-        "recall": 0.5,
-        "f1": 0.6364,
-        "support": 14
+        "precision": 0.8293,
+        "recall": 0.5862,
+        "f1": 0.6869,
+        "support": 58
       },
       "Organic": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
-        "support": 12
+        "precision": 0.9636,
+        "recall": 0.9636,
+        "f1": 0.9636,
+        "support": 55
       },
       "Electronic": {
-        "precision": 0.8889,
+        "precision": 0.7778,
         "recall": 1.0,
-        "f1": 0.9412,
-        "support": 16
+        "f1": 0.875,
+        "support": 21
       },
       "Textile": {
-        "precision": 0.875,
-        "recall": 0.875,
-        "f1": 0.875,
-        "support": 8
+        "precision": 0.9375,
+        "recall": 0.8182,
+        "f1": 0.8738,
+        "support": 55
       },
       "Hazardous": {
-        "precision": 0.5,
-        "recall": 0.75,
-        "f1": 0.6,
-        "support": 4
+        "precision": 0.9231,
+        "recall": 0.96,
+        "f1": 0.9412,
+        "support": 50
       },
       "NotWaste": {
-        "precision": 1.0,
-        "recall": 0.875,
-        "f1": 0.9333,
-        "support": 16
+        "precision": 0.72,
+        "recall": 0.8571,
+        "f1": 0.7826,
+        "support": 21
       }
     }
   }

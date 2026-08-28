@@ -91,7 +91,14 @@ def scan_raw(raw_dir: Path, metadata: dict) -> pd.DataFrame:
             meta = metadata.get(image_path.name, {})
             rows.append(
                 {
-                    "path": str(image_path.resolve()),
+                    # Relative to ML_ROOT, with forward slashes. An absolute path
+                    # here makes the manifest and the splits machine-specific: a set
+                    # built on Windows and unzipped on Colab fails on the first
+                    # image with a bare FileNotFoundError naming a D:\ path.
+                    # wasteml/data.py resolves this back against ML_ROOT.
+                    "path": image_path.resolve()
+                    .relative_to(config.ML_ROOT)
+                    .as_posix(),
                     "label": label,
                     "object_id": derive_object_id(image_path, metadata),
                     "source": meta.get("source", "local"),

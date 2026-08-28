@@ -43,9 +43,15 @@ MAPPINGS = {
         "cardboard": "Paper",
         "trash": None,  # a mixed bag by definition; forcing it would teach noise
     },
-    # Kaggle "Garbage Classification" — 12 categories
+    # Kaggle "Garbage Classification" — 12 categories.
+    #
+    # Also covers the 10-category "Garbage Dataset" repack, which is the same
+    # taxonomy with the three glass colours merged into one `glass` folder. Both
+    # spellings are listed rather than kept as separate sources, because the
+    # mapping is otherwise identical and a second entry would drift from this one.
     "garbage12": {
         "plastic": "Plastic",
+        "glass": "Glass",
         "white-glass": "Glass",
         "green-glass": "Glass",
         "brown-glass": "Glass",

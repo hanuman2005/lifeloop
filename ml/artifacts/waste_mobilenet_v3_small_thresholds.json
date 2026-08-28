@@ -1,8 +1,8 @@
 {
-  "temperature": 0.7136383056640625,
+  "temperature": 0.7807703614234924,
   "per_class": {
     "Plastic": 0.55,
-    "Glass": 0.75,
+    "Glass": 0.55,
     "Metal": 0.55,
     "Paper": 0.55,
     "Organic": 0.55,

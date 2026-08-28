@@ -87,9 +87,15 @@ class WasteDataset(Dataset):
 
     def __getitem__(self, i):
         row = self.frame.iloc[i]
+        # Paths in the splits are relative to ML_ROOT so the dataset can move
+        # between machines. Absolute paths are still honoured, because splits
+        # written before that change stored them.
+        path = Path(row["path"])
+        if not path.is_absolute():
+            path = config.ML_ROOT / path
         # Convert explicitly: PNGs carry an alpha channel and greyscale photos have
         # one channel, either of which would break the 3-channel normalisation.
-        image = Image.open(row["path"]).convert("RGB")
+        image = Image.open(path).convert("RGB")
         return self.transform(image), self.class_to_idx[row["label"]]
 
 

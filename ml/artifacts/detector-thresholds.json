@@ -4,72 +4,72 @@
   "iou_for_match": 0.4,
   "min_precision": 0.55,
   "split": "test",
-  "images": 75,
-  "ground_truth_boxes": 142,
+  "images": 102,
+  "ground_truth_boxes": 185,
   "note": "Derived, not guessed. mAP is computed across all confidence levels, so it measures ranking rather than absolute confidence: a better-mAP model can emit lower scores and be silently filtered out by a fixed cutoff. Recall is maximised subject to a precision floor because a missed item is unsorted waste, whereas a false box only costs one classifier call that the NotWaste class then discards.",
   "curve": [
     {
       "threshold": 0.05,
-      "found": 296,
-      "hits": 107,
-      "precision": 0.3615,
-      "recall": 0.7535
+      "found": 381,
+      "hits": 150,
+      "precision": 0.3937,
+      "recall": 0.8108
     },
     {
       "threshold": 0.08,
-      "found": 235,
-      "hits": 104,
-      "precision": 0.4426,
-      "recall": 0.7324
+      "found": 308,
+      "hits": 144,
+      "precision": 0.4675,
+      "recall": 0.7784
     },
     {
       "threshold": 0.1,
-      "found": 205,
-      "hits": 97,
-      "precision": 0.4732,
-      "recall": 0.6831
+      "found": 280,
+      "hits": 141,
+      "precision": 0.5036,
+      "recall": 0.7622
     },
     {
       "threshold": 0.15,
-      "found": 161,
-      "hits": 94,
-      "precision": 0.5839,
-      "recall": 0.662
+      "found": 239,
+      "hits": 137,
+      "precision": 0.5732,
+      "recall": 0.7405
     },
     {
       "threshold": 0.2,
-      "found": 140,
-      "hits": 91,
-      "precision": 0.65,
-      "recall": 0.6408
+      "found": 204,
+      "hits": 133,
+      "precision": 0.652,
+      "recall": 0.7189
     },
     {
       "threshold": 0.25,
-      "found": 130,
-      "hits": 89,
-      "precision": 0.6846,
-      "recall": 0.6268
+      "found": 187,
+      "hits": 130,
+      "precision": 0.6952,
+      "recall": 0.7027
     },
     {
       "threshold": 0.3,
-      "found": 120,
-      "hits": 84,
-      "precision": 0.7,
-      "recall": 0.5915
+      "found": 172,
+      "hits": 127,
+      "precision": 0.7384,
+      "recall": 0.6865
     },
     {
       "threshold": 0.4,
-      "found": 102,
-      "hits": 77,
-      "precision": 0.7549,
-      "recall": 0.5423
+      "found": 150,
+      "hits": 120,
+      "precision": 0.8,
+      "recall": 0.6486
     },
     {
       "threshold": 0.5,
-      "found": 83,
-      "hits": 67,
-      "precision": 0.8072,
-      "recall": 0.4718
+      "found": 127,
+      "hits": 107,
+      "precision": 0.8425,
+      "recall": 0.5784
     }
   ]
 }
