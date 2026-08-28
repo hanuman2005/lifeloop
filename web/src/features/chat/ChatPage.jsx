@@ -6,9 +6,9 @@
 // History is loaded over REST, since the socket only carries new traffic.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, MessageSquare, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -121,9 +121,17 @@ export default function ChatPage() {
         <div className={cn("space-y-2", !showList && "hidden md:block")}>
           {chats.isLoading && <LoadingState label="Loading conversations" />}
           {!chats.isLoading && conversations.length === 0 && (
+            /* An empty screen is an invitation to act, so this offers the route
+               that creates a conversation rather than only naming the absence. */
             <EmptyState
-              title="No conversations"
-              description="Express interest in an item to start talking to the donor."
+              icon={<MessageSquare className="h-5 w-5" />}
+              title="No conversations yet"
+              description="Messages appear here once you express interest in an item, or once someone asks about one of yours."
+              action={
+                <Button variant="accent" size="sm" asChild>
+                  <Link to="/listings">Browse the exchange</Link>
+                </Button>
+              }
             />
           )}
           {conversations.map((chat) => {

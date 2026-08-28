@@ -68,7 +68,7 @@ export default function HistoryPage() {
             What you have scanned, and what it says about your waste.
           </p>
         </div>
-        <Button asChild>
+        <Button variant="accent" asChild>
           <Link to="/scan"><Camera className="mr-2 h-4 w-4" />Scan an item</Link>
         </Button>
       </header>
@@ -82,7 +82,7 @@ export default function HistoryPage() {
         <EmptyState
           title="Nothing scanned yet"
           description="Scan an item to find out what it is made of and what to do with it."
-          action={<Button asChild><Link to="/scan">Scan an item</Link></Button>}
+          action={<Button variant="accent" asChild><Link to="/scan">Scan an item</Link></Button>}
         />
       )}
 

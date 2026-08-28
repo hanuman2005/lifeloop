@@ -40,7 +40,7 @@ export default function ListingsPage() {
             Items nearby looking for a second owner.
           </p>
         </div>
-        <Button asChild>
+        <Button variant="accent" asChild>
           <Link to="/listings/new"><Plus className="mr-2 h-4 w-4" />Give an item</Link>
         </Button>
       </header>
@@ -89,7 +89,7 @@ export default function ListingsPage() {
         <EmptyState
           title="Nothing here yet"
           description={term ? "No items match that search." : "Be the first to give an item away."}
-          action={<Button asChild><Link to="/listings/new">Give an item</Link></Button>}
+          action={<Button variant="accent" asChild><Link to="/listings/new">Give an item</Link></Button>}
         />
       )}
 

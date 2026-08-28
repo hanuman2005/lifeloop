@@ -25,6 +25,27 @@ const STATUS_TONE = {
   expired: "border-slate-300 bg-slate-100 text-slate-500",
 };
 
+/**
+ * A readable place for a schedule.
+ *
+ * `schedule.pickupLocation` is a GeoJSON Point — {type, coordinates} — which is
+ * useful for a map and meaningless to read. The listing carries the text address
+ * a person actually recognises, so prefer that and fall back to coordinates only
+ * when there is nothing else.
+ */
+function placeLabel(schedule) {
+  const listingPlace = schedule.listing?.pickupLocation;
+  if (typeof listingPlace === "string" && listingPlace.trim()) return listingPlace;
+
+  const coordinates = schedule.pickupLocation?.coordinates;
+  if (Array.isArray(coordinates) && coordinates.length === 2) {
+    const [lng, lat] = coordinates;
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+
+  return "";
+}
+
 function formatWhen(value) {
   if (!value) return "Time not set";
   return new Date(value).toLocaleString(undefined, {
@@ -83,10 +104,15 @@ export default function SchedulesPage() {
                 <CalendarClock className="h-3.5 w-3.5 shrink-0" />
                 {formatWhen(when)}
               </div>
-              {schedule.pickupLocation && (
+              {/* Schedule.pickupLocation is a GeoJSON Point on the model, not a
+                  string. Rendering it directly threw "Objects are not valid as a
+                  React child {type, coordinates}" and took the page down — which
+                  only showed up once there were schedules to render. The listing's
+                  own text address is what a person can actually read. */}
+              {placeLabel(schedule) && (
                 <div className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{schedule.pickupLocation}</span>
+                  <span className="truncate">{placeLabel(schedule)}</span>
                 </div>
               )}
             </div>

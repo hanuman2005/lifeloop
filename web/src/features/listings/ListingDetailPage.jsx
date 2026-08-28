@@ -48,7 +48,7 @@ export default function ListingDetailPage() {
       <EmptyState
         title="Item not found"
         description="It may have been collected or withdrawn."
-        action={<Button asChild><Link to="/listings">Back to the exchange</Link></Button>}
+        action={<Button variant="accent" asChild><Link to="/listings">Back to the exchange</Link></Button>}
       />
     );
   }
