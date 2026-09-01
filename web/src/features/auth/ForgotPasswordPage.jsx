@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
           />
         </div>
 
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button type="submit" variant="accent" className="h-11 w-full" disabled={submitting}>
           {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Send reset link
         </Button>
