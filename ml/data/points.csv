@@ -1,0 +1,192 @@
+point_id,name,lat,lon,site_type,land_use,capacity_l,ward_id,osm_type,osm_id,field_verified
+P0001,,16.497041,81.506660,roadside,residential,240,W01,way,1434375991,false
+P0002,,16.498389,81.569734,roadside,residential,240,W02,way,1434376030,false
+P0003,,16.505798,81.559747,roadside,residential,240,W02,way,1434376031,false
+P0004,,16.505105,81.590807,roadside,residential,240,W03,way,1434398918,false
+P0005,,16.508349,81.581759,roadside,residential,240,W03,way,1434398916,false
+P0006,,16.509670,81.589884,roadside,residential,240,W03,way,1434398917,false
+P0007,,16.510784,81.523977,vacant plot,industrial,1100,W04,way,801670725,false
+P0008,,16.511713,81.511949,vacant plot,industrial,1100,W04,way,801670726,false
+P0009,Indian Oil,16.513066,81.547070,bin,commercial,660,W05,node,12114092306,false
+P0010,,16.515403,81.546136,roadside,residential,240,W05,way,1434376032,false
+P0011,,16.525018,81.510444,vacant plot,industrial,1100,W06,way,801670728,false
+P0012,,16.535111,81.507262,bin,commercial,660,W06,node,13700377459,false
+P0013,,16.535997,81.508058,bin,religious,660,W06,node,13700377441,false
+P0014,,16.537075,81.508225,bin,commercial,660,W06,node,13700377457,false
+P0015,,16.537103,81.507103,bin,commercial,660,W06,node,13700377458,false
+P0016,KGRL COLLEGE,16.527317,81.524689,bin,education,240,W07,way,1268943550,false
+P0017,Temple,16.530284,81.522330,bin,religious,660,W07,node,6204829285,false
+P0018,PATTABHI COLLAGE,16.531376,81.524583,bin,education,240,W07,way,1268944791,false
+P0019,Fish market,16.533119,81.523213,market,market,1100,W07,node,6204825288,false
+P0020,,16.528158,81.552527,roadside,residential,240,W08,way,748909462,false
+P0021,Goddess durga Temple,16.529263,81.465263,bin,religious,660,W09,node,6203136286,false
+P0022,Sree Rama Temple,16.530857,81.475183,bin,religious,660,W09,node,6203238885,false
+P0023,govt school,16.531516,81.472002,bin,education,240,W09,way,589125957,false
+P0024,,16.529271,81.454110,roadside,residential,240,W10,way,1269239203,false
+P0025,,16.538478,81.458431,roadside,residential,240,W10,way,1434375988,false
+P0026,,16.531902,81.481185,bin,religious,660,W11,way,1026071621,false
+P0027,Vempadu Govt School,16.532240,81.480173,bin,education,240,W11,way,1026073335,false
+P0028,nageswaroa kirana shop,16.532279,81.484070,bin,commercial,660,W11,node,7947246600,false
+P0029,Govt School,16.533242,81.484551,bin,education,240,W11,way,1026073333,false
+P0030,vempadu church,16.535241,81.484957,bin,religious,660,W11,node,7947246591,false
+P0031,Saibaba Temple,16.535560,81.489995,bin,religious,660,W11,way,417473119,false
+P0032,Chinna Amiram Govrenment school,16.537903,81.489528,bin,education,240,W11,way,907037120,false
+P0033,DNR Diploma college,16.535189,81.519118,bin,education,240,W12,way,1026080507,false
+P0034,DNR Engineering College and Technology,16.535221,81.520174,bin,education,240,W12,way,1026080506,false
+P0035,DNR MBA College,16.536231,81.518646,bin,education,240,W12,node,7947183155,false
+P0036,DNR English Medium Primary School,16.536244,81.517152,bin,education,240,W12,node,7938888356,false
+P0037,DNR College canteen,16.536380,81.520395,bin,commercial,660,W12,node,7938888350,false
+P0038,Temple,16.537053,81.513951,bin,religious,660,W12,node,6205766985,false
+P0039,SCHBRM School,16.537345,81.515277,bin,education,240,W12,node,5461500224,false
+P0040,Photo studio,16.538719,81.516465,bin,commercial,660,W12,node,6207293287,false
+P0041,Temple,16.538767,81.520204,bin,religious,660,W12,node,6204825286,false
+P0042,Vishwa Kavi School,16.537474,81.499780,bin,education,240,W13,node,6203249985,false
+P0043,sri Venkateshwara swamy temple,16.540422,81.504527,bin,religious,660,W13,node,7947098667,false
+P0044,Basics,16.541278,81.500016,bin,commercial,660,W13,node,11782154373,false
+P0045,Audio Nxt,16.541636,81.502797,bin,commercial,660,W13,node,6204699795,false
+P0046,Akshara Speciality Hospitals,16.541736,81.501345,bin,healthcare,660,W13,way,417272936,false
+P0047,Sri Rama Temple,16.541981,81.504149,bin,religious,660,W13,node,6204702088,false
+P0048,The Journey Wine Mart,16.542317,81.505599,bin,commercial,660,W13,node,6204699791,false
+P0049,Jawed Habib,16.542535,81.506580,bin,commercial,660,W13,node,8422607060,false
+P0050,Narayana junior college,16.544767,81.505588,bin,education,240,W13,way,1026078600,false
+P0051,st pals lutheran church chinnapate,16.537522,81.527149,bin,religious,660,W14,way,1268942619,false
+P0052,simhachalam hospitals,16.538532,81.528774,bin,healthcare,660,W14,way,517761255,false
+P0053,gansh temple,16.538895,81.527553,bin,religious,660,W14,way,517761257,false
+P0054,lutheran high school,16.539451,81.524130,bin,education,240,W14,way,1268942414,false
+P0055,London Hospital,16.540926,81.525854,bin,healthcare,660,W14,node,7793082270,false
+P0056,Ramu Hotel and Venkateswara Kirana,16.541194,81.527933,bin,commercial,660,W14,node,5052041042,false
+P0057,Varalakshmi Nursing Home,16.541220,81.530001,bin,healthcare,660,W14,node,7793082311,false
+P0058,Bhimavaram one town police station,16.541999,81.522707,bin,civic,240,W14,node,7939098214,false
+P0059,Mavullama Temple,16.542806,81.525514,bin,religious,660,W14,node,2333118724,false
+P0060,SUNNEJAMIYA MASJID,16.542899,81.529283,bin,religious,660,W14,way,517755136,false
+P0061,Sudha Urology & Maternity Hospital,16.543874,81.530009,bin,healthcare,660,W14,node,7793082292,false
+P0062,Kalaniketan Sarees,16.544465,81.524793,bin,commercial,660,W14,node,6204672185,false
+P0063,Daramrutam Tea Stall,16.544716,81.526094,bin,commercial,660,W14,node,6204669587,false
+P0064,"APSRTC Bus Station  , Bhimavaram",16.545027,81.529757,bin,civic,240,W14,node,10833869574,false
+P0065,,16.537625,81.537550,bin,religious,660,W15,way,1268945527,false
+P0066,Mukhyamantri Aarogya Kendram,16.539999,81.536610,bin,healthcare,660,W15,node,7793082316,false
+P0067,SRI RAMA DEVALAYAM,16.541145,81.535306,bin,religious,660,W15,way,517724689,false
+P0068,Sri kanaka durga temple,16.541393,81.531326,bin,religious,660,W15,way,517761247,false
+P0069,,16.543361,81.535295,roadside,residential,240,W15,way,517710727,false
+P0070,Betelu church,16.544613,81.534451,bin,religious,660,W15,way,517710711,false
+P0071,Shivaji Piles Clinic,16.546537,81.530714,bin,healthcare,660,W15,node,7793082327,false
+P0072,,16.538938,81.569922,roadside,residential,240,W16,way,1451198356,false
+P0073,,16.539485,81.563189,roadside,residential,240,W16,way,1451198355,false
+P0074,,16.539859,81.568135,roadside,residential,240,W16,way,1451198354,false
+P0075,,16.541840,81.569829,roadside,residential,240,W16,way,1451198353,false
+P0076,Sri Sai Ram Clinic,16.539330,81.510286,bin,healthcare,660,W17,node,7793082286,false
+P0077,Hanuman temple,16.540381,81.512470,bin,religious,660,W17,node,7947193797,false
+P0078,Divya Jyothi Mess,16.541562,81.512321,bin,commercial,660,W17,node,7947193796,false
+P0079,ISCON Temple,16.542391,81.508611,bin,religious,660,W17,node,6204702785,false
+P0080,Max,16.542578,81.509958,bin,commercial,660,W17,node,11779950226,false
+P0081,NVR Hospital,16.542578,81.514141,bin,healthcare,660,W17,node,6810766207,false
+P0082,Bharat Petrol,16.542894,81.511443,bin,commercial,660,W17,node,6203646386,false
+P0083,Bashyam School,16.542955,81.512657,bin,education,240,W17,node,7947237111,false
+P0084,Sri Kanaka Durga Nursing Home,16.543541,81.508188,bin,healthcare,660,W17,node,7793082332,false
+P0085,Lakshmi Skin Hospital,16.543671,81.513659,bin,healthcare,660,W17,node,7793082253,false
+P0086,Aditya public school,16.544680,81.510419,bin,education,240,W17,node,7947237108,false
+P0087,,16.539446,81.581789,roadside,residential,240,W18,way,1434398915,false
+P0088,,16.539596,81.592492,roadside,residential,240,W18,way,1434398914,false
+P0089,,16.548887,81.588439,roadside,residential,240,W18,way,1451198350,false
+P0090,Chaitanya junior college,16.539764,81.498282,bin,education,240,W19,way,851984204,false
+P0091,Bhimavaram Hospitals,16.540973,81.496014,bin,healthcare,660,W19,way,1026074017,false
+P0092,Bharat petroleum,16.541472,81.498500,bin,commercial,660,W19,node,11788936707,false
+P0093,Venkata Sai Student Corner,16.541932,81.497458,bin,commercial,660,W19,node,11788394263,false
+P0094,bhimavaram hub,16.542845,81.498352,bin,commercial,660,W19,node,7947171206,false
+P0095,Sitaya grand,16.542978,81.495010,bin,commercial,660,W19,node,7947171213,false
+P0096,Sri Phanindra Aqua foods,16.543420,81.493846,bin,commercial,660,W19,node,7947237097,false
+P0097,Sagi Ramakrishnam Raju Engineering College,16.544450,81.496382,bin,education,240,W19,way,851081636,false
+P0098,SRKR CAFTERIA,16.545611,81.495757,bin,commercial,660,W19,way,1268946345,false
+P0099,Mahatma Gandhi Instuite,16.545976,81.491963,bin,education,240,W19,node,6204713086,false
+P0100,Hanuman Temple,16.540514,81.519288,bin,religious,660,W20,node,6204825186,false
+P0101,Subramanyeshwara Swamy Temple,16.541551,81.515355,bin,religious,660,W20,node,8422602346,false
+P0102,Goddess Durga Temple,16.541574,81.516672,bin,religious,660,W20,node,6206974685,false
+P0103,Pallavi Hospital,16.542566,81.516200,bin,healthcare,660,W20,node,6207293487,false
+P0104,Abhiram Orthopaedic Hospital,16.543079,81.515320,bin,healthcare,660,W20,node,7793082324,false
+P0105,ayurvedic hospital,16.543591,81.516694,bin,healthcare,660,W20,way,1266784744,false
+P0106,Budavaram santha market,16.543847,81.518905,market,market,1100,W20,way,851984203,false
+P0107,Venkata Homeo Hospital,16.543935,81.515742,bin,healthcare,660,W20,node,6207258187,false
+P0108,Coffee day,16.543978,81.514695,bin,commercial,660,W20,node,6204825185,false
+P0109,Bhimavaram Old Bus Stand,16.544270,81.521174,bin,civic,240,W20,node,7947237096,false
+P0110,Abhiruchi,16.544518,81.516539,bin,commercial,660,W20,node,6205644487,false
+P0111,"Dr. Sanjeev Homeo Care, Multi Speciality Homeo Hospital",16.544562,81.518251,bin,healthcare,660,W20,node,7793082293,false
+P0112,Krishna Hospital,16.544990,81.519872,bin,healthcare,660,W20,node,6758881769,false
+P0113,Bharat Petroleum,16.545800,81.517803,bin,commercial,660,W20,node,8422648650,false
+P0114,Jnanananda Eye Hospital,16.545980,81.519504,bin,healthcare,660,W20,node,6807041054,false
+P0115,Kopalle High School,16.541861,81.465700,bin,education,240,W21,way,589127049,false
+P0116,Abhyas school,16.542040,81.472028,bin,education,240,W21,node,6203016085,false
+P0117,Essar Petroleum,16.543319,81.474227,bin,commercial,660,W21,node,6203017085,false
+P0118,,16.547873,81.465798,vacant plot,industrial,1100,W21,way,801670737,false
+P0119,Ananda wines,16.543360,81.490040,bin,commercial,660,W22,node,6203018086,false
+P0120,Sai Baba temple,16.543966,81.485431,bin,religious,660,W22,node,6206998985,false
+P0121,St. Paul's Lutheran Church,16.546633,81.484299,bin,religious,660,W22,way,1424020546,false
+P0122,Vijay ganapathi temple,16.547123,81.485796,bin,religious,660,W22,node,13088192667,false
+P0123,Indian Oil,16.546828,81.515876,bin,commercial,660,W23,node,7939098204,false
+P0124,Geetha Multiplex,16.546830,81.517452,bin,commercial,660,W23,way,408524781,false
+P0125,"Sri Srinivasa Nursing Home, Eye Hospital",16.547743,81.515235,bin,healthcare,660,W23,node,7793082308,false
+P0126,Avinash Ortho Trauma & Critical Care Hospital,16.549837,81.512789,bin,healthcare,660,W23,node,7939098203,false
+P0127,Bhimavaram Urban,16.551654,81.516378,roadside,residential,240,W23,way,1269239225,false
+P0128,,16.555253,81.523077,bin,commercial,660,W23,node,12114092320,false
+P0129,Bharat petroleum,16.547489,81.542684,bin,commercial,660,W24,node,11787335789,false
+P0130,St. Mary Hospital,16.547701,81.539621,bin,healthcare,660,W24,node,6776197784,false
+P0131,"APSRTC Bus Depot , Bhimavaram",16.548031,81.541389,vacant plot,industrial,1100,W24,way,1415873273,false
+P0132,Jai Bhavani,16.548146,81.545118,bin,commercial,660,W24,node,11787319579,false
+P0133,Jio BP,16.548791,81.548362,bin,commercial,660,W24,node,11787314722,false
+P0134,Sudhir Hospitals,16.549097,81.555247,bin,healthcare,660,W24,node,7793082309,false
+P0135,,16.549056,81.564072,roadside,residential,240,W25,way,1434398925,false
+P0136,,16.550176,81.578538,roadside,residential,240,W25,way,1451198351,false
+P0137,,16.550547,81.572497,bin,religious,660,W25,node,11787323949,false
+P0138,,16.554379,81.569417,roadside,residential,240,W25,way,1451198352,false
+P0139,saibaba temple,16.551724,81.500701,bin,religious,660,W26,node,7938865707,false
+P0140,Sai Baba Temple,16.552748,81.500438,bin,religious,660,W26,node,6203258285,false
+P0141,sri Venkateshwara swamy temple,16.554229,81.507285,bin,religious,660,W26,way,678634455,false
+P0142,HP,16.556838,81.504149,bin,commercial,660,W26,node,12114092313,false
+P0143,,16.556907,81.466931,vacant plot,industrial,1100,W27,way,801670736,false
+P0144,,16.562629,81.470977,roadside,residential,240,W27,way,1434375989,false
+P0145,,16.562986,81.465072,roadside,residential,240,W27,way,1434375990,false
+P0146,,16.571835,81.464066,vacant plot,industrial,1100,W27,way,801670735,false
+P0147,,16.562774,81.540847,roadside,residential,240,W28,way,1451998262,false
+P0148,,16.563950,81.532326,roadside,residential,240,W28,way,1451998264,false
+P0149,,16.567813,81.538742,roadside,residential,240,W28,way,1451998263,false
+P0150,,16.570078,81.530425,roadside,residential,240,W28,way,1451998265,false
+P0151,,16.573187,81.534838,roadside,residential,240,W28,way,1451998266,false
+P0152,VIT Boys canteen,16.566176,81.520271,bin,commercial,660,W29,way,371762377,false
+P0153,Just Eat,16.566539,81.521480,bin,commercial,660,W29,way,371753260,false
+P0154,Fresh Choice,16.568535,81.521860,bin,commercial,660,W29,way,371762820,false
+P0155,Annapoorna Mess,16.568747,81.523953,bin,commercial,660,W29,way,371754934,false
+P0156,Indian Oil,16.577159,81.478236,bin,commercial,660,W30,node,12114092309,false
+P0157,Bharat Petroleum,16.581660,81.474166,bin,commercial,660,W30,node,12114092307,false
+P0158,,16.579283,81.548451,roadside,residential,240,W31,way,1451998267,false
+P0159,,16.579401,81.541292,roadside,residential,240,W31,way,1451998268,false
+P0160,"Government Hospital,Palakoderu",16.585378,81.543872,bin,healthcare,660,W31,node,7114008104,false
+P0161,,16.585749,81.548851,roadside,residential,240,W31,way,1450695480,false
+P0162,,16.581125,81.580209,bin,commercial,660,W32,node,12114077654,false
+P0163,,16.583036,81.589554,roadside,residential,240,W32,way,1451197625,false
+P0164,,16.584562,81.461703,bin,religious,660,W33,node,9885114219,false
+P0165,,16.584724,81.463622,bin,religious,660,W33,node,9885114221,false
+P0166,"APSRTC Bus Station , Undi",16.584762,81.467874,bin,civic,240,W33,node,10833869573,false
+P0167,,16.585828,81.462207,bin,religious,660,W33,node,9885114234,false
+P0168,,16.585876,81.466797,bin,commercial,660,W33,node,9885114237,false
+P0169,,16.585992,81.465602,bin,healthcare,660,W33,node,9885114319,false
+P0170,,16.586017,81.460306,bin,civic,240,W33,node,9885114245,false
+P0171,Undi Village,16.587508,81.463599,roadside,residential,240,W33,way,1267944097,false
+P0172,Gadhiraju Venkataramaraju Hospital,16.586719,81.532925,bin,healthcare,660,W34,node,7793082289,false
+P0173,,16.588210,81.533533,roadside,residential,240,W34,way,1451998269,false
+P0174,,16.588849,81.525864,roadside,residential,240,W34,way,1451998271,false
+P0175,,16.588920,81.530332,roadside,residential,240,W34,way,1451998270,false
+P0176,,16.591367,81.526956,roadside,residential,240,W34,way,484532937,false
+P0177,,16.592984,81.520700,roadside,residential,240,W34,way,484532938,false
+P0178,,16.594423,81.534738,vacant plot,industrial,1100,W34,way,801670729,false
+P0179,Anjaneyaswami temple,16.590769,81.585628,bin,religious,660,W35,node,5781747325,false
+P0180,MPUP school,16.592245,81.588281,bin,education,240,W35,node,5781717474,false
+P0181,,16.601638,81.589127,roadside,residential,240,W35,way,1452945982,false
+P0182,,16.591673,81.558711,roadside,residential,240,W36,way,1450695482,false
+P0183,,16.592471,81.559828,roadside,residential,240,W36,way,1450695481,false
+P0184,,16.592201,81.498125,roadside,residential,240,W37,way,1474951719,false
+P0185,,16.595700,81.484085,roadside,residential,240,W37,way,1474951716,false
+P0186,,16.595772,81.489992,roadside,residential,240,W37,way,1474951717,false
+P0187,,16.597263,81.496878,roadside,residential,240,W37,way,1474951718,false
+P0188,,16.598240,81.503900,roadside,residential,240,W38,way,1474951714,false
+P0189,,16.598839,81.513230,roadside,residential,240,W38,way,1451996099,false
+P0190,,16.599579,81.519357,roadside,residential,240,W38,way,1451998272,false
+P0191,,16.602965,81.565517,roadside,residential,240,W39,way,1450734319,false

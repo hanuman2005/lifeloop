@@ -1,0 +1,4183 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-06T08:04:35Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 2333118724,
+  "lat": 16.5428056,
+  "lon": 81.5255141,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Mavullama Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 5052041042,
+  "lat": 16.5411941,
+  "lon": 81.5279332,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Ramu Hotel and Venkateswara Kirana"
+  }
+},
+{
+  "type": "node",
+  "id": 5461500224,
+  "lat": 16.5373449,
+  "lon": 81.5152768,
+  "tags": {
+    "amenity": "school",
+    "name": "SCHBRM School",
+    "office": "educational_institution"
+  }
+},
+{
+  "type": "node",
+  "id": 5781717473,
+  "lat": 16.5920499,
+  "lon": 81.5878144,
+  "tags": {
+    "addr:city": "vanumvaripalem",
+    "addr:housenumber": "10th ward",
+    "addr:postcode": "534209",
+    "addr:street": "Ramalayam street",
+    "amenity": "place_of_worship",
+    "name": "Ramalayam",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 5781717474,
+  "lat": 16.5922452,
+  "lon": 81.5882811,
+  "tags": {
+    "amenity": "school",
+    "name": "MPUP school"
+  }
+},
+{
+  "type": "node",
+  "id": 5781747325,
+  "lat": 16.5907690,
+  "lon": 81.5856285,
+  "tags": {
+    "addr:city": "Vanumvaripalem,Attli mandal",
+    "addr:postcode": "534209",
+    "amenity": "place_of_worship",
+    "name": "Anjaneyaswami temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 5781764129,
+  "lat": 16.5924464,
+  "lon": 81.5878040,
+  "tags": {
+    "addr:city": "Vanumvaripalem",
+    "addr:postcode": "534209",
+    "amenity": "place_of_worship",
+    "name": "RCM church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "node",
+  "id": 6203016085,
+  "lat": 16.5420403,
+  "lon": 81.4720281,
+  "tags": {
+    "amenity": "school",
+    "name": "Abhyas school"
+  }
+},
+{
+  "type": "node",
+  "id": 6203017085,
+  "lat": 16.5433194,
+  "lon": 81.4742268,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Essar",
+    "brand:wikidata": "Q5399372",
+    "name": "Essar Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 6203018086,
+  "lat": 16.5433601,
+  "lon": 81.4900398,
+  "tags": {
+    "name": "Ananda wines",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 6203018087,
+  "lat": 16.5430381,
+  "lon": 81.4943623,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6203117385,
+  "lat": 16.5412921,
+  "lon": 81.4653204,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6203136286,
+  "lat": 16.5292632,
+  "lon": 81.4652633,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Goddess durga Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6203238885,
+  "lat": 16.5308575,
+  "lon": 81.4751827,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sree Rama Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6203243085,
+  "lat": 16.5375535,
+  "lon": 81.4898044,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sri Rama Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6203249985,
+  "lat": 16.5374741,
+  "lon": 81.4997802,
+  "tags": {
+    "amenity": "school",
+    "name": "Vishwa Kavi School"
+  }
+},
+{
+  "type": "node",
+  "id": 6203258285,
+  "lat": 16.5527484,
+  "lon": 81.5004380,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sai Baba Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6203566285,
+  "lat": 16.5432366,
+  "lon": 81.5113839,
+  "tags": {
+    "name": "Bombay wines;Gopi wines",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 6203586485,
+  "lat": 16.5428195,
+  "lon": 81.5119589,
+  "tags": {
+    "name": "Sri Sai Pootharekulu",
+    "phone": "9133369999",
+    "shop": "confectionery"
+  }
+},
+{
+  "type": "node",
+  "id": 6203646386,
+  "lat": 16.5428942,
+  "lon": 81.5114434,
+  "tags": {
+    "amenity": "fuel",
+    "check_date": "2024-04-02",
+    "name": "Bharat Petrol"
+  }
+},
+{
+  "type": "node",
+  "id": 6204650585,
+  "lat": 16.5422230,
+  "lon": 81.5095155,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Vijaya cateen"
+  }
+},
+{
+  "type": "node",
+  "id": 6204669587,
+  "lat": 16.5447159,
+  "lon": 81.5260935,
+  "tags": {
+    "amenity": "cafe",
+    "name": "Daramrutam Tea Stall"
+  }
+},
+{
+  "type": "node",
+  "id": 6204672185,
+  "lat": 16.5444653,
+  "lon": 81.5247927,
+  "tags": {
+    "name": "Kalaniketan Sarees",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 6204672186,
+  "lat": 16.5450391,
+  "lon": 81.5265565,
+  "tags": {
+    "name": "GGR Mall",
+    "name:en": "GGR Plaza",
+    "shop": "gift"
+  }
+},
+{
+  "type": "node",
+  "id": 6204697289,
+  "lat": 16.5447133,
+  "lon": 81.5207737,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP Petrol Bunk",
+    "official_name": "Hindustan Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 6204699786,
+  "lat": 16.5449478,
+  "lon": 81.5261156,
+  "tags": {
+    "name": "Divya Mobile &Digital",
+    "shop": "mobile_phone"
+  }
+},
+{
+  "type": "node",
+  "id": 6204699787,
+  "lat": 16.5448294,
+  "lon": 81.5262439,
+  "tags": {
+    "name": "Siri",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 6204699789,
+  "lat": 16.5450656,
+  "lon": 81.5188584,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6204699791,
+  "lat": 16.5423168,
+  "lon": 81.5055994,
+  "tags": {
+    "name": "The Journey Wine Mart",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 6204699795,
+  "lat": 16.5416357,
+  "lon": 81.5027968,
+  "tags": {
+    "addr:street": "srkr engineering college",
+    "name": "Audio Nxt",
+    "shop": "electronics"
+  }
+},
+{
+  "type": "node",
+  "id": 6204702086,
+  "lat": 16.5443977,
+  "lon": 81.5162434,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "brand:wikipedia": "en:Indian Oil Corporation",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 6204702087,
+  "lat": 16.5433645,
+  "lon": 81.5122084,
+  "tags": {
+    "amenity": "hospital",
+    "name": "Hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 6204702088,
+  "lat": 16.5419806,
+  "lon": 81.5041487,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sri Rama Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6204702785,
+  "lat": 16.5423914,
+  "lon": 81.5086112,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "ISCON Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6204705385,
+  "lat": 16.5408586,
+  "lon": 81.5029661,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6204713086,
+  "lat": 16.5459763,
+  "lon": 81.4919634,
+  "tags": {
+    "amenity": "college",
+    "name": "Mahatma Gandhi Instuite"
+  }
+},
+{
+  "type": "node",
+  "id": 6204777686,
+  "lat": 16.5448899,
+  "lon": 81.5257197,
+  "tags": {
+    "name": "Hollywood Shoes",
+    "shop": "shoes"
+  }
+},
+{
+  "type": "node",
+  "id": 6204824985,
+  "lat": 16.5425670,
+  "lon": 81.5094586,
+  "tags": {
+    "name": "PV Enterprise Fish Feedback",
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 6204825185,
+  "lat": 16.5439775,
+  "lon": 81.5146953,
+  "tags": {
+    "amenity": "cafe",
+    "name": "Coffee day"
+  }
+},
+{
+  "type": "node",
+  "id": 6204825186,
+  "lat": 16.5405139,
+  "lon": 81.5192879,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hanuman Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6204825286,
+  "lat": 16.5387675,
+  "lon": 81.5202043,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6204825288,
+  "lat": 16.5331192,
+  "lon": 81.5232129,
+  "tags": {
+    "name": "Fish market",
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 6204829285,
+  "lat": 16.5302844,
+  "lon": 81.5223300,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6205360885,
+  "lat": 16.5409502,
+  "lon": 81.5166941,
+  "tags": {
+    "name": "Varma wines",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 6205636187,
+  "lat": 16.5385894,
+  "lon": 81.5164226,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6205644486,
+  "lat": 16.5445993,
+  "lon": 81.5166703,
+  "tags": {
+    "name": "Malabar jewellers",
+    "shop": "jewelry"
+  }
+},
+{
+  "type": "node",
+  "id": 6205644487,
+  "lat": 16.5445184,
+  "lon": 81.5165389,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Abhiruchi"
+  }
+},
+{
+  "type": "node",
+  "id": 6205648186,
+  "lat": 16.5445735,
+  "lon": 81.5174081,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Barkaas resturant"
+  }
+},
+{
+  "type": "node",
+  "id": 6205651285,
+  "lat": 16.5443286,
+  "lon": 81.5169541,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Sri  Abhiruchi"
+  }
+},
+{
+  "type": "node",
+  "id": 6205732889,
+  "lat": 16.5423925,
+  "lon": 81.5120618,
+  "tags": {
+    "name": "Durga wines",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 6205766985,
+  "lat": 16.5370535,
+  "lon": 81.5139507,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6206974685,
+  "lat": 16.5415737,
+  "lon": 81.5166715,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Goddess Durga Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 6206980785,
+  "lat": 16.5431777,
+  "lon": 81.5112592,
+  "tags": {
+    "name": "Gopi pickels",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 6206998985,
+  "lat": 16.5439664,
+  "lon": 81.4854311,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sai Baba temple"
+  }
+},
+{
+  "type": "node",
+  "id": 6207258185,
+  "lat": 16.5427952,
+  "lon": 81.5108813,
+  "tags": {
+    "name": "Samsung Electronics",
+    "shop": "electronics"
+  }
+},
+{
+  "type": "node",
+  "id": 6207258186,
+  "lat": 16.5430547,
+  "lon": 81.5126700,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Food Court"
+  }
+},
+{
+  "type": "node",
+  "id": 6207258187,
+  "lat": 16.5439347,
+  "lon": 81.5157417,
+  "tags": {
+    "amenity": "hospital",
+    "name": "Venkata Homeo Hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 6207258188,
+  "lat": 16.5368477,
+  "lon": 81.5160411,
+  "tags": {
+    "amenity": "hospital",
+    "name": "Skin Clinic"
+  }
+},
+{
+  "type": "node",
+  "id": 6207293287,
+  "lat": 16.5387194,
+  "lon": 81.5164650,
+  "tags": {
+    "name": "Photo studio",
+    "shop": "photo"
+  }
+},
+{
+  "type": "node",
+  "id": 6207293487,
+  "lat": 16.5425659,
+  "lon": 81.5162000,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "H.No: 27-7-25/A, J.P Road Sarovar Street Bhimavaaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Pallavi Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6758881769,
+  "lat": 16.5449902,
+  "lon": 81.5198717,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Undi Road, Near Town Railway Station",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "08816227177; 227188",
+    "name": "Krishna Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6768361839,
+  "lat": 16.5439244,
+  "lon": 81.5139493,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Irrinki Vari Street, Opposite More Super Markit, J.P. Eoad, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "08816-232385,251324",
+    "name": "S.V.R. Maternity Hospital",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6768443436,
+  "lat": 16.5457268,
+  "lon": 81.5193231,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "H.No: 3-6-36, Town Railway Station Road",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "8816229449",
+    "name": "Sri Lakshmi Hospital",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6768532213,
+  "lat": 16.5426697,
+  "lon": 81.5109171,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Door No: 27-16-5/1, Alluri Sita Rama Raju Nagar Juvvalapalem Road, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:email": "uddharaju@yahoo.com",
+    "contact:mobile": "9440931113",
+    "name": "U.V.S.M. Eye Hospital",
+    "source": "OpenGovernmentData",
+    "website": "http://www.uvsmeyehospital.com"
+  }
+},
+{
+  "type": "node",
+  "id": 6776197784,
+  "lat": 16.5477014,
+  "lon": 81.5396208,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:postcode": "534211",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "237295",
+    "name": "St. Mary Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6776219699,
+  "lat": 16.5430965,
+  "lon": 81.5132681,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "J.P.Road Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "22445",
+    "name": "Subhadra Surgical and Maternity Centre",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6776237080,
+  "lat": 16.5441230,
+  "lon": 81.5182026,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Udi Road, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Neeladri Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6776243281,
+  "lat": 16.5431813,
+  "lon": 81.5133016,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Juvvalapalem Road, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Krishna Eye Institute",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6797961763,
+  "lat": 16.5430161,
+  "lon": 81.5133572,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "H.No: 27-1-8/B, Opposite Hotel Ananda Inn, J.P. Road",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "08816226244; 224111",
+    "fax": "222229",
+    "name": "Madhu Chalapathi Urological Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 6804488444,
+  "lat": 16.5427738,
+  "lon": 81.5145186,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "H.No: 2. 1. 18,Opp. Old B.J.P.Office, J.P. Road,Near Padmalaya Theatre, Bhimavaram-2.",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:email": "radhakrishnanetralaya@gmail.com",
+    "contact:phone": "08816-222344, 224444",
+    "fax": "8816645344",
+    "name": "Radha Krishna Netralaya",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData",
+    "website": "https://radhakrishnanetralaya.com/"
+  }
+},
+{
+  "type": "node",
+  "id": 6807041054,
+  "lat": 16.5459801,
+  "lon": 81.5195042,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Mayur Buildings, Town Railway Station Road, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:email": "joinstitute@yahoo.co.in",
+    "contact:mobile": "9494415922",
+    "contact:phone": "08816223321; 222381",
+    "fax": "8816222382",
+    "name": "Jnanananda Eye Hospital",
+    "source": "OpenGovernmentData",
+    "website": "https://www.jnananandaeyehospital.co.in/index.html"
+  }
+},
+{
+  "type": "node",
+  "id": 6810766207,
+  "lat": 16.5425784,
+  "lon": 81.5141411,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "H.No: 27-2-6/3, Old Bjp Office Road, J P Road Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:phone": "251585",
+    "name": "NVR Hospital",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 7114008104,
+  "lat": 16.5853781,
+  "lon": 81.5438717,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:place": "Beside No-2 Mpp School",
+    "addr:postcode": "534210",
+    "addr:state": "Andhra Pradesh",
+    "addr:subdistrict": "Palacoderu Mandal",
+    "amenity": "hospital",
+    "contact:phone": "248600",
+    "name": "Government Hospital,Palakoderu",
+    "source": "OpenGovernmentData"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082252,
+  "lat": 16.5442570,
+  "lon": 81.5141580,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sai Durga Children's Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082253,
+  "lat": 16.5436710,
+  "lon": 81.5136590,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Lakshmi Skin Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082254,
+  "lat": 16.5449536,
+  "lon": 81.5181728,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Venkateswara Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082255,
+  "lat": 16.5426964,
+  "lon": 81.5161309,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Santhi Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082264,
+  "lat": 16.5437484,
+  "lon": 81.5138905,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Kalla, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Rajan Raju ENT Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082265,
+  "lat": 16.5422579,
+  "lon": 81.5120545,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Harsha Diabetes Endocrine Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082266,
+  "lat": 16.5432329,
+  "lon": 81.5148104,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Ideal Homeo Multi Sepciality Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082269,
+  "lat": 16.5440081,
+  "lon": 81.5139266,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Vijayalakshmi Children's Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082270,
+  "lat": 16.5409256,
+  "lon": 81.5258538,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Near Sri Mavullammma Temple, Bank Colony, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "London Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082271,
+  "lat": 16.5431414,
+  "lon": 81.5148771,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sanjeevini Kerala Ayurveda Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082272,
+  "lat": 16.5435940,
+  "lon": 81.5155050,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Sri Ramana Maharshi Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082273,
+  "lat": 16.5434412,
+  "lon": 81.5157583,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sai Sugeeth Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082274,
+  "lat": 16.5450631,
+  "lon": 81.5191462,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Sai Ayurveda Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082275,
+  "lat": 16.5429589,
+  "lon": 81.5160983,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Prasanthi hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082282,
+  "lat": 16.5445218,
+  "lon": 81.5163255,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Neeraja Skin Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082286,
+  "lat": 16.5393300,
+  "lon": 81.5102857,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Raayalam, Bhimavaram",
+    "addr:postcode": "534208",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Sai Ram Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082287,
+  "lat": 16.5423610,
+  "lon": 81.5141130,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "SuryaTeja Chest Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082288,
+  "lat": 16.5442446,
+  "lon": 81.5158267,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Shriya Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082289,
+  "lat": 16.5867190,
+  "lon": 81.5329250,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Gollalakoderu",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Gadhiraju Venkataramaraju Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082290,
+  "lat": 16.5459316,
+  "lon": 81.5183323,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Medinova Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082292,
+  "lat": 16.5438740,
+  "lon": 81.5300092,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Gandhinagar, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sudha Urology & Maternity Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082293,
+  "lat": 16.5445620,
+  "lon": 81.5182510,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Dr. Sanjeev Homeo Care, Multi Speciality Homeo Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082294,
+  "lat": 16.5449263,
+  "lon": 81.5162619,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Ushodaya Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082296,
+  "lat": 16.5446406,
+  "lon": 81.5156994,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Amrutha Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082297,
+  "lat": 16.5448877,
+  "lon": 81.5305967,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Near New Bus Stand, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Lakshmi Kasi First Aid Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082299,
+  "lat": 16.5434226,
+  "lon": 81.5158486,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Vijay Sai Naturopathy & Obesity Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082302,
+  "lat": 16.5425007,
+  "lon": 81.5149571,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Kasi Eye Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082306,
+  "lat": 16.5424744,
+  "lon": 81.5141021,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Satyam Homeo Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082308,
+  "lat": 16.5477430,
+  "lon": 81.5152350,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Srinivasa Nursing Home, Eye Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082309,
+  "lat": 16.5490970,
+  "lon": 81.5552470,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Maruthi Nagar, Bhimavaram",
+    "addr:postcode": "534203",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sudhir Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082311,
+  "lat": 16.5412200,
+  "lon": 81.5300014,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Gandhinagar, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Varalakshmi Nursing Home",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082312,
+  "lat": 16.5434614,
+  "lon": 81.5158008,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Venkata Sai General & Diabetic Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082313,
+  "lat": 16.5439430,
+  "lon": 81.5249217,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Meghana Beauty Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082314,
+  "lat": 16.5437836,
+  "lon": 81.5155601,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Jai Srinivasa Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082315,
+  "lat": 16.5424754,
+  "lon": 81.5123943,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Mohan Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082316,
+  "lat": 16.5399994,
+  "lon": 81.5366104,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Gunupudi, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Mukhyamantri Aarogya Kendram",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082321,
+  "lat": 16.5451810,
+  "lon": 81.5306230,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Somavaram, Gandhinagar, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sai Pragnya Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082322,
+  "lat": 16.5440446,
+  "lon": 81.5189692,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Undi Road, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Maxivision Super Speciality Eye Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082324,
+  "lat": 16.5430790,
+  "lon": 81.5153200,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Abhiram Orthopaedic Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082326,
+  "lat": 16.5430150,
+  "lon": 81.5151170,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Sai Indian Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082327,
+  "lat": 16.5465366,
+  "lon": 81.5307143,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Somavaram, Gandhinagar, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Shivaji Piles Clinic",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082329,
+  "lat": 16.5439290,
+  "lon": 81.5166980,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Janaki Rao Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082332,
+  "lat": 16.5435411,
+  "lon": 81.5081877,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Gandhinagar, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "clinic",
+    "name": "Sri Kanaka Durga Nursing Home",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7793082334,
+  "lat": 16.5431643,
+  "lon": 81.5137288,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Sri Rangaraju Children's Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7938865699,
+  "lat": 16.5438704,
+  "lon": 81.5146735,
+  "tags": {
+    "name": "hotlines supermarket",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "node",
+  "id": 7938865705,
+  "lat": 16.5434873,
+  "lon": 81.5128617,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "ganesh teffin centre"
+  }
+},
+{
+  "type": "node",
+  "id": 7938865707,
+  "lat": 16.5517239,
+  "lon": 81.5007006,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "saibaba temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888345,
+  "lat": 16.5439527,
+  "lon": 81.5160307,
+  "tags": {
+    "name": "Sri Ramu sweets",
+    "shop": "bakery"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888346,
+  "lat": 16.5420526,
+  "lon": 81.5162855,
+  "tags": {
+    "amenity": "hospital",
+    "name": "Sri venkateshwara hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888347,
+  "lat": 16.5410215,
+  "lon": 81.5168864,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888350,
+  "lat": 16.5363805,
+  "lon": 81.5203947,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "DNR College canteen"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888352,
+  "lat": 16.5353648,
+  "lon": 81.5183777,
+  "tags": {
+    "amenity": "college",
+    "name": "DNR Law College"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888356,
+  "lat": 16.5362442,
+  "lon": 81.5171519,
+  "tags": {
+    "amenity": "school",
+    "name": "DNR English Medium Primary School"
+  }
+},
+{
+  "type": "node",
+  "id": 7938888357,
+  "lat": 16.5363110,
+  "lon": 81.5179056,
+  "tags": {
+    "amenity": "school",
+    "name": "DNR English medium High School"
+  }
+},
+{
+  "type": "node",
+  "id": 7939007531,
+  "lat": 16.5460919,
+  "lon": 81.5200567,
+  "tags": {
+    "name": "vijaya bar&restauarant",
+    "shop": "wine"
+  }
+},
+{
+  "type": "node",
+  "id": 7939007533,
+  "lat": 16.5455545,
+  "lon": 81.5202203,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Spice Magic"
+  }
+},
+{
+  "type": "node",
+  "id": 7939007536,
+  "lat": 16.5443589,
+  "lon": 81.5200138,
+  "tags": {
+    "name": "deluxe",
+    "shop": "department_store"
+  }
+},
+{
+  "type": "node",
+  "id": 7939007537,
+  "lat": 16.5443692,
+  "lon": 81.5203705,
+  "tags": {
+    "name": "vilasitha",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098203,
+  "lat": 16.5498368,
+  "lon": 81.5127893,
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Avinash Ortho Trauma & Critical Care Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098204,
+  "lat": 16.5468283,
+  "lon": 81.5158760,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098207,
+  "lat": 16.5472489,
+  "lon": 81.5174898,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "vindhu"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098208,
+  "lat": 16.5435156,
+  "lon": 81.5147942,
+  "tags": {
+    "name": "Hotlines sweetshop",
+    "shop": "bakery"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098210,
+  "lat": 16.5447420,
+  "lon": 81.5203947,
+  "tags": {
+    "name": "Bombay sweets",
+    "shop": "bakery"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098214,
+  "lat": 16.5419986,
+  "lon": 81.5227067,
+  "tags": {
+    "amenity": "police",
+    "name": "Bhimavaram one town police station"
+  }
+},
+{
+  "type": "node",
+  "id": 7939098217,
+  "lat": 16.5469018,
+  "lon": 81.5430647,
+  "tags": {
+    "amenity": "school",
+    "name": "St. Mary's"
+  }
+},
+{
+  "type": "node",
+  "id": 7947098661,
+  "lat": 16.5439938,
+  "lon": 81.5151429,
+  "tags": {
+    "amenity": "clinic",
+    "name": "shilpa scaning centre"
+  }
+},
+{
+  "type": "node",
+  "id": 7947098667,
+  "lat": 16.5404224,
+  "lon": 81.5045267,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "sri Venkateshwara swamy temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7947098668,
+  "lat": 16.5426105,
+  "lon": 81.5068817,
+  "tags": {
+    "name": "Ravindra Commercial Pvt Ltd",
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 7947171206,
+  "lat": 16.5428445,
+  "lon": 81.4983523,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "bhimavaram hub"
+  }
+},
+{
+  "type": "node",
+  "id": 7947171211,
+  "lat": 16.5453339,
+  "lon": 81.4955990,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "SRKR college canteen"
+  }
+},
+{
+  "type": "node",
+  "id": 7947171213,
+  "lat": 16.5429782,
+  "lon": 81.4950103,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Sitaya grand"
+  }
+},
+{
+  "type": "node",
+  "id": 7947183155,
+  "lat": 16.5362313,
+  "lon": 81.5186459,
+  "tags": {
+    "amenity": "college",
+    "name": "DNR MBA College"
+  }
+},
+{
+  "type": "node",
+  "id": 7947193794,
+  "lat": 16.5425026,
+  "lon": 81.5138635,
+  "tags": {
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 7947193795,
+  "lat": 16.5418495,
+  "lon": 81.5126136,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2024-04-02",
+    "mobile": "+919949211191",
+    "name": "Vempa Raju Gari Vantillu",
+    "name:te": "వెంప రాజు‌ గారి వంటిల్లు",
+    "operation": "takeway",
+    "outdoor_seating": "no",
+    "reservation": "no",
+    "source": "survey",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 7947193796,
+  "lat": 16.5415615,
+  "lon": 81.5123212,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Divya Jyothi Mess"
+  }
+},
+{
+  "type": "node",
+  "id": 7947193797,
+  "lat": 16.5403813,
+  "lon": 81.5124701,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hanuman temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 7947193798,
+  "lat": 16.5376687,
+  "lon": 81.5136087,
+  "tags": {
+    "amenity": "school",
+    "name": "Venkateswara deaf&dumb school"
+  }
+},
+{
+  "type": "node",
+  "id": 7947230967,
+  "lat": 16.5441224,
+  "lon": 81.5164760,
+  "tags": {
+    "name": "Abhiruchi supermarket",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "node",
+  "id": 7947230968,
+  "lat": 16.5438473,
+  "lon": 81.5164626,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "chandrika restaurant"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237095,
+  "lat": 16.5433793,
+  "lon": 81.5196303,
+  "tags": {
+    "amenity": "police",
+    "name": "Bhimavaram two town police station"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237096,
+  "lat": 16.5442702,
+  "lon": 81.5211735,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "name": "Bhimavaram Old Bus Stand",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237097,
+  "lat": 16.5434205,
+  "lon": 81.4938462,
+  "tags": {
+    "name": "Sri Phanindra Aqua foods",
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237098,
+  "lat": 16.5415975,
+  "lon": 81.4983416,
+  "tags": {
+    "shop": "tiles"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237099,
+  "lat": 16.5414998,
+  "lon": 81.4978883,
+  "tags": {
+    "shop": "tiles"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237108,
+  "lat": 16.5446803,
+  "lon": 81.5104195,
+  "tags": {
+    "amenity": "school",
+    "name": "Aditya public school"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237110,
+  "lat": 16.5429782,
+  "lon": 81.5128550,
+  "tags": {
+    "shop": "seafood"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237111,
+  "lat": 16.5429551,
+  "lon": 81.5126565,
+  "tags": {
+    "amenity": "school",
+    "name": "Bashyam School"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237113,
+  "lat": 16.5456895,
+  "lon": 81.5201005,
+  "tags": {
+    "name": "tatavarthy tiles mart",
+    "shop": "tiles"
+  }
+},
+{
+  "type": "node",
+  "id": 7947237114,
+  "lat": 16.5458348,
+  "lon": 81.5197241,
+  "tags": {
+    "shop": "furniture"
+  }
+},
+{
+  "type": "node",
+  "id": 7947246591,
+  "lat": 16.5352414,
+  "lon": 81.4849573,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "vempadu church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "node",
+  "id": 7947246592,
+  "lat": 16.5321481,
+  "lon": 81.4796385,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "vempadu church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "node",
+  "id": 7947246597,
+  "lat": 16.5320144,
+  "lon": 81.4802849,
+  "tags": {
+    "name": "kumar junior reliance mart",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 7947246600,
+  "lat": 16.5322792,
+  "lon": 81.4840695,
+  "tags": {
+    "name": "nageswaroa kirana shop",
+    "shop": "convenience"
+  }
+},
+{
+  "type": "node",
+  "id": 8422582266,
+  "lat": 16.5380556,
+  "lon": 81.4891094,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Sri Veerabadhra Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 8422602346,
+  "lat": 16.5415512,
+  "lon": 81.5153548,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Subramanyeshwara Swamy Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 8422607060,
+  "lat": 16.5425347,
+  "lon": 81.5065800,
+  "tags": {
+    "name": "Jawed Habib",
+    "shop": "salon"
+  }
+},
+{
+  "type": "node",
+  "id": 8422619093,
+  "lat": 16.5442767,
+  "lon": 81.5201613,
+  "tags": {
+    "shop": "jewelry"
+  }
+},
+{
+  "type": "node",
+  "id": 8422636005,
+  "lat": 16.5422634,
+  "lon": 81.5120865,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Biryani's"
+  }
+},
+{
+  "type": "node",
+  "id": 8422648650,
+  "lat": 16.5457999,
+  "lon": 81.5178025,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 8458088282,
+  "lat": 16.5445981,
+  "lon": 81.5303430,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Hanuman Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9460253020,
+  "lat": 16.5418448,
+  "lon": 81.5023095,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Pizza Hut"
+  }
+},
+{
+  "type": "node",
+  "id": 9460253021,
+  "lat": 16.5418422,
+  "lon": 81.5023524,
+  "tags": {
+    "amenity": "restaurant",
+    "brand": "KFC",
+    "brand:pa": "ਕੇਐਫਸੀ",
+    "brand:ur": "کینٹکی فرائیڈ چکن",
+    "brand:wikidata": "Q524757",
+    "brand:wikipedia": "en:KFC",
+    "brand:wikipedia:pa": "ਕੇਐਫਸੀ",
+    "brand:wikipedia:ur": "کینٹکی فرائیڈ چکن",
+    "name": "KFC",
+    "name:pa": "ਕੇਐਫਸੀ",
+    "name:ur": "کینٹکی فرائیڈ چکن"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114219,
+  "lat": 16.5845621,
+  "lon": 81.4617031,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114221,
+  "lat": 16.5847236,
+  "lon": 81.4636216,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114234,
+  "lat": 16.5858275,
+  "lon": 81.4622070,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114236,
+  "lat": 16.5865099,
+  "lon": 81.4619334,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114237,
+  "lat": 16.5858756,
+  "lon": 81.4667967,
+  "tags": {
+    "amenity": "cafe"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114238,
+  "lat": 16.5859138,
+  "lon": 81.4671432,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114245,
+  "lat": 16.5860168,
+  "lon": 81.4603060,
+  "tags": {
+    "amenity": "police"
+  }
+},
+{
+  "type": "node",
+  "id": 9885114319,
+  "lat": 16.5859919,
+  "lon": 81.4656024,
+  "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital"
+  }
+},
+{
+  "type": "node",
+  "id": 10833869573,
+  "lat": 16.5847621,
+  "lon": 81.4678743,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "loc_name": "RTC Bus Stand",
+    "name": "APSRTC Bus Station , Undi",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "node",
+  "id": 10833869574,
+  "lat": 16.5450272,
+  "lon": 81.5297572,
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "check_date": "2024-04-04",
+    "internet_access": "no",
+    "name": "APSRTC Bus Station  , Bhimavaram",
+    "operator": "APSRTC",
+    "public_transport": "station",
+    "source": "survey",
+    "wheelchair": "limited"
+  }
+},
+{
+  "type": "node",
+  "id": 11779950225,
+  "lat": 16.5367822,
+  "lon": 81.5200433,
+  "tags": {
+    "check_date": "2024-04-02",
+    "name": "Satish xerox",
+    "shop": "copyshop"
+  }
+},
+{
+  "type": "node",
+  "id": 11779950226,
+  "lat": 16.5425777,
+  "lon": 81.5099580,
+  "tags": {
+    "brand": "Max",
+    "brand:wikidata": "Q24939079",
+    "check_date": "2024-04-02",
+    "name": "Max",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 11782154373,
+  "lat": 16.5412778,
+  "lon": 81.5000158,
+  "tags": {
+    "check_date": "2024-04-02",
+    "name": "Basics",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 11782154374,
+  "lat": 16.5412962,
+  "lon": 81.5001639,
+  "tags": {
+    "brand": "United Colors of Benetton",
+    "brand:wikidata": "Q817139",
+    "check_date": "2024-04-02",
+    "name": "United Colors of Benetton",
+    "shop": "clothes",
+    "short_name": "Benetton"
+  }
+},
+{
+  "type": "node",
+  "id": 11782154375,
+  "lat": 16.5420653,
+  "lon": 81.4985293,
+  "tags": {
+    "brand": "Reliance Trends",
+    "check_date": "2024-04-02",
+    "name": "Reliance Trends",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 11787314722,
+  "lat": 16.5487908,
+  "lon": 81.5483620,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "JIO BP",
+    "brand:wikidata": "Q7311026",
+    "name": "Jio BP"
+  }
+},
+{
+  "type": "node",
+  "id": 11787319579,
+  "lat": 16.5481461,
+  "lon": 81.5451179,
+  "tags": {
+    "name": "Jai Bhavani",
+    "shop": "hardware"
+  }
+},
+{
+  "type": "node",
+  "id": 11787323949,
+  "lat": 16.5505467,
+  "lon": 81.5724974,
+  "tags": {
+    "amenity": "place_of_worship",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 11787335789,
+  "lat": 16.5474888,
+  "lon": 81.5426845,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "name": "Bharat petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 11788394261,
+  "lat": 16.5418603,
+  "lon": 81.4977354,
+  "tags": {
+    "amenity": "restaurant",
+    "check_date": "2024-04-03",
+    "name": "Hello  Idly"
+  }
+},
+{
+  "type": "node",
+  "id": 11788394262,
+  "lat": 16.5422112,
+  "lon": 81.4975662,
+  "tags": {
+    "check_date": "2024-04-03",
+    "name": "Venkata Surya Quality Chicken Center",
+    "shop": "butcher"
+  }
+},
+{
+  "type": "node",
+  "id": 11788394263,
+  "lat": 16.5419316,
+  "lon": 81.4974578,
+  "tags": {
+    "check_date": "2024-04-03",
+    "mobile": "+919000108483",
+    "name": "Venkata Sai Student Corner",
+    "shop": "general"
+  }
+},
+{
+  "type": "node",
+  "id": 11788936707,
+  "lat": 16.5414723,
+  "lon": 81.4985004,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "name": "Bharat petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 12114077654,
+  "lat": 16.5811245,
+  "lon": 81.5802095,
+  "tags": {
+    "amenity": "fuel"
+  }
+},
+{
+  "type": "node",
+  "id": 12114092306,
+  "lat": 16.5130661,
+  "lon": 81.5470695,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 12114092307,
+  "lat": 16.5816604,
+  "lon": 81.4741661,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Bharat Petroleum",
+    "brand:wikidata": "Q854826",
+    "name": "Bharat Petroleum"
+  }
+},
+{
+  "type": "node",
+  "id": 12114092309,
+  "lat": 16.5771586,
+  "lon": 81.4782356,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Indian Oil",
+    "brand:wikidata": "Q1289348",
+    "name": "Indian Oil"
+  }
+},
+{
+  "type": "node",
+  "id": 12114092313,
+  "lat": 16.5568378,
+  "lon": 81.5041487,
+  "tags": {
+    "amenity": "fuel",
+    "brand": "Hindustan Petroleum",
+    "brand:wikidata": "Q1619375",
+    "name": "HP"
+  }
+},
+{
+  "type": "node",
+  "id": 12114092320,
+  "lat": 16.5552534,
+  "lon": 81.5230770,
+  "tags": {
+    "amenity": "fuel"
+  }
+},
+{
+  "type": "node",
+  "id": 13088174542,
+  "lat": 16.5448565,
+  "lon": 81.5264106,
+  "tags": {
+    "name": "Twills",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 13088174543,
+  "lat": 16.5448484,
+  "lon": 81.5263491,
+  "tags": {
+    "name": "Indian Terrain",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "node",
+  "id": 13088183593,
+  "lat": 16.5464553,
+  "lon": 81.5177484,
+  "tags": {
+    "name": "Easybuy",
+    "shop": "mall"
+  }
+},
+{
+  "type": "node",
+  "id": 13088192647,
+  "lat": 16.5445800,
+  "lon": 81.5186630,
+  "tags": {
+    "name": "Kaveri travels",
+    "shop": "travel_agency"
+  }
+},
+{
+  "type": "node",
+  "id": 13088192667,
+  "lat": 16.5471229,
+  "lon": 81.4857960,
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Vijay ganapathi temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "node",
+  "id": 13700377441,
+  "lat": 16.5359974,
+  "lon": 81.5080584,
+  "tags": {
+    "amenity": "place_of_worship"
+  }
+},
+{
+  "type": "node",
+  "id": 13700377457,
+  "lat": 16.5370746,
+  "lon": 81.5082252,
+  "tags": {
+    "shop": "jewelry"
+  }
+},
+{
+  "type": "node",
+  "id": 13700377458,
+  "lat": 16.5371028,
+  "lon": 81.5071035,
+  "tags": {
+    "shop": "cosmetics"
+  }
+},
+{
+  "type": "node",
+  "id": 13700377459,
+  "lat": 16.5351112,
+  "lon": 81.5072617,
+  "tags": {
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "way",
+  "id": 344273814,
+  "center": {
+    "lat": 16.5428755,
+    "lon": 81.5064864
+  },
+  "tags": {
+    "amenity": "school",
+    "building": "yes",
+    "name": "ravindra bharathi school"
+  }
+},
+{
+  "type": "way",
+  "id": 344424075,
+  "center": {
+    "lat": 16.5428208,
+    "lon": 81.5117264
+  },
+  "tags": {
+    "addr:postcode": "534202",
+    "addr:street": "Bhimavaram - Gudivada Road",
+    "building": "yes",
+    "name": "Spencer's  Supermarket",
+    "organic": "yes",
+    "shop": "supermarket",
+    "website": "https://www.spencers.in/"
+  }
+},
+{
+  "type": "way",
+  "id": 371753260,
+  "center": {
+    "lat": 16.5665391,
+    "lon": 81.5214803
+  },
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "Just Eat"
+  }
+},
+{
+  "type": "way",
+  "id": 371754325,
+  "center": {
+    "lat": 16.5692048,
+    "lon": 81.5245372
+  },
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "Temple Square"
+  }
+},
+{
+  "type": "way",
+  "id": 371754657,
+  "center": {
+    "lat": 16.5692240,
+    "lon": 81.5241616
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Temples of god"
+  }
+},
+{
+  "type": "way",
+  "id": 371754934,
+  "center": {
+    "lat": 16.5687474,
+    "lon": 81.5239534
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "building": "yes",
+    "name": "Annapoorna Mess"
+  }
+},
+{
+  "type": "way",
+  "id": 371762377,
+  "center": {
+    "lat": 16.5661757,
+    "lon": 81.5202711
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "building": "yes",
+    "name": "VIT Boys canteen"
+  }
+},
+{
+  "type": "way",
+  "id": 371762712,
+  "center": {
+    "lat": 16.5684732,
+    "lon": 81.5245474
+  },
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "College Cafe"
+  }
+},
+{
+  "type": "way",
+  "id": 371762820,
+  "center": {
+    "lat": 16.5685347,
+    "lon": 81.5218599
+  },
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes",
+    "name": "Fresh Choice"
+  }
+},
+{
+  "type": "way",
+  "id": 408524781,
+  "center": {
+    "lat": 16.5468297,
+    "lon": 81.5174524
+  },
+  "tags": {
+    "building": "commercial",
+    "building:levels": "3",
+    "name": "Geetha Multiplex",
+    "shop": "mall",
+    "smoking": "no"
+  }
+},
+{
+  "type": "way",
+  "id": 417272936,
+  "center": {
+    "lat": 16.5417360,
+    "lon": 81.5013447
+  },
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Tammi Raju Nagar, Bhimavaram",
+    "addr:postcode": "534204",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "building": "yes",
+    "name": "Akshara Speciality Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "way",
+  "id": 417466578,
+  "center": {
+    "lat": 16.5382668,
+    "lon": 81.4897639
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 417473119,
+  "center": {
+    "lat": 16.5355601,
+    "lon": 81.4899953
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Saibaba Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 484532937,
+  "center": {
+    "lat": 16.5913674,
+    "lon": 81.5269557
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 484532938,
+  "center": {
+    "lat": 16.5929838,
+    "lon": 81.5206996
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 517710711,
+  "center": {
+    "lat": 16.5446132,
+    "lon": 81.5344513
+  },
+  "tags": {
+    "addr:city": "bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "junction railway station road, Gandhi nagar",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Betelu church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 517710727,
+  "center": {
+    "lat": 16.5433612,
+    "lon": 81.5352948
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "backside to Bhimavaram fire station",
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 517724688,
+  "center": {
+    "lat": 16.5413901,
+    "lon": 81.5351439
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "Matsyapuri road",
+    "addr:suburb": "Gandhinagar",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Someswara Swami Devalayam",
+    "name:te": "సోమేశ్వరస్వామి దేవాలయం",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 517724689,
+  "center": {
+    "lat": 16.5411448,
+    "lon": 81.5353059
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "Matsyapuri road, gandhinagar",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "SRI RAMA DEVALAYAM",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 517748754,
+  "center": {
+    "lat": 16.5404087,
+    "lon": 81.5365766
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "matsyapuri road",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "SRI ADHILAKHSMI AMMAVARI TEMPLE",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 517755136,
+  "center": {
+    "lat": 16.5428986,
+    "lon": 81.5292833
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "SUNNEJAMIYA MASJID",
+    "religion": "muslim"
+  }
+},
+{
+  "type": "way",
+  "id": 517761247,
+  "center": {
+    "lat": 16.5413927,
+    "lon": 81.5313260
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "gandhinagar",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Sri kanaka durga temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 517761251,
+  "center": {
+    "lat": 16.5408749,
+    "lon": 81.5278411
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "simhadri appana temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 517761255,
+  "center": {
+    "lat": 16.5385324,
+    "lon": 81.5287737
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "bank colony",
+    "amenity": "hospital",
+    "name": "simhachalam hospitals"
+  }
+},
+{
+  "type": "way",
+  "id": 517761257,
+  "center": {
+    "lat": 16.5388950,
+    "lon": 81.5275535
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "gansh temple"
+  }
+},
+{
+  "type": "way",
+  "id": 517761258,
+  "center": {
+    "lat": 16.5389005,
+    "lon": 81.5273739
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:street": "Sunkara paddaiah st",
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "sri vara siddi vinayaka temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 587103346,
+  "center": {
+    "lat": 16.5430131,
+    "lon": 81.5098812
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 589125957,
+  "center": {
+    "lat": 16.5315165,
+    "lon": 81.4720020
+  },
+  "tags": {
+    "amenity": "school",
+    "name": "govt school"
+  }
+},
+{
+  "type": "way",
+  "id": 589127049,
+  "center": {
+    "lat": 16.5418611,
+    "lon": 81.4656996
+  },
+  "tags": {
+    "amenity": "school",
+    "name": "Kopalle High School"
+  }
+},
+{
+  "type": "way",
+  "id": 678634455,
+  "center": {
+    "lat": 16.5542286,
+    "lon": 81.5072852
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "sri Venkateshwara swamy temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 748909462,
+  "center": {
+    "lat": 16.5281577,
+    "lon": 81.5525275
+  },
+  "tags": {
+    "landuse": "residential",
+    "source": "MaxarPremium"
+  }
+},
+{
+  "type": "way",
+  "id": 801670725,
+  "center": {
+    "lat": 16.5107844,
+    "lon": 81.5239768
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670726,
+  "center": {
+    "lat": 16.5117132,
+    "lon": 81.5119490
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670727,
+  "center": {
+    "lat": 16.5109797,
+    "lon": 81.5118518
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670728,
+  "center": {
+    "lat": 16.5250177,
+    "lon": 81.5104437
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670729,
+  "center": {
+    "lat": 16.5944231,
+    "lon": 81.5347376
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670735,
+  "center": {
+    "lat": 16.5718350,
+    "lon": 81.4640656
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670736,
+  "center": {
+    "lat": 16.5569066,
+    "lon": 81.4669306
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 801670737,
+  "center": {
+    "lat": 16.5478730,
+    "lon": 81.4657983
+  },
+  "tags": {
+    "landuse": "industrial"
+  }
+},
+{
+  "type": "way",
+  "id": 834862908,
+  "center": {
+    "lat": 16.5427614,
+    "lon": 81.5128076
+  },
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Sivaraopeta, Balusumoodi, Bhimavaram",
+    "addr:postcode": "534202",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "building": "yes",
+    "name": "Imperial Hospitals",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "way",
+  "id": 834862941,
+  "center": {
+    "lat": 16.5439959,
+    "lon": 81.5106348
+  },
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Suryanarayana Puram, Tammi Raju Nagar, Bhimavaram",
+    "addr:postcode": "534204",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "building": "yes",
+    "name": "Gayathri Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "way",
+  "id": 851081636,
+  "center": {
+    "lat": 16.5444502,
+    "lon": 81.4963822
+  },
+  "tags": {
+    "addr:postcode": "534204",
+    "amenity": "college",
+    "mobile": "+91 9848823332",
+    "name": "Sagi Ramakrishnam Raju Engineering College",
+    "name:te": "సాగి రామకృష్ణం రాజు ఇంజనీరింగ్ కళాశాల",
+    "phone": "+91 8816 223332",
+    "short_name": "SRKR Engineering College",
+    "website": "https://srkrec.edu.in/",
+    "wikidata": "Q7399241",
+    "wikipedia": "en:Sagi Ramakrishnam Raju Engineering College",
+    "wikipedia:te": "https://te.wikipedia.org/wiki/%E0%B0%B8%E0%B0%BE%E0%B0%97%E0%B0%BF_%E0%B0%B0%E0%B0%BE%E0%B0%AE%E0%B0%95%E0%B1%83%E0%B0%B7%E0%B1%8D%E0%B0%A3%E0%B0%82_%E0%B0%B0%E0%B0%BE%E0%B0%9C%E0%B1%81_%E0%B0%87%E0%B0%82%E0%B0%9C%E0%B0%A8%E0%B1%80%E0%B0%B0%E0%B0%BF%E0%B0"
+  }
+},
+{
+  "type": "way",
+  "id": 851984203,
+  "center": {
+    "lat": 16.5438466,
+    "lon": 81.5189047
+  },
+  "tags": {
+    "amenity": "marketplace",
+    "name": "Budavaram santha market"
+  }
+},
+{
+  "type": "way",
+  "id": 851984204,
+  "center": {
+    "lat": 16.5397642,
+    "lon": 81.4982819
+  },
+  "tags": {
+    "amenity": "college",
+    "building": "yes",
+    "name": "Chaitanya junior college"
+  }
+},
+{
+  "type": "way",
+  "id": 889220981,
+  "center": {
+    "lat": 16.5418832,
+    "lon": 81.5019097
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Jai shriram"
+  }
+},
+{
+  "type": "way",
+  "id": 889220982,
+  "center": {
+    "lat": 16.5435066,
+    "lon": 81.5125934
+  },
+  "tags": {
+    "building": "yes",
+    "name": "IBHA",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "way",
+  "id": 889220985,
+  "center": {
+    "lat": 16.5440255,
+    "lon": 81.5103858
+  },
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Suryanarayana Puram, Bhimavaram",
+    "addr:postcode": "534201",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "name": "Varma Hospital",
+    "source": "Local Knowledge"
+  }
+},
+{
+  "type": "way",
+  "id": 907037120,
+  "center": {
+    "lat": 16.5379033,
+    "lon": 81.4895278
+  },
+  "tags": {
+    "amenity": "school",
+    "name": "Chinna Amiram Govrenment school"
+  }
+},
+{
+  "type": "way",
+  "id": 907037684,
+  "center": {
+    "lat": 16.5374263,
+    "lon": 81.4889064
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 907037894,
+  "center": {
+    "lat": 16.5319320,
+    "lon": 81.4806066
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 907039797,
+  "center": {
+    "lat": 16.5455963,
+    "lon": 81.5176374
+  },
+  "tags": {
+    "amenity": "cafe",
+    "building": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 907040658,
+  "center": {
+    "lat": 16.5453255,
+    "lon": 81.5179868
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Subrabath Restaurant"
+  }
+},
+{
+  "type": "way",
+  "id": 910872008,
+  "center": {
+    "lat": 16.5450416,
+    "lon": 81.5254573
+  },
+  "tags": {
+    "landuse": "retail",
+    "name": "Reliance Mart"
+  }
+},
+{
+  "type": "way",
+  "id": 910872009,
+  "center": {
+    "lat": 16.5451477,
+    "lon": 81.5253621
+  },
+  "tags": {
+    "building": "yes",
+    "shop": "supermarket"
+  }
+},
+{
+  "type": "way",
+  "id": 1026071618,
+  "center": {
+    "lat": 16.5321138,
+    "lon": 81.4805891
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "vinayaka temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1026071619,
+  "center": {
+    "lat": 16.5321840,
+    "lon": 81.4804562
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1026071621,
+  "center": {
+    "lat": 16.5319020,
+    "lon": 81.4811854
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1026073332,
+  "center": {
+    "lat": 16.5327345,
+    "lon": 81.4840262
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "St. Lutheran Church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1026073333,
+  "center": {
+    "lat": 16.5332422,
+    "lon": 81.4845508
+  },
+  "tags": {
+    "amenity": "school",
+    "building": "yes",
+    "name": "Govt School"
+  }
+},
+{
+  "type": "way",
+  "id": 1026073335,
+  "center": {
+    "lat": 16.5322404,
+    "lon": 81.4801734
+  },
+  "tags": {
+    "amenity": "school",
+    "name": "Vempadu Govt School"
+  }
+},
+{
+  "type": "way",
+  "id": 1026074017,
+  "center": {
+    "lat": 16.5409729,
+    "lon": 81.4960139
+  },
+  "tags": {
+    "addr:district": "West Godavari",
+    "addr:full": "Opp: S R K R Engg College, J P Road Bhimavaram.",
+    "addr:postcode": "534204",
+    "addr:state": "Andhra Pradesh",
+    "amenity": "hospital",
+    "contact:email": "info@bhimavaramhospitals.com",
+    "contact:phone": "08816-221111, 22, 33",
+    "fax": "08816-221100",
+    "name": "Bhimavaram Hospitals",
+    "opening_hours": "24/7",
+    "source": "OpenGovernmentData",
+    "website": "https://www.bhimavaramhospital.com/"
+  }
+},
+{
+  "type": "way",
+  "id": 1026078598,
+  "center": {
+    "lat": 16.5440560,
+    "lon": 81.5128931
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "name": "Shivalayam Temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1026078600,
+  "center": {
+    "lat": 16.5447671,
+    "lon": 81.5055878
+  },
+  "tags": {
+    "amenity": "college",
+    "building": "yes",
+    "name": "Narayana junior college"
+  }
+},
+{
+  "type": "way",
+  "id": 1026080505,
+  "center": {
+    "lat": 16.5360810,
+    "lon": 81.5199213
+  },
+  "tags": {
+    "amenity": "college",
+    "name": "DNR Degree College"
+  }
+},
+{
+  "type": "way",
+  "id": 1026080506,
+  "center": {
+    "lat": 16.5352206,
+    "lon": 81.5201737
+  },
+  "tags": {
+    "amenity": "college",
+    "name": "DNR Engineering College and Technology"
+  }
+},
+{
+  "type": "way",
+  "id": 1026080507,
+  "center": {
+    "lat": 16.5351888,
+    "lon": 81.5191177
+  },
+  "tags": {
+    "amenity": "college",
+    "building": "yes",
+    "name": "DNR Diploma college"
+  }
+},
+{
+  "type": "way",
+  "id": 1026085440,
+  "center": {
+    "lat": 16.5457623,
+    "lon": 81.5202540
+  },
+  "tags": {
+    "building": "yes",
+    "name": "tatavarthy Tiles Mart",
+    "shop": "tiles"
+  }
+},
+{
+  "type": "way",
+  "id": 1026085443,
+  "center": {
+    "lat": 16.5464654,
+    "lon": 81.5177532
+  },
+  "tags": {
+    "building": "yes",
+    "name": "Easybuy",
+    "shop": "clothes"
+  }
+},
+{
+  "type": "way",
+  "id": 1266784744,
+  "center": {
+    "lat": 16.5435913,
+    "lon": 81.5166945
+  },
+  "tags": {
+    "addr:city": "Bhimavaram",
+    "addr:district": "WEST GODAVARI",
+    "addr:housenumber": "25-15-10",
+    "addr:postcode": "534202",
+    "addr:street": "mp street",
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "healthcare:speciality": "general",
+    "name": "ayurvedic hospital",
+    "operator": "doctor",
+    "operator:type": "private"
+  }
+},
+{
+  "type": "way",
+  "id": 1267944097,
+  "center": {
+    "lat": 16.5875079,
+    "lon": 81.4635989
+  },
+  "tags": {
+    "landuse": "residential",
+    "name": "Undi Village"
+  }
+},
+{
+  "type": "way",
+  "id": 1268942080,
+  "center": {
+    "lat": 16.5448227,
+    "lon": 81.5303786
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "Saibaba temple",
+    "religion": "hindu"
+  }
+},
+{
+  "type": "way",
+  "id": 1268942414,
+  "center": {
+    "lat": 16.5394509,
+    "lon": 81.5241296
+  },
+  "tags": {
+    "amenity": "school",
+    "name": "lutheran high school"
+  }
+},
+{
+  "type": "way",
+  "id": 1268942619,
+  "center": {
+    "lat": 16.5375218,
+    "lon": 81.5271493
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "st pals lutheran church chinnapate",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1268943550,
+  "center": {
+    "lat": 16.5273169,
+    "lon": 81.5246891
+  },
+  "tags": {
+    "amenity": "college",
+    "name": "KGRL COLLEGE"
+  }
+},
+{
+  "type": "way",
+  "id": 1268944791,
+  "center": {
+    "lat": 16.5313764,
+    "lon": 81.5245826
+  },
+  "tags": {
+    "amenity": "college",
+    "name": "PATTABHI COLLAGE"
+  }
+},
+{
+  "type": "way",
+  "id": 1268945527,
+  "center": {
+    "lat": 16.5376253,
+    "lon": 81.5375497
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1268946345,
+  "center": {
+    "lat": 16.5456115,
+    "lon": 81.4957567
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "building": "yes",
+    "name": "SRKR CAFTERIA"
+  }
+},
+{
+  "type": "way",
+  "id": 1269239200,
+  "center": {
+    "lat": 16.5322147,
+    "lon": 81.4816460
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1269239202,
+  "center": {
+    "lat": 16.5310933,
+    "lon": 81.4712033
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1269239203,
+  "center": {
+    "lat": 16.5292714,
+    "lon": 81.4541104
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1269239224,
+  "center": {
+    "lat": 16.5450553,
+    "lon": 81.5297556
+  },
+  "tags": {
+    "amenity": "bus_station",
+    "bus": "yes",
+    "public_transport": "station"
+  }
+},
+{
+  "type": "way",
+  "id": 1269239225,
+  "center": {
+    "lat": 16.5516535,
+    "lon": 81.5163783
+  },
+  "tags": {
+    "landuse": "residential",
+    "name": "Bhimavaram Urban"
+  }
+},
+{
+  "type": "way",
+  "id": 1415873273,
+  "center": {
+    "lat": 16.5480306,
+    "lon": 81.5413890
+  },
+  "tags": {
+    "barrier": "wall",
+    "depot": "bus",
+    "industrial": "depot",
+    "landuse": "industrial",
+    "name": "APSRTC Bus Depot , Bhimavaram",
+    "operator": "APSRTC",
+    "operator:wikidata": "Q4754395"
+  }
+},
+{
+  "type": "way",
+  "id": 1424020546,
+  "center": {
+    "lat": 16.5466331,
+    "lon": 81.4842994
+  },
+  "tags": {
+    "amenity": "place_of_worship",
+    "building": "yes",
+    "name": "St. Paul's Lutheran Church",
+    "religion": "christian"
+  }
+},
+{
+  "type": "way",
+  "id": 1434375988,
+  "center": {
+    "lat": 16.5384783,
+    "lon": 81.4584312
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434375989,
+  "center": {
+    "lat": 16.5626290,
+    "lon": 81.4709766
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434375990,
+  "center": {
+    "lat": 16.5629862,
+    "lon": 81.4650722
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434375991,
+  "center": {
+    "lat": 16.4970414,
+    "lon": 81.5066598
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434376030,
+  "center": {
+    "lat": 16.4983888,
+    "lon": 81.5697344
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434376031,
+  "center": {
+    "lat": 16.5057983,
+    "lon": 81.5597473
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434376032,
+  "center": {
+    "lat": 16.5154032,
+    "lon": 81.5461364
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398914,
+  "center": {
+    "lat": 16.5395955,
+    "lon": 81.5924916
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398915,
+  "center": {
+    "lat": 16.5394456,
+    "lon": 81.5817890
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398916,
+  "center": {
+    "lat": 16.5083493,
+    "lon": 81.5817587
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398917,
+  "center": {
+    "lat": 16.5096695,
+    "lon": 81.5898840
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398918,
+  "center": {
+    "lat": 16.5051045,
+    "lon": 81.5908070
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1434398925,
+  "center": {
+    "lat": 16.5490564,
+    "lon": 81.5640719
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1450695480,
+  "center": {
+    "lat": 16.5857486,
+    "lon": 81.5488513
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1450695481,
+  "center": {
+    "lat": 16.5924708,
+    "lon": 81.5598282
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1450695482,
+  "center": {
+    "lat": 16.5916731,
+    "lon": 81.5587113
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1450734319,
+  "center": {
+    "lat": 16.6029652,
+    "lon": 81.5655172
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451197622,
+  "center": {
+    "lat": 16.5922719,
+    "lon": 81.5881727
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451197625,
+  "center": {
+    "lat": 16.5830365,
+    "lon": 81.5895541
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198350,
+  "center": {
+    "lat": 16.5488871,
+    "lon": 81.5884394
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198351,
+  "center": {
+    "lat": 16.5501765,
+    "lon": 81.5785384
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198352,
+  "center": {
+    "lat": 16.5543793,
+    "lon": 81.5694165
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198353,
+  "center": {
+    "lat": 16.5418405,
+    "lon": 81.5698286
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198354,
+  "center": {
+    "lat": 16.5398585,
+    "lon": 81.5681346
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198355,
+  "center": {
+    "lat": 16.5394850,
+    "lon": 81.5631887
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451198356,
+  "center": {
+    "lat": 16.5389379,
+    "lon": 81.5699215
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451996099,
+  "center": {
+    "lat": 16.5988388,
+    "lon": 81.5132299
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998262,
+  "center": {
+    "lat": 16.5627742,
+    "lon": 81.5408472
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998263,
+  "center": {
+    "lat": 16.5678135,
+    "lon": 81.5387424
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998264,
+  "center": {
+    "lat": 16.5639503,
+    "lon": 81.5323264
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998265,
+  "center": {
+    "lat": 16.5700776,
+    "lon": 81.5304249
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998266,
+  "center": {
+    "lat": 16.5731868,
+    "lon": 81.5348378
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998267,
+  "center": {
+    "lat": 16.5792833,
+    "lon": 81.5484511
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998268,
+  "center": {
+    "lat": 16.5794011,
+    "lon": 81.5412918
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998269,
+  "center": {
+    "lat": 16.5882097,
+    "lon": 81.5335329
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998270,
+  "center": {
+    "lat": 16.5889202,
+    "lon": 81.5303318
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998271,
+  "center": {
+    "lat": 16.5888488,
+    "lon": 81.5258636
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1451998272,
+  "center": {
+    "lat": 16.5995787,
+    "lon": 81.5193573
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1452945982,
+  "center": {
+    "lat": 16.6016378,
+    "lon": 81.5891268
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1474951714,
+  "center": {
+    "lat": 16.5982397,
+    "lon": 81.5039004
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1474951716,
+  "center": {
+    "lat": 16.5956999,
+    "lon": 81.4840851
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1474951717,
+  "center": {
+    "lat": 16.5957720,
+    "lon": 81.4899925
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1474951718,
+  "center": {
+    "lat": 16.5972632,
+    "lon": 81.4968779
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+},
+{
+  "type": "way",
+  "id": 1474951719,
+  "center": {
+    "lat": 16.5922014,
+    "lon": 81.4981250
+  },
+  "tags": {
+    "landuse": "residential"
+  }
+}
+
+  ]
+}

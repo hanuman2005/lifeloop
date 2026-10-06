@@ -48,3 +48,7 @@ colab_bundle/
 # Downloaded Kaggle dataset, kept locally so more can be ingested without
 # re-downloading. Its images reach the repo only via data/raw, which is ignored.
 standardized_384/
+
+# Regenerated from observations.csv by split_observations.py, deterministic
+# under RANDOM_SEED. Tracking it would duplicate 2.4 MB already in the repo.
+data/obs_splits/

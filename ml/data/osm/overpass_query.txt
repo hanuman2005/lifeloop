@@ -1,0 +1,8 @@
+[out:json][timeout:90];
+(
+  nwr["amenity"~"^(waste_basket|waste_disposal|recycling|marketplace|school|college|university|hospital|clinic|bus_station|place_of_worship|townhall|police|fuel|restaurant|cafe)$"](16.50,81.46,16.60,81.59);
+  nwr["shop"](16.50,81.46,16.60,81.59);
+  nwr["highway"="bus_stop"](16.50,81.46,16.60,81.59);
+  nwr["landuse"~"^(residential|commercial|retail|industrial)$"](16.50,81.46,16.60,81.59);
+);
+out center tags;
