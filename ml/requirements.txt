@@ -6,6 +6,8 @@ numpy>=1.26
 pandas>=2.0
 pillow>=10.0
 scikit-learn>=1.4
+# The detector. wasteml/detect.py loads waste_detector.pt through this.
+ultralytics>=8.3
 fastapi>=0.110
 uvicorn[standard]>=0.29
 onnx>=1.16
