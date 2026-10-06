@@ -100,6 +100,21 @@ def pack_classifier(out: Path) -> tuple:
     if config.MANIFEST_PATH.exists():
         shutil.copy2(config.MANIFEST_PATH, out / "data" / "manifest.csv")
 
+    # The multimodal model of report §6.4 trains from the observation records
+    # rather than from manifest.csv, and those carry the spatial and temporal
+    # columns its other two branches read. Image paths inside them are relative
+    # to ML_ROOT, so they stay valid against the bundle root without editing.
+    for relative in ("data/observations.csv", "data/points.csv"):
+        source = config.ML_ROOT / relative
+        if source.exists():
+            destination = out / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+
+    obs_splits = config.DATA_DIR / "obs_splits"
+    if obs_splits.exists():
+        shutil.copytree(obs_splits, out / "data" / "obs_splits", dirs_exist_ok=True)
+
     return count, written
 
 
