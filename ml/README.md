@@ -20,10 +20,9 @@ five times the annotation effort.
 
 ## Why the model only outputs two fields
 
-`CATEGORY_ADVICE` in `LifeLoop/src/screens/WasteAnalyzer.js` already holds recycling
-guidance, impact figures, and action probabilities for every material. The classifier
-supplies `material` and `confidence`; `MATERIAL_RULES` in
-`backend/controllers/aiController.js` supplies the rest.
+`MATERIAL_RULES` in `backend/controllers/aiController.js` already holds recycling
+guidance, recyclability and urgency for every material. The classifier supplies
+`material` and `confidence`; that table supplies the rest.
 
 That is what makes a 2.5M-parameter model a viable replacement for a large
 vision-language model here — most of what the LLM produced was never used.

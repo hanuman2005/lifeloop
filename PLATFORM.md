@@ -51,7 +51,6 @@ replace fill-level sensors, so the system scales at zero marginal cost per bin.
 backend/     Node.js + Express + MongoDB + Socket.IO API
 web/         React PWA — the client everyone uses
 ml/          The models: data tooling, training, evaluation, serving
-LifeLoop/    Expo React Native app — superseded by web/, kept for reference
 ```
 
 Three processes run in development. The web client talks only to the backend; the

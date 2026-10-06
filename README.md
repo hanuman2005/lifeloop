@@ -73,7 +73,6 @@ uniformly full. Full method and limitations in
 backend/     Node.js + Express + MongoDB + Socket.IO API
 web/         React PWA (Vite, Tailwind, shadcn/ui) — the client
 ml/          The waste classifier: dataset tooling, training, evaluation, serving
-LifeLoop/    Expo React Native app — superseded by web/, retained for reference
 ```
 
 Scope, schedule, and every deliberate departure from the synopsis are recorded in

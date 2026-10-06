@@ -10,9 +10,8 @@ from pathlib import Path
 # Order is load-bearing: it defines the output index of the network. Appending is
 # safe only before training; reordering or inserting invalidates every checkpoint.
 #
-# The first eight mirror WASTE_CATEGORIES in backend/controllers/configController.js
-# and CATEGORY_ADVICE in LifeLoop/src/screens/WasteAnalyzer.js. "Hazardous" is added
-# to satisfy synopsis objective O1.
+# The first eight mirror WASTE_CATEGORIES in backend/controllers/configController.js.
+# "Hazardous" is added to satisfy synopsis objective O1.
 MATERIAL_CLASSES = [
     "Plastic",
     "Glass",

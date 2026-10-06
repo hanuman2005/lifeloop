@@ -9,9 +9,8 @@
 const crypto = require("crypto");
 const geminiFallback = require("../services/geminiFallback");
 
-// Must stay in sync with ml/wasteml/config.py CLASSES, with WASTE_CATEGORIES in
-// controllers/configController.js, and with CATEGORY_ADVICE in
-// LifeLoop/src/screens/WasteAnalyzer.js.
+// Must stay in sync with ml/wasteml/config.py CLASSES and with WASTE_CATEGORIES
+// in controllers/configController.js.
 const MATERIALS = [
   "Plastic",
   "Glass",
@@ -29,8 +28,8 @@ const MODEL_SERVICE_URL =
 const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 15000);
 
 // The classifier outputs a material and nothing else. Everything a user reads is
-// derived here or from CATEGORY_ADVICE on the client — which is exactly why a
-// 2.5M-parameter model can replace a large vision-language model for this task.
+// derived from this table — which is exactly why a 2.5M-parameter model can
+// replace a large vision-language model for this task.
 const MATERIAL_RULES = {
   Plastic: {
     isRecyclable: true,
@@ -165,8 +164,8 @@ const toAnalysis = (result) => {
     reasoning: rules.reasoning,
     isRecyclable: rules.isRecyclable,
     urgency: rules.urgency,
-    // The classifier sees material, not usability. The client's CATEGORY_ADVICE
-    // supplies the per-category default when this is false.
+    // The classifier sees material, not usability. The client decides whether to
+    // offer donation when this is false.
     donationPossible: false,
     condition: "unknown",
     // True when the model's confidence sits below its calibrated per-class

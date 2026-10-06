@@ -54,8 +54,6 @@ against the synopsis. Result:
   26 routers, 17 models, 21 controllers.
 - `web/` — React PWA (Vite, Tailwind, shadcn/ui). The current client.
 - `ml/` — the M1 classifier: dataset tooling, training, evaluation, FastAPI serving.
-- `LifeLoop/` — Expo / React Native 0.81 (SDK 54). Superseded by `web/`, retained
-  until the web app has been through a demo.
 
 ### Defects found in the audit
 
@@ -308,8 +306,8 @@ existing eight came from `controllers/configController.js`.
 
 ### Why the model only needs to output two fields
 
-`CATEGORY_ADVICE` in `LifeLoop/src/screens/WasteAnalyzer.js` already supplies recycling
-guidance, impact figures, and action probabilities per material. The classifier supplies
+`MATERIAL_RULES` in `backend/controllers/aiController.js` already supplies recycling
+guidance, recyclability and urgency per material. The classifier supplies
 `material` and `confidence`; everything else is a table lookup or a rule. This is what
 makes replacing a large language model with a 2.5M-parameter classifier tractable.
 
@@ -371,8 +369,8 @@ same endpoints, auth and Socket.IO serve either client — and because an existi
 in-house design system (Vite, Tailwind, shadcn/ui) could be reused directly, which
 React Native could not do.
 
-The React Native client remains in `LifeLoop/` and still works. It is no longer the
-target and will be removed once the web app has been through a demo.
+The React Native client was removed once the web app had been through a demo. It
+is recoverable from git history if a mobile target is ever revived.
 
 ### 6.2 Simulation and a labelled test set, not a 30–50 user pilot
 
