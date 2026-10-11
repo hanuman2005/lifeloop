@@ -76,24 +76,46 @@ def copy_scaled(source: Path, destination: Path, max_edge: int) -> int:
     return destination.with_suffix(".jpg").stat().st_size
 
 
+def referenced_images() -> set:
+    """Every image a split or an observation names, relative to ML_ROOT.
+
+    The bundle carries these and nothing else. data/raw also holds classes the
+    current models do not train (Textile, Hazardous, Electronic, NotWaste), the
+    surplus beyond the per-class cap, and whatever a future dataset adds; none of
+    it is read by a run, and uploading it only makes Colab slower to start.
+    """
+    import csv
+
+    needed = set()
+    for name in ("train", "val", "test"):
+        for folder, column in ((config.SPLITS_DIR, "path"),
+                               (config.DATA_DIR / "obs_splits", "image")):
+            path = folder / f"{name}.csv"
+            if path.exists():
+                with open(path, encoding="utf-8", newline="") as handle:
+                    needed.update(row[column] for row in csv.DictReader(handle))
+    return needed
+
+
 def pack_classifier(out: Path) -> tuple:
     count = 0
     written = 0
 
-    for class_dir in sorted(config.RAW_DIR.iterdir()):
-        if not class_dir.is_dir() or class_dir.name not in config.CLASSES:
+    needed = referenced_images()
+    if not needed:
+        print("  ✗ no splits found — run prepare_dataset.py and split_observations.py first")
+    missing = 0
+    for relative in sorted(needed):
+        image = config.ML_ROOT / relative
+        if not image.exists():
+            missing += 1
             continue
-        for image in sorted(class_dir.iterdir()):
-            if image.suffix.lower() not in config.IMAGE_EXTENSIONS:
-                continue
-            size = copy_scaled(
-                image,
-                out / "data" / "raw" / class_dir.name / image.name,
-                CLASSIFIER_MAX_EDGE,
-            )
-            if size:
-                count += 1
-                written += size
+        size = copy_scaled(image, out / relative, CLASSIFIER_MAX_EDGE)
+        if size:
+            count += 1
+            written += size
+    if missing:
+        print(f"  ⚠️  {missing:,} referenced image(s) not on disk; the split is stale")
 
     if config.SPLITS_DIR.exists():
         shutil.copytree(config.SPLITS_DIR, out / "data" / "splits", dirs_exist_ok=True)

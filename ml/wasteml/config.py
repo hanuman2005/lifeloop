@@ -41,6 +41,34 @@ NUM_CLASSES = len(CLASSES)
 CLASS_TO_IDX = {name: i for i, name in enumerate(CLASSES)}
 NOT_WASTE_IDX = CLASS_TO_IDX[NOT_WASTE_CLASS]
 
+# ── The five classes of the 28 October review ───────────────────────────────
+# Report §6.3 names seven categories. Two of them cannot be built from
+# photographs of a material: `recyclable` is a catch-all for anything
+# recoverable that is none of the four named materials, and `mixed` means a
+# contaminated, unsortable pile. Neither has a dataset, and the project's
+# earlier stand-in mappings (Textile and Electronic to recyclable, Hazardous to
+# mixed) label the picture of a battery as a picture of a mixed heap.
+#
+# These five are the materials that dominate Indian municipal generation and
+# the five that public datasets actually label. They are the whole of report
+# §6.3 minus the two composites, so nothing in Eq. 6.1, the urgency score or
+# the allocation rules changes — only the width of the softmax.
+FOCUS_CLASSES = ["Organic", "Plastic", "Paper", "Metal", "Glass"]
+
+# Folder name here, report §6.3 name there. Table 6.3 and the κ(class) factor of
+# §6.5 are written in the report's lowercase vocabulary, so the translation has
+# to live somewhere both sides can see it.
+REPORT_NAME = {
+    "Organic": "organic",
+    "Plastic": "plastic",
+    "Paper": "paper",
+    "Metal": "metal",
+    "Glass": "glass",
+}
+
+FOCUS_NUM_CLASSES = len(FOCUS_CLASSES)
+FOCUS_CLASS_TO_IDX = {name: i for i, name in enumerate(FOCUS_CLASSES)}
+
 # Kept for directory scanning; the folder name and the class name are the same.
 NOT_WASTE_DIR = NOT_WASTE_CLASS
 
@@ -58,6 +86,15 @@ SPLIT_SEED = 42
 # Below this many images a class cannot be evaluated meaningfully; prepare_dataset
 # warns loudly rather than letting it pass unnoticed.
 MIN_IMAGES_PER_CLASS = 150
+
+# The per-class goal for the five focus classes. 3,000 is not a round number
+# chosen for comfort: at a 70/15/15 split it leaves 450 test images per class,
+# which is the point where a per-class F1 stops moving by whole points when one
+# image changes, and the 95% confidence interval on a ~0.90 F1 narrows to about
+# ±0.03. Below roughly 1,000 per class the interval is wide enough that the
+# gap between the image-only baseline and the multimodal model would not be
+# distinguishable from noise, and that gap is the result the review turns on.
+FOCUS_TARGET_PER_CLASS = 3000
 
 # ── Collection targets ──────────────────────────────────────────────────────
 # The per-class goals from LABELLING-POLICY.md, kept here so scripts can report
@@ -104,16 +141,54 @@ DOUBTFUL_DIR = "Doubtful"
 # check_dataset.py enforces it, so the pattern is defined once here.
 FILENAME_PATTERN = r"^(?P<cls>[A-Za-z]+)_(?P<initials>[A-Z]{2,4})_(?P<num>\d{4,})$"
 
-# Downloaded datasets, named as ingest_public.py tags them. Images from these are
-# confined to the training split: they are studio photographs of single items, so a
-# score measured on them describes a different problem from the one the app solves.
-# See COLLECTION-PLAN.md. `local` is the team's own photographs; anything else (the
-# synthetic smoke set) is treated as local, because it is not this kind of mismatch.
+# Downloaded datasets, named as ingest_public.py tags them. `local` is the team's
+# own photographs; any source not listed here is treated as local. Which of these
+# may enter validation and test is decided by FIELD_SOURCES below.
 PUBLIC_SOURCES = {"trashnet", "garbage12", "taco", "openimages",
     # Web image search. Same treatment as any other public source: training split
     # only, never validation or test, so reported accuracy never rests on it.
     "scraped",
+    # ── Added for the five-class, 3,000-per-class dataset ────────────────────
+    # Studio-style sets. Large, cleanly labelled, and photographed one item at a
+    # time against a plain surface, which is the opposite of what a citizen
+    # sends. They supply volume to the training split and are barred from
+    # validation and test for exactly the reason TrashNet is.
+    "garbage_v2",
+    # ── Field sources, below ─────────────────────────────────────────────────
+    "realwaste", "mdwd", "zerowaste",
 }
+
+# Public sets whose photographs were taken where waste actually is — a landfill
+# tipping floor, a sorting conveyor, a street. They are public, so they stay in
+# PUBLIC_SOURCES for provenance, but they are the only public sets allowed into
+# validation and test.
+#
+# Why this is a change of policy and not a loophole: the old rule assumed the
+# held-out set would be the team's own photographs. With 15,000 images coming
+# from public sources and the team's own collection still at a few hundred, that
+# rule leaves no test set at all. The honest replacement is a cross-domain
+# split — train on curated images, test on field images — which measures the
+# thing report Gap 3 says is unmeasured, namely whether a classifier trained on
+# clean single-object photographs survives a cluttered real one. A score from
+# this split is lower than a same-domain score and means considerably more.
+#
+# Nothing from a studio set may enter here. If one does, the reported accuracy
+# silently becomes a studio accuracy again.
+FIELD_SOURCES = {
+    "realwaste",   # Whyte's Gully landfill, Wollongong. UCI #908, 2023.
+    "mdwd",        # Maltese street-level municipal waste, 2026.
+    "zerowaste",   # material-recovery-facility conveyor frames, CVPR 2022.
+    "taco",        # litter photographed in place, in context.
+}
+
+_not_public = FIELD_SOURCES - PUBLIC_SOURCES
+assert not _not_public, (
+    f"FIELD_SOURCES must all be public sources; missing from PUBLIC_SOURCES: "
+    f"{sorted(_not_public)}"
+)
+
+# The studio sets: public, and never eligible for validation or test.
+STUDIO_SOURCES = PUBLIC_SOURCES - FIELD_SOURCES
 
 # ── Training ────────────────────────────────────────────────────────────────
 BATCH_SIZE = 32

@@ -64,6 +64,74 @@ MAPPINGS = {
         "battery": "Hazardous",
         "trash": None,
     },
+    # RealWaste — UCI #908, photographed at a working landfill. The folder names
+    # carry a space; they are matched exactly as the archive writes them.
+    #
+    # Two folders are deliberately unmapped. "Miscellaneous Trash" is the report's
+    # `mixed`, which is not one of the five focus classes, and forcing it into a
+    # material would teach the model that a contaminated heap is plastic.
+    # "Textile Trash" has no slot among the five.
+    #
+    # "Vegetation" is garden waste — leaves, prunings, grass. It is organic by
+    # every definition the report uses, and in Bhimavaram it is a large part of
+    # what accumulates at temple and market points, so it maps to Organic rather
+    # than being dropped for not being food.
+    "realwaste": {
+        "Cardboard": "Paper",
+        "Paper": "Paper",
+        "Plastic": "Plastic",
+        "Metal": "Metal",
+        "Glass": "Glass",
+        "Food Organics": "Organic",
+        "Vegetation": "Organic",
+        "Miscellaneous Trash": None,
+        "Textile Trash": None,
+    },
+    # Garbage Classification v2 — the same taxonomy as garbage12 with the glass
+    # colours already merged. Kept as its own source rather than folded into
+    # garbage12 so the manifest records which of the two a file came from; the
+    # two sets overlap and the provenance is the only way to see it later.
+    #
+    # Ingest with --path pointing at the `original` folder. The archive also
+    # ships Standardized_256 and Standardized_384, which are the same
+    # photographs rescaled: ingesting those as well would treble every count
+    # while adding no information, and the near-duplicates would straddle the
+    # train/test boundary.
+    "garbage_v2": {
+        "plastic": "Plastic",
+        "glass": "Glass",
+        "metal": "Metal",
+        "paper": "Paper",
+        "cardboard": "Paper",
+        "biological": "Organic",
+        "clothes": "Textile",
+        "shoes": "Textile",
+        "battery": "Hazardous",
+        "trash": None,
+    },
+    # ZeroWaste-f — conveyor frames from a material recovery facility. Its four
+    # labels are the recyclable streams the facility sorts for; there is no
+    # organic class, because organics never reach that conveyor.
+    "zerowaste": {
+        "rigid_plastic": "Plastic",
+        "soft_plastic": "Plastic",
+        "cardboard": "Paper",
+        "metal": "Metal",
+    },
+    # MDWD — street-level municipal waste, detection labels. Folder names depend
+    # on the export, so the common spellings are covered and anything else is
+    # reported rather than guessed at.
+    "mdwd": {
+        "plastic": "Plastic",
+        "paper": "Paper",
+        "cardboard": "Paper",
+        "metal": "Metal",
+        "glass": "Glass",
+        "organic": "Organic",
+        "food": "Organic",
+        "mixed": None,
+        "other": None,
+    },
     # TACO — litter in the wild. Its supercategory names vary by release, so this
     # covers the common ones; unmapped folders are reported, not guessed at.
     "taco": {
@@ -225,12 +293,10 @@ MAPPINGS = {
 # prepare_dataset.py keeps these sources out of validation and test by name. If the
 # two lists drift apart, a public dataset silently becomes eligible for the held-out
 # set and the reported score stops describing real photographs.
-# Subset rather than equality: not every public source arrives through folder
-# mapping. scrape_images.py writes straight into the class folders and tags its own
-# provenance, so it has no MAPPINGS entry. What must hold is that anything this
-# script can ingest is a source prepare_dataset.py recognises — otherwise a public
-# dataset silently becomes eligible for validation and test, and the reported score
-# stops describing real photographs.
+# What must hold is that anything this script can ingest is a source
+# prepare_dataset.py recognises — otherwise a public dataset silently becomes
+# eligible for validation and test, and the reported score stops describing real
+# photographs.
 unknown_sources = set(MAPPINGS) - config.PUBLIC_SOURCES
 assert not unknown_sources, (
     f"MAPPINGS has sources config.PUBLIC_SOURCES does not know: {sorted(unknown_sources)}"

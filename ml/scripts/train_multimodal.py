@@ -7,16 +7,30 @@ validation macro-F1 with patience 6.
 
 Why macro-F1 and not accuracy
 -----------------------------
-The dataset is 46% organic and 2.7% metal, so a model that answered "organic"
-to everything would score 46% accuracy while being useless. Macro-F1 averages
-over the seven classes with equal weight, which is the number that moves when
-the rare classes improve. Accuracy is still reported, because the report quotes
-it, but selection is on macro-F1.
+Organic is 57% of the observations and glass and metal about 3% each, so a
+model that answered "organic" to everything would score 57% accuracy while being
+useless. Macro-F1 averages over the five classes with equal weight, which is the
+number that moves when the rare classes improve. Accuracy is still reported,
+because the report quotes it, but selection is on macro-F1.
+
+The loss is weighted by inverse class frequency as well. Table 6.2 specifies
+plain label-smoothed cross-entropy; the weights are a deliberate addition,
+because without them the gradient is dominated by organic and the rare classes
+barely move.
+
+The ablation
+------------
+`--image-only` trains the same network with the spatial and context inputs
+replaced by zeros, in training and in evaluation. Nothing else changes: same
+architecture, same splits, same seed, same schedule. The gap between that run
+and the full run is therefore the contribution of location and time, which is
+the evidence for report §6.4's claim that context resolves ambiguous photographs.
 
 Usage
 -----
     ml/.venv/Scripts/python ml/scripts/train_multimodal.py
     ml/.venv/Scripts/python ml/scripts/train_multimodal.py --epochs-head 2 --epochs-full 3
+    ml/.venv/Scripts/python ml/scripts/train_multimodal.py --image-only
 """
 
 from __future__ import annotations
@@ -33,11 +47,12 @@ import torch.nn as nn
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from wasteml.config import ARTIFACTS_DIR, DATA_DIR  # noqa: E402
-from wasteml.multimodal import REPORT_CLASSES, WasteNet  # noqa: E402
+from wasteml.multimodal import CLASS_INDEX, REPORT_CLASSES, WasteNet  # noqa: E402
 from wasteml.obsdata import build_loaders  # noqa: E402
 
 SPLIT_DIR = DATA_DIR / "obs_splits"
 OUT_STEM = "waste_multimodal"
+OUT_STEM_IMAGE_ONLY = "waste_image_only"
 
 # Table 6.2.
 BATCH_SIZE = 32
@@ -75,12 +90,16 @@ def macro_f1(confusion: torch.Tensor) -> tuple[float, list[float]]:
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, loader, device: torch.device) -> dict:
+def evaluate(
+    model: nn.Module, loader, device: torch.device, image_only: bool = False
+) -> dict:
     model.eval()
     size = len(REPORT_CLASSES)
     confusion = torch.zeros(size, size, dtype=torch.long)
 
     for image, spatial, context, label in loader:
+        if image_only:
+            spatial, context = torch.zeros_like(spatial), torch.zeros_like(context)
         logits = model(image.to(device), spatial.to(device), context.to(device))
         predicted = logits.argmax(dim=1).cpu()
         for truth, guess in zip(label, predicted):
@@ -110,11 +129,15 @@ def evaluate(model: nn.Module, loader, device: torch.device) -> dict:
     }
 
 
-def run_epoch(model, loader, criterion, optimiser, scheduler, device) -> float:
+def run_epoch(
+    model, loader, criterion, optimiser, scheduler, device, image_only: bool = False
+) -> float:
     model.train()
     running, seen = 0.0, 0
 
     for image, spatial, context, label in loader:
+        if image_only:
+            spatial, context = torch.zeros_like(spatial), torch.zeros_like(context)
         image = image.to(device)
         spatial = spatial.to(device)
         context = context.to(device)
@@ -140,6 +163,11 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument(
+        "--image-only",
+        action="store_true",
+        help="ablation: zero the spatial and context inputs, keep everything else",
+    )
+    parser.add_argument(
         "--limit-train",
         type=int,
         default=0,
@@ -161,7 +189,22 @@ def main() -> None:
           f"{len(val_loader.dataset)}/{len(test_loader.dataset)}")
 
     model = WasteNet().to(device)
-    criterion = nn.CrossEntropyLoss(label_smoothing=LABEL_SMOOTHING)
+
+    # Inverse-frequency weights from the training split only. Classes absent from
+    # train would divide by zero, so they get 0 and the run says so.
+    counts = torch.zeros(len(REPORT_CLASSES))
+    for row in train_loader.dataset.rows:
+        counts[CLASS_INDEX[row["label"]]] += 1
+    weights = counts.sum() / (len(REPORT_CLASSES) * counts.clamp(min=1))
+    weights[counts == 0] = 0.0
+    print("class weights   " + "  ".join(
+        f"{name} {w:.2f}" for name, w in zip(REPORT_CLASSES, weights.tolist())
+    ))
+    criterion = nn.CrossEntropyLoss(
+        weight=weights.to(device), label_smoothing=LABEL_SMOOTHING
+    )
+    mode = "image-only (ablation)" if args.image_only else "multimodal"
+    print(f"mode            {mode}")
 
     best_f1 = -1.0
     best_state = None
@@ -192,8 +235,10 @@ def main() -> None:
               f"lr {learning_rate}  epochs {epochs}")
 
         for epoch in range(1, epochs + 1):
-            loss = run_epoch(model, train_loader, criterion, optimiser, scheduler, device)
-            metrics = evaluate(model, val_loader, device)
+            loss = run_epoch(
+                model, train_loader, criterion, optimiser, scheduler, device, args.image_only
+            )
+            metrics = evaluate(model, val_loader, device, args.image_only)
             history.append({"phase": phase, "epoch": epoch, "loss": loss, **{
                 k: v for k, v in metrics.items() if k not in ("confusion", "per_class_f1", "per_class_recall")
             }})
@@ -222,7 +267,7 @@ def main() -> None:
         model.load_state_dict(best_state)
 
     print("\nevaluating the selected checkpoint on the held-out test split")
-    test_metrics = evaluate(model, test_loader, device)
+    test_metrics = evaluate(model, test_loader, device, args.image_only)
 
     print(f"  accuracy        {test_metrics['accuracy']:.4f}")
     print(f"  macro-F1        {test_metrics['macro_f1']:.4f}")
@@ -234,7 +279,8 @@ def main() -> None:
               f"{test_metrics['per_class_recall'][name]:.4f}")
 
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = ARTIFACTS_DIR / f"{OUT_STEM}.pt"
+    stem = OUT_STEM_IMAGE_ONLY if args.image_only else OUT_STEM
+    checkpoint_path = ARTIFACTS_DIR / f"{stem}.pt"
     torch.save(
         {
             "state_dict": model.state_dict(),
@@ -244,7 +290,7 @@ def main() -> None:
         checkpoint_path,
     )
 
-    metrics_path = ARTIFACTS_DIR / f"{OUT_STEM}_metrics.json"
+    metrics_path = ARTIFACTS_DIR / f"{stem}_metrics.json"
     metrics_path.write_text(
         json.dumps(
             {

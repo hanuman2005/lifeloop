@@ -36,17 +36,26 @@ import torch
 import torch.nn as nn
 import torchvision
 
-# The seven categories of report §6.3. Order defines the output index of the
-# network: appending is safe only before training, and reordering invalidates
-# every checkpoint.
+# The categories of report §6.3, less the two composites. Order defines the
+# output index of the network: appending is safe only before training, and
+# reordering invalidates every checkpoint.
+#
+# §6.3 lists seven. `recyclable` and `mixed` are not materials a photograph can
+# show — the first is a catch-all for anything recoverable that is none of the
+# four named materials, the second a contaminated pile — and the project's
+# stand-in mappings made them worse than absent: `recyclable` was Textile and
+# Electronic photographs, `mixed` was Hazardous ones, so the network was being
+# taught that a picture of a battery is a picture of an unsortable heap.
+#
+# The five that remain are the materials that dominate Indian municipal
+# generation and the ones public datasets actually label. Eq. 6.1 is unchanged;
+# only the width of the softmax is.
 REPORT_CLASSES = [
-    "recyclable",
     "organic",
     "plastic",
     "paper",
     "metal",
     "glass",
-    "mixed",
 ]
 
 NUM_CLASSES = len(REPORT_CLASSES)

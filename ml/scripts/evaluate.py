@@ -195,7 +195,11 @@ def main() -> int:
         "abstention_curve": metrics.abstention_curve(probs_after, test_targets),
     }
 
-    thresholds = pick_thresholds(probs_after, test_targets, args.threshold_floor, classes)
+    # Fitted on validation, like the temperature. Choosing a cutoff on the test set
+    # and then reporting the accuracy of what it kept on that same set is a number
+    # the cutoff was tuned to produce, and it would not survive new data.
+    val_probs = F.softmax(val_logits / temperature, dim=1)
+    thresholds = pick_thresholds(val_probs, val_targets, args.threshold_floor, classes)
 
     print(f"\n🎯 accuracy {results['accuracy']:.3f} · macro-F1 {results['macro_f1']:.3f}")
     print(f"   ECE {results['ece_before']:.4f} → {results['ece_after']:.4f} after calibration")

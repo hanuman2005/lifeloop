@@ -30,8 +30,13 @@ from __future__ import annotations
 
 import csv
 import random
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from wasteml.multimodal import REPORT_CLASSES  # noqa: E402
 
 ML_ROOT = Path(__file__).resolve().parents[1]
 OBSERVATIONS_FILE = ML_ROOT / "data" / "observations.csv"
@@ -45,8 +50,27 @@ def main() -> None:
     rng = random.Random(RANDOM_SEED)
 
     with OBSERVATIONS_FILE.open(encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-        fieldnames = list(rows[0])
+        all_rows = list(csv.DictReader(handle))
+        fieldnames = list(all_rows[0])
+
+    # observations.csv holds all seven categories of report §6.3 and is left
+    # that way: it is the dataset of Table 6.1, and regenerating it to drop two
+    # classes would throw away the work if the seven-class model is ever built.
+    # The filter happens here instead, so switching back is a one-line change to
+    # REPORT_CLASSES rather than a regeneration.
+    keep = set(REPORT_CLASSES)
+    rows = [row for row in all_rows if row["label"] in keep]
+    dropped = Counter(row["label"] for row in all_rows if row["label"] not in keep)
+    if dropped:
+        total_dropped = sum(dropped.values())
+        summary = ", ".join(f"{label} {n:,}" for label, n in dropped.most_common())
+        print(f"filtered to {len(keep)} classes: dropped {total_dropped:,} "
+              f"row(s) — {summary}")
+    if not rows:
+        raise SystemExit(
+            f"no observations left after filtering to {sorted(keep)}; "
+            "check that REPORT_CLASSES matches the labels in observations.csv"
+        )
 
     # Group observations by the object they photograph, and record each
     # object's class so the split can be stratified.
